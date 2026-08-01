@@ -90,6 +90,18 @@ New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
 Copy-Item -Force $built $dest
 Write-Host "==> Sidecar bundled to $dest"
 
+# Tauri picks externalBin by *host* triple. Local MinGW dev uses *-gnu.exe while
+# release CI uses *-msvc.exe — ship both names for the same PE on Windows.
+if ($targetTriple -match "windows") {
+  foreach ($alt in @("x86_64-pc-windows-msvc", "x86_64-pc-windows-gnu")) {
+    $altPath = Join-Path $targetDir "bunny-sidecar-$alt.exe"
+    if ($altPath -ne $dest) {
+      Copy-Item -Force $built $altPath
+      Write-Host "==> Also wrote $altPath (toolchain alias)"
+    }
+  }
+}
+
 # Plain name for resource_dir fallback in command.rs
 $plain = Join-Path $targetDir "bunny-sidecar.exe"
 Copy-Item -Force $built $plain

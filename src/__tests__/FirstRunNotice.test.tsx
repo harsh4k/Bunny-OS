@@ -1,32 +1,63 @@
 /**
- * FirstRunNotice smoke tests.
+ * First-run onboarding wizard tests.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import { FirstRunNotice } from "../components/FirstRunNotice";
 
-describe("FirstRunNotice", () => {
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(async (cmd: string) => {
+    if (cmd === "onboarding_scan") {
+      return {
+        os: "Windows",
+        arch: "x86_64",
+        app_count: 12,
+        sample_apps: ["Notepad", "Spotify"],
+      };
+    }
+    if (cmd === "ollama_running") return true;
+    if (cmd === "open_mic_privacy_settings") return;
+    if (cmd === "open_sound_settings") return;
+    return null;
+  }),
+}));
+
+describe("FirstRunNotice onboarding", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it("shows on first visit and dismisses", async () => {
+  it("walks welcome → scan → permissions → finish", async () => {
     await act(async () => {
       render(<FirstRunNotice />);
     });
-    expect(screen.getByLabelText(/first-run privacy notice/i)).toBeTruthy();
+    expect(screen.getByLabelText(/bunny os onboarding/i)).toBeTruthy();
+
     await act(async () => {
-      screen.getByLabelText(/acknowledge first-run notice/i).click();
+      screen.getByLabelText(/continue to system scan/i).click();
     });
-    expect(localStorage.getItem("bunnyos.firstRunAck.v1")).toBe("1");
-    expect(screen.queryByLabelText(/first-run privacy notice/i)).toBeNull();
+    await act(async () => {
+      screen.getByLabelText(/run system scan/i).click();
+    });
+    expect(await screen.findByText(/Found 12 apps/i)).toBeTruthy();
+
+    await act(async () => {
+      screen.getByLabelText(/continue to ollama check/i).click();
+    });
+    expect(await screen.findByLabelText(/finish onboarding/i)).toBeTruthy();
+
+    await act(async () => {
+      screen.getByLabelText(/finish onboarding/i).click();
+    });
+    expect(localStorage.getItem("bunnyos.onboarding.v1")).toBe("1");
+    expect(screen.queryByLabelText(/bunny os onboarding/i)).toBeNull();
   });
 
   it("stays hidden after acknowledge", async () => {
-    localStorage.setItem("bunnyos.firstRunAck.v1", "1");
+    localStorage.setItem("bunnyos.onboarding.v1", "1");
     await act(async () => {
       render(<FirstRunNotice />);
     });
-    expect(screen.queryByLabelText(/first-run privacy notice/i)).toBeNull();
+    expect(screen.queryByLabelText(/bunny os onboarding/i)).toBeNull();
   });
 });

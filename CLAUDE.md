@@ -66,6 +66,9 @@ pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSV
 ## Current status
 - Done: Architecture/security contract through voice, wake, memory
 - Done: Packaging scripts, structured logs, diagnostics, first-run notice, beta checklist
-- Done: P0 wiring — `externalBin`, `requirements-bundle.txt`, hardened `package-sidecar.ps1`, CI `release-windows.yml`
-- Human gates: MSVC `npm run build` (or tag `v*` for CI), code-signing cert, daily-drive soak (`docs/beta-checklist.md`)
-- Next (P1): `install.ps1` one-liner once a release artifact exists
+- Done: P0 — frozen sidecar, `externalBin`, Windows release CI
+- Done: P1 — `install.ps1` one-liner bootstrap (`-WhatIf` / `-LocalMsi`)
+- Done: P2 — onboarding wizard (scan + mic/sound settings + Ollama)
+- Done: P3 — uninstall docs + beta checklist install path
+- Scaffold: P4 — `install.sh` + `platform_seams.py` (macOS not runnable yet)
+- Human gates: MSVC installer or `v*` CI tag, code-signing, soak (`docs/beta-checklist.md`)

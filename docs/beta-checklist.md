@@ -21,9 +21,13 @@ If `link.exe` is present, `cargo test` also runs.
 ## C. Fresh install / first run
 
 - [ ] Fresh Windows 10/11 VM or clean profile install
-- [ ] First-run notice: mic starts muted; Ollama is external; Memory Off available
+- [ ] `irm https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.ps1 | iex` (or `-LocalMsi`)
+- [ ] Onboarding: privacy → system scan → mic/sound settings links → Ollama check → Finish
+- [ ] Mic starts muted; Ollama is external; Memory Off available
 - [ ] Ollama stopped → chat/advisor shows actionable “unreachable” guidance (no crash loop)
 - [ ] Ollama started → model advisor shows Fast / Balanced / Quality and requires click before pull
+
+See also [`docs/uninstall.md`](uninstall.md).
 
 ## D. Safe assistant loop
 

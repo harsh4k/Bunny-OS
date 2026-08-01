@@ -2,6 +2,14 @@
 
 Local-only, privacy-first desktop automation suite for Windows 10/11. No telemetry, no cloud.
 
+## Install (Windows)
+
+```powershell
+irm https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.ps1 | iex
+```
+
+Needs a GitHub Release with an MSI (tag `v*` after CI). Until then use `-LocalMsi` or run from source below.
+
 ## Quick start
 
 ### Prerequisites

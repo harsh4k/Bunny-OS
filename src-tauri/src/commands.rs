@@ -53,9 +53,46 @@ pub async fn open_mic_privacy_settings() -> Result<(), String> {
     .map_err(|e| format!("open_mic_privacy_settings task failed: {e}"))?
 }
 
+/// Open Windows Settings → System → Sound.
+#[tauri::command]
+pub async fn open_sound_settings() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        open::that("ms-settings:sound")
+            .map_err(|e| format!("Could not open sound settings: {e}"))
+    })
+    .await
+    .map_err(|e| format!("open_sound_settings task failed: {e}"))?
+}
+
+/// First-run onboarding: count Start Menu apps (read-only, no shell).
+#[derive(serde::Serialize)]
+pub struct OnboardingScan {
+    pub os: String,
+    pub arch: String,
+    pub app_count: usize,
+    pub sample_apps: Vec<String>,
+}
+
+#[tauri::command]
+pub async fn onboarding_scan() -> Result<OnboardingScan, String> {
+    let scan = tauri::async_runtime::spawn_blocking(|| {
+        let apps = crate::start_menu::discover_start_menu_apps();
+        let mut names: Vec<String> = apps.keys().cloned().collect();
+        names.sort();
+        let sample_apps = names.into_iter().take(8).collect();
+        OnboardingScan {
+            os: "Windows".to_string(),
+            arch: std::env::consts::ARCH.to_string(),
+            app_count: apps.len(),
+            sample_apps,
+        }
+    })
+    .await
+    .map_err(|e| format!("onboarding_scan task failed: {e}"))?;
+    Ok(scan)
+}
+
 /// Open Windows Settings → Time & language → Speech (add voices).
-///
-/// British voices (George / Hazel) install from here; Bunny prefers them for TTS.
 #[tauri::command]
 pub async fn open_speech_settings() -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(|| {

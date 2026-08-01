@@ -370,6 +370,15 @@
 .btnPrimary:hover:not(:disabled) { background: var(--color-brand); }
 .btnPrimary:disabled { opacity: 0.4; cursor: not-allowed; }
 
+.btnGhost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+.btnGhost:hover:not(:disabled) {
+  background: var(--color-surface-elevated);
+  color: var(--color-text-primary);
+}
+
 .btnSecondary {
   background: var(--color-surface-elevated);
   color: var(--color-text-secondary);

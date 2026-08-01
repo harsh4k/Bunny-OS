@@ -54,6 +54,15 @@ git push origin v0.1.0
 Workflow: `.github/workflows/release-windows.yml`  
 Produces a **draft prerelease** with the Windows installer. Signing remains a human step.
 
+## End-user install (P1)
+
+```powershell
+irm https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.ps1 | iex
+```
+
+Or: `pwsh -File install.ps1 -WhatIf` / `-LocalMsi .\path\to.msi`  
+Test gate: `pwsh -File scripts/test-install.ps1`
+
 ## Structured logs
 
 - Location: `%LOCALAPPDATA%\BunnyOS\logs\bunny-YYYY-MM-DD.log`
