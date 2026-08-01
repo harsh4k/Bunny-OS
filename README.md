@@ -33,7 +33,7 @@ See [docs/SHIPPING.md](docs/SHIPPING.md) for signing / notarization before wide 
 | Visual Studio Build Tools 2019+ | latest | **Windows** — provides `link.exe` for MSVC (or use MinGW; see note) |
 | Xcode CLT | latest | **macOS** — required for Tauri |
 | Python | 3.11+ | For sidecar subprocess |
-| Ollama | user-installed | Run `ollama serve` before using Respond action |
+| Ollama | auto via Bunny | Bunny downloads the official installer if missing, starts it, pulls `llama3.2:1b` |
 
 > **Rust toolchain:** Repo pins `stable`. Windows MinGW users: copy `src-tauri/.cargo/config.toml.windows` to `config.toml` (see that folder’s README). MSVC and macOS hosts need no override.
 

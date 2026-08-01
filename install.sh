@@ -200,7 +200,7 @@ step "Checking Ollama"
 if ollama_ok; then
   echo "OK: Ollama is reachable on 127.0.0.1:11434"
 else
-  warn "Ollama is not running. Install from https://ollama.com and run 'ollama serve'."
+  warn "Ollama not running yet — Bunny will offer Install & start Ollama on first launch."
 fi
 
 APP_PATH="/Applications/Bunny OS.app"

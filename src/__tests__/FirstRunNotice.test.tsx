@@ -45,6 +45,7 @@ describe("FirstRunNotice onboarding", () => {
       screen.getByLabelText(/continue to ollama check/i).click();
     });
     expect(await screen.findByLabelText(/finish onboarding/i)).toBeTruthy();
+    expect(await screen.findByText(/Ollama is ready/i)).toBeTruthy();
 
     await act(async () => {
       screen.getByLabelText(/finish onboarding/i).click();

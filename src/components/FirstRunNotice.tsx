@@ -75,11 +75,28 @@ export function FirstRunNotice({ onDismiss }: Props) {
 
   const checkOllama = useCallback(async () => {
     setBusy(true);
+    setStep("ollama");
     try {
       const ok = await invoke<boolean>("ollama_running");
       setOllamaOk(ok);
     } catch {
       setOllamaOk(false);
+    } finally {
+      setBusy(false);
+      setStep("done");
+    }
+  }, []);
+
+  const installOllama = useCallback(async () => {
+    setBusy(true);
+    setStep("ollama");
+    setScanError(null);
+    try {
+      await invoke<string>("ensure_ollama");
+      setOllamaOk(true);
+    } catch (e) {
+      setOllamaOk(false);
+      setScanError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
       setStep("done");
@@ -194,25 +211,45 @@ export function FirstRunNotice({ onDismiss }: Props) {
         )}
 
         {step === "ollama" && (
-          <p className={styles.idleHint}>Checking Ollama…</p>
+          <p className={styles.idleHint}>
+            {busy
+              ? "Setting up Ollama (download / start / default model). This can take a few minutes…"
+              : "Checking Ollama…"}
+          </p>
         )}
 
         {step === "done" && (
           <>
             <p className={styles.idleHint}>
               {ollamaOk
-                ? "Ollama is reachable. You’re ready."
-                : "Ollama is not running yet. Install it from ollama.com and use Start Ollama in Chat when ready."}
+                ? "Ollama is ready with a default chat model."
+                : "Ollama isn’t ready yet. Bunny can install it for you — no separate download needed."}
             </p>
+            {scanError ? (
+              <p className={styles.errorMsg} role="alert">
+                {scanError}
+              </p>
+            ) : null}
+            {!ollamaOk ? (
+              <button
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={() => void installOllama()}
+                disabled={busy}
+                aria-label="Install and start Ollama"
+              >
+                {busy ? "Installing…" : "Install & start Ollama"}
+              </button>
+            ) : null}
             <p className={styles.idleHint}>
               Hold F9 to talk. Expand the island from the tray for Chat, Memory, and Wake.
             </p>
             <button
-              className={`${styles.btn} ${styles.btnPrimary}`}
+              className={`${styles.btn} ${ollamaOk ? styles.btnPrimary : styles.btnGhost}`}
               onClick={finish}
+              disabled={busy}
               aria-label="Finish onboarding"
             >
-              Finish
+              {ollamaOk ? "Finish" : "Finish without chat for now"}
             </button>
           </>
         )}

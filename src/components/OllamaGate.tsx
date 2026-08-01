@@ -1,9 +1,8 @@
 /**
- * OllamaGate — banner shown when the local Ollama server isn't answering.
+ * OllamaGate — banner when the local Ollama server isn't answering.
  *
- * Chat, the model advisor, and voice all fail with the same root cause, so
- * rather than surfacing a raw connection-refused string in three places, this
- * detects the condition up front and offers to start the installed app.
+ * Offers Install & start (downloads official Ollama if missing, then pulls a
+ * default chat model) so end users never need a separate manual install.
  */
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
@@ -14,17 +13,26 @@ interface Props {
   onReady?: () => void;
 }
 
-type Phase = "checking" | "running" | "down" | "starting" | "failed";
+type Phase =
+  | "checking"
+  | "running"
+  | "down"
+  | "starting"
+  | "installing"
+  | "failed";
 
 export function OllamaGate({ onReady }: Props) {
   const [phase, setPhase] = useState<Phase>("checking");
   const [message, setMessage] = useState<string | null>(null);
+  const [installed, setInstalled] = useState(true);
 
   const check = useCallback(async () => {
     try {
-      const running = await invoke<boolean>("ollama_running");
-      // Only nag when we affirmatively know it's down. An unrecognised answer
-      // means no Tauri backend (browser preview, tests) — stay out of the way.
+      const [running, hasApp] = await Promise.all([
+        invoke<boolean>("ollama_running"),
+        invoke<boolean>("ollama_installed").catch(() => true),
+      ]);
+      setInstalled(hasApp !== false);
       setPhase(running === false ? "down" : "running");
     } catch {
       setPhase("running");
@@ -35,11 +43,16 @@ export function OllamaGate({ onReady }: Props) {
     void check();
   }, [check]);
 
-  const start = async () => {
-    setPhase("starting");
-    setMessage(null);
+  const ensure = async () => {
+    setPhase(installed ? "starting" : "installing");
+    setMessage(
+      installed
+        ? "Starting Ollama…"
+        : "Downloading official Ollama (one-time). This can take several minutes…"
+    );
     try {
-      await invoke<string>("start_ollama");
+      const result = await invoke<string>("ensure_ollama");
+      setMessage(result);
       setPhase("running");
       onReady?.();
     } catch (err) {
@@ -50,19 +63,28 @@ export function OllamaGate({ onReady }: Props) {
 
   if (phase === "checking" || phase === "running") return null;
 
+  const busy = phase === "starting" || phase === "installing";
+
   return (
     <div className={styles.errorState} role="alert">
       <p className={styles.errorMsg}>
-        Ollama isn’t running, so Bunny can’t think or answer out loud. Everything
-        else keeps working.
+        {installed
+          ? "Ollama isn’t running, so Bunny can’t chat or answer out loud."
+          : "Bunny will download and install Ollama for you (official build). One-time, on this machine only."}
       </p>
       {message && <p className={styles.errorMsg}>{message}</p>}
       <button
         className={`${styles.btn} ${styles.btnPrimary}`}
-        onClick={() => void start()}
-        disabled={phase === "starting"}
+        onClick={() => void ensure()}
+        disabled={busy}
       >
-        {phase === "starting" ? "Starting Ollama…" : "Start Ollama"}
+        {phase === "installing"
+          ? "Installing Ollama…"
+          : phase === "starting"
+            ? "Starting Ollama…"
+            : installed
+              ? "Start Ollama"
+              : "Install & start Ollama"}
       </button>
     </div>
   );

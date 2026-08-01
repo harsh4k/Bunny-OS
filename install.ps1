@@ -158,7 +158,7 @@ Write-Step "Checking Ollama"
 if (Test-Ollama) {
   Write-Host "OK: Ollama is reachable on 127.0.0.1:11434"
 } else {
-  Write-Warn "Ollama is not running. Install from https://ollama.com and run 'ollama serve'."
+  Write-Warn "Ollama not running yet — Bunny will offer Install & start Ollama on first launch."
 }
 
 if (-not $SkipLaunch -and -not $WhatIf) {

@@ -13,6 +13,7 @@ pub mod hotkey;
 pub mod ipc;
 pub mod media_keys;
 pub mod ollama;
+pub mod ollama_bootstrap;
 pub mod protocol;
 pub mod sidecar;
 pub mod start_menu;
@@ -70,6 +71,7 @@ pub fn run() {
             commands::hide_window,
             commands::show_window,
             commands::ollama_running,
+            commands::ollama_installed,
             commands::open_mic_privacy_settings,
             commands::open_sound_settings,
             commands::open_accessibility_settings,
@@ -78,6 +80,7 @@ pub fn run() {
             commands::restart_sidecar,
             commands::send_action,
             commands::start_ollama,
+            commands::ensure_ollama,
             commands::execute_assistant_action,
         ])
         .setup(|app| {

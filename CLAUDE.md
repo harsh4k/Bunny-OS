@@ -18,7 +18,7 @@ Bunny OS: local-only privacy-first desktop automation suite for Windows 10/11 an
 - Frontend: React 18.3.1 + TypeScript 5.9.3 + Vite 6.4.3
 - IPC: Typed framed JSON stdio protocol — canonical schema in `contracts/ipc.ts`
 - STT: faster-whisper (optional; in-memory push-to-talk)
-- Chat: Ollama (external; user runs locally via `ollama serve`)
+- Chat: Ollama (auto-installed on first run from official ollama.com build if missing; default model `llama3.2:1b`)
 - Local DB: SQLite under `%LOCALAPPDATA%\BunnyOS\` (Windows) or `~/Library/Application Support/BunnyOS/` (macOS)
 - No shell execution (cmd.exe/powershell/osascript forbidden); Win32 / LaunchServices / Tauri APIs allowed
 - Allowlisted MVP actions only: `open_app`, `open_url`, `youtube_search`, `youtube_play`, `spotify_open`, `spotify_search`, `spotify_play`, `media_play`, `media_next`, `media_prev`, `show_system_summary`, `get_local_time`, `get_local_date`, `respond`
@@ -51,7 +51,7 @@ Bunny OS: local-only privacy-first desktop automation suite for Windows 10/11 an
 - Do NOT execute shell commands (cmd.exe, powershell, osascript, free-form); Win32 / LaunchServices / Tauri APIs only
 - Do NOT persist raw audio or private data
 - IPC payloads must be fully typed in Rust (no `any`, no index signatures); discriminated unions only
-- faster-whisper & Ollama not bundled; user-provided
+- faster-whisper weights are prefetched into the frozen sidecar in CI; Ollama is auto-bootstrapped from the official installer on first run (not redistributed inside our MSI/DMG)
 - Signing keys, checksums, update verification: [PLANNED] never store private keys in repo
 
 ## Run commands

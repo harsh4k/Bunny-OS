@@ -1,19 +1,23 @@
-//! Ollama reachability probe + launcher.
+//! Ollama reachability, launch, and first-run bootstrap (approach A).
 //!
-//! Bunny OS never bundles Ollama; the user installs and runs it. Everything
-//! here is a localhost TCP probe plus a LaunchServices / ShellExecute launch of
-//! the installed app — no cmd.exe, no PowerShell, no network beyond 127.0.0.1.
+//! If Ollama is missing, Bunny downloads the official installer, runs it,
+//! waits for :11434, then pulls a small default chat model.
 
 use std::net::{Ipv4Addr, SocketAddr, TcpStream};
 use std::path::PathBuf;
+use std::process::Command;
 use std::time::Duration;
 
+use crate::ollama_bootstrap::{self, curl_bin};
+
 pub const OLLAMA_PORT: u16 = 11434;
+/// Small Fast-tier model so chat works after a fresh install.
+pub const DEFAULT_MODEL: &str = "llama3.2:1b";
 
 const PROBE_TIMEOUT_MS: u64 = 400;
-/// Ollama loads its model index on boot; give it a generous window.
-const LAUNCH_WAIT_SECS: u64 = 20;
-const LAUNCH_POLL_MS: u64 = 500;
+const LAUNCH_WAIT_SECS: u64 = 45;
+const PULL_WAIT_SECS: u64 = 600;
+const POLL_MS: u64 = 500;
 
 /// True when something is accepting connections on the Ollama port.
 pub fn is_running() -> bool {
@@ -21,11 +25,10 @@ pub fn is_running() -> bool {
     TcpStream::connect_timeout(&addr, Duration::from_millis(PROBE_TIMEOUT_MS)).is_ok()
 }
 
-/// Installed Ollama executables / apps, most preferred first.
 fn candidates() -> Vec<PathBuf> {
     #[cfg(target_os = "macos")]
     {
-        return macos_candidates();
+        macos_candidates()
     }
     #[cfg(not(target_os = "macos"))]
     {
@@ -72,38 +75,108 @@ fn macos_candidates() -> Vec<PathBuf> {
     out
 }
 
-/// Path to an installed Ollama executable, if one exists.
+/// Path to an installed Ollama executable / app, if one exists.
 pub fn installed_path() -> Option<PathBuf> {
     candidates().into_iter().find(|p| p.exists())
 }
 
+pub fn is_installed() -> bool {
+    installed_path().is_some()
+}
+
 /// Launch Ollama and block until the port answers or we give up.
-///
-/// Returns `Ok` with a human-readable status. Safe to call when already
-/// running — it short-circuits.
 pub fn launch_and_wait() -> Result<String, String> {
     if is_running() {
         return Ok("Ollama is already running".to_string());
     }
 
     let exe = installed_path().ok_or_else(|| {
-        "Ollama is not installed. Download it from https://ollama.com/download".to_string()
+        "Ollama is not installed yet. Use Install & start Ollama in Bunny.".to_string()
     })?;
 
     open::that(&exe).map_err(|e| format!("Could not start Ollama ({}): {e}", exe.display()))?;
+    wait_until_running(LAUNCH_WAIT_SECS)?;
+    Ok("Ollama started".to_string())
+}
 
-    let deadline = std::time::Instant::now() + Duration::from_secs(LAUNCH_WAIT_SECS);
-    while std::time::Instant::now() < deadline {
-        if is_running() {
-            return Ok("Ollama started".to_string());
+/// Ensure Ollama is installed, running, and has a default chat model.
+pub fn ensure_ready() -> Result<String, String> {
+    let mut notes: Vec<String> = Vec::new();
+
+    if !is_running() {
+        if !is_installed() {
+            notes.push(ollama_bootstrap::install_official(installed_path)?);
         }
-        std::thread::sleep(Duration::from_millis(LAUNCH_POLL_MS));
+        notes.push(launch_and_wait()?);
+    } else {
+        notes.push("Ollama is already running".to_string());
     }
 
+    notes.push(ensure_default_model()?);
+    Ok(notes.join(" · "))
+}
+
+fn wait_until_running(secs: u64) -> Result<(), String> {
+    let deadline = std::time::Instant::now() + Duration::from_secs(secs);
+    while std::time::Instant::now() < deadline {
+        if is_running() {
+            return Ok(());
+        }
+        std::thread::sleep(Duration::from_millis(POLL_MS));
+    }
     Err(format!(
-        "Started {} but nothing answered on port {OLLAMA_PORT} within {LAUNCH_WAIT_SECS}s",
-        exe.display()
+        "Ollama did not answer on port {OLLAMA_PORT} within {secs}s"
     ))
+}
+
+fn ensure_default_model() -> Result<String, String> {
+    if model_installed(DEFAULT_MODEL)? {
+        return Ok(format!("Model {DEFAULT_MODEL} ready"));
+    }
+    pull_model(DEFAULT_MODEL)?;
+    if model_installed(DEFAULT_MODEL)? {
+        return Ok(format!("Pulled {DEFAULT_MODEL}"));
+    }
+    Err(format!(
+        "Pulled {DEFAULT_MODEL} but it is not listed yet — open Models and retry if chat fails"
+    ))
+}
+
+fn model_installed(name: &str) -> Result<bool, String> {
+    let url = format!("http://127.0.0.1:{OLLAMA_PORT}/api/tags");
+    let out = Command::new(curl_bin())
+        .args(["-fsS", "--max-time", "10", &url])
+        .output()
+        .map_err(|e| format!("Could not list Ollama models: {e}"))?;
+    if !out.status.success() {
+        return Err("Could not list Ollama models".to_string());
+    }
+    let body = String::from_utf8_lossy(&out.stdout);
+    Ok(body.contains(&format!("\"{name}\"")) || body.contains(name))
+}
+
+fn pull_model(name: &str) -> Result<(), String> {
+    let url = format!("http://127.0.0.1:{OLLAMA_PORT}/api/pull");
+    let payload = format!(r#"{{"name":"{name}","stream":false}}"#);
+    let status = Command::new(curl_bin())
+        .args([
+            "-fsS",
+            "--max-time",
+            &PULL_WAIT_SECS.to_string(),
+            "-H",
+            "Content-Type: application/json",
+            "-d",
+            &payload,
+            &url,
+        ])
+        .status()
+        .map_err(|e| format!("Could not pull {name}: {e}"))?;
+    if !status.success() {
+        return Err(format!(
+            "ollama pull {name} failed ({status}). Check disk space and retry."
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -118,15 +191,18 @@ mod tests {
                 .and_then(|n| n.to_str())
                 .unwrap_or_default()
                 .to_ascii_lowercase();
-            assert!(
-                name.contains("ollama"),
-                "unexpected candidate {path:?}"
-            );
+            assert!(name.contains("ollama"), "unexpected candidate {path:?}");
         }
     }
 
     #[test]
     fn probe_does_not_panic() {
         let _ = is_running();
+        let _ = is_installed();
+    }
+
+    #[test]
+    fn default_model_is_stable_tag() {
+        assert!(DEFAULT_MODEL.contains(':'));
     }
 }

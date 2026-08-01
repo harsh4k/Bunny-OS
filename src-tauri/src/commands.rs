@@ -39,6 +39,22 @@ pub async fn start_ollama() -> Result<String, String> {
         .map_err(|e| format!("start_ollama task failed: {e}"))?
 }
 
+/// Download (if needed), install, start Ollama, and pull the default chat model.
+#[tauri::command]
+pub async fn ensure_ollama() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(ollama::ensure_ready)
+        .await
+        .map_err(|e| format!("ensure_ollama task failed: {e}"))?
+}
+
+/// True when an Ollama binary/app is present on disk (may still be stopped).
+#[tauri::command]
+pub async fn ollama_installed() -> bool {
+    tauri::async_runtime::spawn_blocking(ollama::is_installed)
+        .await
+        .unwrap_or(false)
+}
+
 /// Open OS privacy settings for the microphone.
 ///
 /// Desktop apps don't get a Chrome-style prompt. Access is controlled in

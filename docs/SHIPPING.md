@@ -8,6 +8,7 @@
 | CI builds both OS | `.github/workflows/release.yml` on `v*` tags |
 | Checksums on release | `SHA256SUMS.txt` uploaded; installers **fail closed** without it |
 | Whisper weights | Prefetched into frozen sidecar in CI (`BUNNY_PREFETCH_WHISPER=1`) |
+| Ollama | Auto-download official installer + pull `llama3.2:1b` on first use |
 | First-run UI | Forces dashboard + onboarding (mic / Accessibility on Mac) |
 | **Code signing** | **Requires your certs** — see below |
 
