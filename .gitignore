@@ -1,0 +1,104 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets.json
+
+# Local agent tooling (not part of the shipped app)
+Setup/
+
+# Node/npm
+node_modules/
+package-lock.json
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log
+
+# Rust/Cargo
+target/
+Cargo.lock
+**/*.rs.bk
+*.rlib
+*.pdb
+*.exe
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+.vscode-server/
+
+# Build artifacts
+dist/
+build/
+.next/
+out/
+
+# OS
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Tauri
+src-tauri/target/
+# Bundled sidecar binaries (built by scripts/package-sidecar.ps1)
+src-tauri/binaries/*.exe
+!src-tauri/binaries/.gitkeep
+
+# PyInstaller workdirs
+build/sidecar/
+dist/sidecar/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+/lib/
+/lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Local user data (sensitive)
+~/.bunny/
+.bunny/
+config.toml
+
+# Testing
+coverage/
+.nyc_output/
+.coverage
+
+# Misc
+.cache/
+.turbo/
+.DS_Store

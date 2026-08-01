@@ -1,0 +1,36 @@
+{
+  "name": "bunny-os",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:frontend": "vite --port 1420",
+    "build": "tauri build",
+    "build:frontend": "vite build",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify:beta": "pwsh -File scripts/verify-beta.ps1",
+    "package:sidecar": "pwsh -File scripts/package-sidecar.ps1",
+    "diagnostics": "pwsh -File scripts/export-diagnostics.ps1"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@vitejs/plugin-react": "^4",
+    "jsdom": "^25",
+    "typescript": "^5",
+    "vite": "^6",
+    "vitest": "^2"
+  }
+}

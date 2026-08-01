@@ -1,0 +1,9 @@
+# Sidecar binaries for Tauri externalBin.
+#
+# Build with:
+#   pwsh -File scripts/package-sidecar.ps1
+#
+# Expected release artifact name (Windows MSVC):
+#   bunny-sidecar-x86_64-pc-windows-msvc.exe
+#
+# This folder is empty in source control; CI/release builds populate it.

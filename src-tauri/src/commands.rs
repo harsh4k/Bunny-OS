@@ -1,0 +1,144 @@
+//! Tauri IPC command handlers (kept separate so `#[tauri::command]` macros
+//! don't collide with `generate_handler!` in `lib.rs`).
+
+use std::sync::atomic::Ordering;
+
+use tauri::{AppHandle, Manager, State};
+
+use crate::{broker, hotkey, ipc, ollama, sidecar, AppState};
+
+#[tauri::command]
+pub async fn get_lifecycle(state: State<'_, AppState>) -> Result<String, String> {
+    Ok(state.lifecycle.lock().await.status.to_string())
+}
+
+#[tauri::command]
+pub fn get_mic_muted(state: State<'_, AppState>) -> bool {
+    state.mic_muted.load(Ordering::SeqCst)
+}
+
+/// Key combo bound to push-to-talk, for display in the UI.
+#[tauri::command]
+pub fn get_ptt_label() -> &'static str {
+    hotkey::PTT_LABEL
+}
+
+/// Is the local Ollama server accepting connections?
+#[tauri::command]
+pub async fn ollama_running() -> bool {
+    tauri::async_runtime::spawn_blocking(ollama::is_running)
+        .await
+        .unwrap_or(false)
+}
+
+/// Launch the installed Ollama app and wait for its server to come up.
+#[tauri::command]
+pub async fn start_ollama() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(ollama::launch_and_wait)
+        .await
+        .map_err(|e| format!("start_ollama task failed: {e}"))?
+}
+
+/// Open Windows Settings → Privacy → Microphone.
+///
+/// Desktop apps don't get a Chrome-style prompt. Access is controlled in
+/// system privacy settings; this just jumps the user there.
+#[tauri::command]
+pub async fn open_mic_privacy_settings() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        open::that("ms-settings:privacy-microphone")
+            .map_err(|e| format!("Could not open microphone settings: {e}"))
+    })
+    .await
+    .map_err(|e| format!("open_mic_privacy_settings task failed: {e}"))?
+}
+
+/// Open Windows Settings → Time & language → Speech (add voices).
+///
+/// British voices (George / Hazel) install from here; Bunny prefers them for TTS.
+#[tauri::command]
+pub async fn open_speech_settings() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        open::that("ms-settings:speech")
+            .map_err(|e| format!("Could not open speech settings: {e}"))
+    })
+    .await
+    .map_err(|e| format!("open_speech_settings task failed: {e}"))?
+}
+
+/// Forward a typed action to the running sidecar.
+#[tauri::command]
+pub async fn send_action(
+    state: State<'_, AppState>,
+    id: String,
+    payload: ipc::Action,
+) -> Result<(), String> {
+    const MAX_CHAT_MESSAGE_LEN: usize = 8192;
+    const MAX_CANCEL_ID_LEN: usize = 128;
+
+    match &payload {
+        ipc::Action::Chat { message, .. } => {
+            if message.is_empty() || message.len() > MAX_CHAT_MESSAGE_LEN {
+                return Err(format!(
+                    "chat message must be 1-{MAX_CHAT_MESSAGE_LEN} characters"
+                ));
+            }
+        }
+        ipc::Action::CancelChat { request_id } => {
+            if request_id.is_empty() || request_id.len() > MAX_CANCEL_ID_LEN {
+                return Err(format!(
+                    "cancel_chat request_id must be 1-{MAX_CANCEL_ID_LEN} characters"
+                ));
+            }
+        }
+        ipc::Action::SetMute { muted } => {
+            state.mic_muted.store(*muted, Ordering::SeqCst);
+        }
+        _ => {}
+    }
+
+    let msg = ipc::HostMessage::Action { id, payload };
+    sidecar::send_to_sidecar(&state.sidecar_handle, &msg)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn execute_assistant_action(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    action: ipc::AssistantAction,
+) -> Result<String, String> {
+    broker::execute(&app, &state.audit_log, action).await
+}
+
+#[tauri::command]
+pub async fn hide_window(app: AppHandle) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window("main") {
+        win.hide().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn quit_app(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    hotkey::unregister(&app);
+    crate::abort_supervisor(&state);
+    sidecar::stop_sidecar(&state.sidecar_handle).await;
+    app.exit(0);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn restart_sidecar(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    crate::abort_supervisor(&state);
+    sidecar::stop_sidecar(&state.sidecar_handle).await;
+    {
+        let mut s = state.lifecycle.lock().await;
+        s.crash_count = 0;
+        s.status = ipc::LifecycleStatus::Stopped;
+        s.reason = None;
+    }
+    crate::spawn_supervisor(&app, &state);
+    Ok(())
+}

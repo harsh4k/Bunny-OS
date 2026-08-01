@@ -1,0 +1,23 @@
+# Bunny OS sidecar dependencies
+#
+# Core sidecar uses the Python standard library only.
+# Optional packages enable voice features; missing packages degrade gracefully
+# with an actionable message rather than a crash.
+#
+# Install the optional set with:
+#   pip install -r requirements.txt --no-deps  (or uncomment the lines below)
+
+# Push-to-talk: microphone capture + speech-to-text
+# faster-whisper>=1.0.0
+# sounddevice>=0.4.6
+# numpy>=1.26
+
+# Spoken replies: SAPI via the Win32 COM API (no shell is ever spawned).
+# pywin32>=306
+
+# Wake word ("hey jarvis" et al). Model weights download once on first enable.
+# openwakeword>=0.6.0
+# onnxruntime>=1.16
+
+# Test runner
+# pytest>=8.0

@@ -1,0 +1,280 @@
+/* AdvisorPanel — overlay rendered inside the CompactPanel */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.closeBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-base);
+  transition: background 0.15s, color 0.15s;
+}
+
+.closeBtn:hover {
+  background: var(--state-error-bg);
+  color: var(--state-error-fg);
+}
+
+/* ── Body ── */
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+/* ── Idle / loading / error states ── */
+.emptyState,
+.loadingState,
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  flex: 1;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-brand);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorMsg {
+  color: var(--state-error-fg);
+  font-size: var(--text-xs);
+  word-break: break-word;
+}
+
+/* ── Hardware section ── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.sectionTitle {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.hwRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+.hwKey {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.hwVal {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.warning {
+  font-size: var(--text-xs);
+  color: var(--state-degraded-fg);
+  background: var(--state-degraded-bg);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
+}
+
+/* ── Constraint badge ── */
+.constraintBadge {
+  font-size: 10px;
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.constraintBadge[data-constraint="cpu_only"]      { background: var(--state-degraded-bg); color: var(--state-degraded-fg); }
+.constraintBadge[data-constraint="vram_limited"]  { background: var(--state-starting-bg); color: var(--state-starting-fg); }
+.constraintBadge[data-constraint="vram_ok"]       { background: var(--state-ready-bg);    color: var(--state-ready-fg);    }
+
+/* ── Recommendation card ── */
+.recCard {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3);
+  background: var(--color-surface-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.recHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.tierBadge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.tierBadge[data-tier="fast"]     { background: var(--state-ready-bg);    color: var(--state-ready-fg);    }
+.tierBadge[data-tier="balanced"] { background: var(--state-starting-bg); color: var(--state-starting-fg); }
+.tierBadge[data-tier="quality"]  { background: var(--color-brand-dim);   color: var(--color-brand);       }
+
+.recName {
+  font-size: var(--text-xs);
+  color: var(--color-text-primary);
+  font-weight: 500;
+  flex: 1;
+}
+
+.recMeta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px var(--sp-3);
+  font-size: var(--text-xs);
+}
+
+.recMeta dt { color: var(--color-text-muted); }
+.recMeta dd { color: var(--color-text-secondary); font-family: var(--font-mono); }
+.recMeta .reason { font-family: var(--font-sans); word-break: break-word; }
+
+/* ── Badges + buttons in card header ── */
+.availBadge {
+  font-size: 10px;
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-sm);
+  background: var(--state-ready-bg);
+  color: var(--state-ready-fg);
+  font-weight: 500;
+}
+
+.noRecs {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--sp-4) 0;
+}
+
+/* ── Action buttons ── */
+.btnPrimary,
+.btnSecondary,
+.btnPull,
+.btnConfirm,
+.btnCancel,
+.btnRescan {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  font-size: var(--text-xs);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btnPrimary {
+  background: var(--color-brand-dim);
+  border-color: var(--color-brand);
+  color: var(--color-text-primary);
+}
+.btnPrimary:hover  { background: var(--color-brand); }
+.btnPrimary:disabled { opacity: 0.4; cursor: default; }
+
+.btnSecondary { background: var(--color-surface-elevated); color: var(--color-text-secondary); }
+.btnSecondary:hover { background: var(--color-border); color: var(--color-text-primary); }
+
+.btnPull { background: var(--state-starting-bg); border-color: var(--state-starting-fg); color: var(--state-starting-fg); }
+.btnPull:hover { background: var(--state-starting-fg); color: var(--color-bg); }
+
+.btnConfirm { background: var(--state-ready-bg); border-color: var(--state-ready-fg); color: var(--state-ready-fg); }
+.btnConfirm:hover { background: var(--state-ready-fg); color: var(--color-bg); }
+
+.btnCancel { background: transparent; color: var(--color-text-muted); }
+.btnCancel:hover { color: var(--color-text-secondary); }
+
+.btnRescan {
+  background: var(--color-surface-elevated);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+  align-self: flex-end;
+  margin-top: auto;
+}
+.btnRescan:hover { color: var(--color-text-secondary); }
+
+.confirmRow { display: flex; align-items: center; gap: var(--sp-1); }
+
+/* ── GPU disclosure note ── */
+.gpuNote {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  background: var(--color-surface-elevated);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-1) var(--sp-2);
+  margin-top: 2px;
+}
