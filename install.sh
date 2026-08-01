@@ -180,9 +180,10 @@ else
     echo "[WhatIf] would verify against $SUM_URL"
   else
     step "Downloading $DMG_NAME"
-    curl -fsSL -o "$INSTALLER_PATH" "$DMG_URL"
+    # No -s: curl's meter shows %, size, speed and time left for the ~230 MB DMG.
+    curl -fL --retry 3 --retry-delay 2 -o "$INSTALLER_PATH" "$DMG_URL"
     step "Downloading checksums $SUM_NAME"
-    curl -fsSL -o "$SUM_PATH" "$SUM_URL"
+    curl -fsSL --retry 3 -o "$SUM_PATH" "$SUM_URL"
     HASH_LINE="$(grep -F "$DMG_NAME" "$SUM_PATH" | head -n1 || true)"
     [[ -n "$HASH_LINE" ]] || fail "Checksum file has no line for $DMG_NAME"
     HASH="$(printf '%s' "$HASH_LINE" | awk '{print $1}')"

@@ -1,8 +1,9 @@
 /**
  * OllamaGate — banner when the local Ollama server isn't answering.
  *
- * Offers Install & start (downloads official Ollama if missing, then pulls a
- * default chat model) so end users never need a separate manual install.
+ * Offers Install & start (downloads official Ollama if missing, and pulls a
+ * default chat model only when the user has none) so end users never need a
+ * separate manual install.
  */
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";

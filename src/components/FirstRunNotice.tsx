@@ -28,6 +28,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
   const [scan, setScan] = useState<ScanResult | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [ollamaOk, setOllamaOk] = useState<boolean | null>(null);
+  const [ollamaNote, setOllamaNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -92,7 +93,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
     setStep("ollama");
     setScanError(null);
     try {
-      await invoke<string>("ensure_ollama");
+      setOllamaNote(await invoke<string>("ensure_ollama"));
       setOllamaOk(true);
     } catch (e) {
       setOllamaOk(false);
@@ -213,7 +214,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
         {step === "ollama" && (
           <p className={styles.idleHint}>
             {busy
-              ? "Setting up Ollama (download / start / default model). This can take a few minutes…"
+              ? "Setting up Ollama. If you already have a chat model, Bunny keeps it. This can take a few minutes…"
               : "Checking Ollama…"}
           </p>
         )}
@@ -222,7 +223,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
           <>
             <p className={styles.idleHint}>
               {ollamaOk
-                ? "Ollama is ready with a default chat model."
+                ? (ollamaNote ?? "Ollama is ready with a chat model.")
                 : "Ollama isn’t ready yet. Bunny can install it for you — no separate download needed."}
             </p>
             {scanError ? (

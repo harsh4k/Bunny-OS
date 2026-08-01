@@ -8,7 +8,7 @@ Distribution is checksum-verified + clear SmartScreen / Gatekeeper instructions.
 | Layer | Status |
 |---|---|
 | Code paths Win + Mac | Yes |
-| CI release artifacts | MSI + arm64/x64 DMG + `SHA256SUMS.txt` via `.github/workflows/release.yml` |
+| CI release artifacts | MSI + arm64 DMG + `SHA256SUMS.txt` via `.github/workflows/release.yml` (Intel Mac DMG deferred — scarce `macos-13` runners block publish) |
 | Checksums | Install scripts **fail closed** without `SHA256SUMS.txt` |
 | Whisper | Prefetched into frozen sidecar in CI |
 | Ollama | Auto-download official installer + pull `llama3.2:1b` on first use |

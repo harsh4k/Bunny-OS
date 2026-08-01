@@ -20,7 +20,79 @@ $ProgressPreference = "SilentlyContinue"
 
 function Write-Step([string]$msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 function Write-Warn([string]$msg) { Write-Host "WARN: $msg" -ForegroundColor Yellow }
-function Write-Fail([string]$msg) { Write-Host "ERROR: $msg" -ForegroundColor Red; exit 1 }
+# throw, never exit: piped through `irm | iex` this runs in the user's own
+# session, where `exit` closes their console window and hides the error.
+function Write-Fail([string]$msg) { throw $msg }
+
+function Format-Bytes([double]$n) {
+  if ($n -ge 1GB) { return "{0:N2} GB" -f ($n / 1GB) }
+  if ($n -ge 1MB) { return "{0:N1} MB" -f ($n / 1MB) }
+  if ($n -ge 1KB) { return "{0:N0} KB" -f ($n / 1KB) }
+  return "{0:N0} B" -f $n
+}
+
+function Write-DownloadProgress {
+  param([long]$Done, [long]$Total, [double]$Seconds, [string]$Label)
+  $speed = if ($Seconds -gt 0) { $Done / $Seconds } else { 0 }
+  if ($Total -gt 0) {
+    $pct = [math]::Min(100, [math]::Floor($Done * 100.0 / $Total))
+    $eta = if ($speed -gt 0) {
+      [TimeSpan]::FromSeconds([math]::Max(0, ($Total - $Done) / $speed)).ToString("mm\:ss")
+    } else { "--:--" }
+    $line = "    {0,3}%  {1} / {2}  at {3}/s  ETA {4}" -f `
+      $pct, (Format-Bytes $Done), (Format-Bytes $Total), (Format-Bytes $speed), $eta
+  } else {
+    $line = "    {0} at {1}/s" -f (Format-Bytes $Done), (Format-Bytes $speed)
+  }
+  Write-Host ("`r" + $line.PadRight(72)) -NoNewline
+}
+
+function Save-UrlDotNet {
+  param([string]$Url, [string]$OutFile)
+  Add-Type -AssemblyName System.Net.Http
+  $client = [System.Net.Http.HttpClient]::new()
+  $client.Timeout = [TimeSpan]::FromMinutes(60)
+  try {
+    $mode = [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead
+    $resp = $client.GetAsync($Url, $mode).GetAwaiter().GetResult()
+    if (-not $resp.IsSuccessStatusCode) {
+      Write-Fail "HTTP $([int]$resp.StatusCode) downloading $Url"
+    }
+    $total = 0L
+    if ($resp.Content.Headers.ContentLength) { $total = [long]$resp.Content.Headers.ContentLength }
+    $in = $resp.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
+    $out = [System.IO.File]::Create($OutFile)
+    try {
+      $buf = New-Object byte[] (1MB)
+      $done = 0L; $last = 0L
+      $sw = [System.Diagnostics.Stopwatch]::StartNew()
+      while (($read = $in.Read($buf, 0, $buf.Length)) -gt 0) {
+        $out.Write($buf, 0, $read)
+        $done += $read
+        if (($sw.ElapsedMilliseconds - $last) -ge 500) {
+          $last = $sw.ElapsedMilliseconds
+          Write-DownloadProgress -Done $done -Total $total -Seconds $sw.Elapsed.TotalSeconds
+        }
+      }
+      Write-DownloadProgress -Done $done -Total $total -Seconds $sw.Elapsed.TotalSeconds
+      Write-Host ""
+    } finally { $out.Dispose(); $in.Dispose() }
+  } finally { $client.Dispose() }
+}
+
+function Save-Url {
+  param([string]$Url, [string]$OutFile)
+  if (Test-Path $OutFile) { Remove-Item $OutFile -Force -ErrorAction SilentlyContinue }
+  # curl.exe ships with Windows 10 1803+ and prints its own %/size/speed/ETA meter.
+  $curl = Join-Path $env:SystemRoot "System32\curl.exe"
+  if (Test-Path $curl) {
+    & $curl -L --fail --retry 3 --retry-delay 2 --retry-connrefused -o $OutFile $Url
+    if ($LASTEXITCODE -eq 0 -and (Test-Path $OutFile)) { return }
+    Write-Warn "curl exited $LASTEXITCODE — retrying the download in PowerShell"
+  }
+  Save-UrlDotNet -Url $Url -OutFile $OutFile
+  if (-not (Test-Path $OutFile)) { Write-Fail "Download produced no file: $Url" }
+}
 
 function Get-Release {
   param([string]$Repo, [string]$Version)
@@ -105,6 +177,8 @@ function Test-Ollama {
   }
 }
 
+function Invoke-BunnyInstall {
+
 Write-Host "Bunny OS installer (Windows)"
 Write-Host "Repo: $Repo  Version: $Version"
 if ($WhatIf) { Write-Host "(WhatIf — no download / install)" }
@@ -138,11 +212,12 @@ if ($LocalMsi) {
     Write-Host "[WhatIf] would download $($asset.browser_download_url) → $installerPath"
     Write-Host "[WhatIf] would verify against $($sumAsset.browser_download_url)"
   } else {
-    Write-Step "Downloading $($asset.name)"
-    Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $installerPath -UseBasicParsing
+    $sizeText = if ($asset.size) { " (" + (Format-Bytes $asset.size) + ")" } else { "" }
+    Write-Step "Downloading $($asset.name)$sizeText"
+    Save-Url -Url $asset.browser_download_url -OutFile $installerPath
     $sumPath = Join-Path $tmp $sumAsset.name
     Write-Step "Downloading checksums $($sumAsset.name)"
-    Invoke-WebRequest -Uri $sumAsset.browser_download_url -OutFile $sumPath -UseBasicParsing
+    Save-Url -Url $sumAsset.browser_download_url -OutFile $sumPath
     $line = Get-Content $sumPath | Where-Object { $_ -match [regex]::Escape($asset.name) } | Select-Object -First 1
     if (-not $line) {
       Write-Fail "Checksum file has no line for $($asset.name)"
@@ -179,3 +254,14 @@ Write-Host "DONE — complete onboarding in the app (mic + Install Ollama if off
 Write-Host "Uninstall: https://github.com/harsh4k/Bunny-OS/blob/main/docs/uninstall.md"
 Write-Host ""
 Write-Host "UNSIGNED BETA: If SmartScreen says Windows protected your PC → More info → Run anyway."
+
+}
+
+try {
+  Invoke-BunnyInstall
+} catch {
+  Write-Host ""
+  Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
+  Write-Host "Bunny OS was not installed. Nothing was changed on this PC." -ForegroundColor Red
+  Write-Host "Report it: https://github.com/harsh4k/Bunny-OS/issues"
+}

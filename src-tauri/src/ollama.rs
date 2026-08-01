@@ -129,12 +129,26 @@ fn wait_until_running(secs: u64) -> Result<(), String> {
     ))
 }
 
+/// Embedding / rerank models answer `/api/chat` but cannot hold a conversation,
+/// so they do not count as "the user already has a model".
+const NON_CHAT_HINTS: [&str; 2] = ["embed", "rerank"];
+
+/// Never re-download when the user already has a usable chat model — the chat
+/// path resolves against whatever is installed rather than a hardcoded tag.
 fn ensure_default_model() -> Result<String, String> {
-    if model_installed(DEFAULT_MODEL)? {
+    let existing = installed_chat_models()?;
+    if existing.iter().any(|m| m == DEFAULT_MODEL) {
         return Ok(format!("Model {DEFAULT_MODEL} ready"));
     }
+    if !existing.is_empty() {
+        return Ok(format!(
+            "Found {} chat model(s) already installed — skipped the download",
+            existing.len()
+        ));
+    }
+
     pull_model(DEFAULT_MODEL)?;
-    if model_installed(DEFAULT_MODEL)? {
+    if installed_chat_models()?.iter().any(|m| m == DEFAULT_MODEL) {
         return Ok(format!("Pulled {DEFAULT_MODEL}"));
     }
     Err(format!(
@@ -142,7 +156,7 @@ fn ensure_default_model() -> Result<String, String> {
     ))
 }
 
-fn model_installed(name: &str) -> Result<bool, String> {
+fn installed_chat_models() -> Result<Vec<String>, String> {
     let url = format!("http://127.0.0.1:{OLLAMA_PORT}/api/tags");
     let out = Command::new(curl_bin())
         .args(["-fsS", "--max-time", "10", &url])
@@ -151,8 +165,24 @@ fn model_installed(name: &str) -> Result<bool, String> {
     if !out.status.success() {
         return Err("Could not list Ollama models".to_string());
     }
-    let body = String::from_utf8_lossy(&out.stdout);
-    Ok(body.contains(&format!("\"{name}\"")) || body.contains(name))
+    let tags: serde_json::Value = serde_json::from_slice(&out.stdout)
+        .map_err(|e| format!("Ollama /api/tags was not valid JSON: {e}"))?;
+    Ok(chat_models_from_tags(&tags))
+}
+
+fn chat_models_from_tags(tags: &serde_json::Value) -> Vec<String> {
+    let Some(models) = tags.get("models").and_then(|m| m.as_array()) else {
+        return Vec::new();
+    };
+    models
+        .iter()
+        .filter_map(|m| m.get("name").and_then(|n| n.as_str()))
+        .filter(|name| {
+            let lower = name.to_ascii_lowercase();
+            !NON_CHAT_HINTS.iter().any(|hint| lower.contains(hint))
+        })
+        .map(str::to_string)
+        .collect()
 }
 
 fn pull_model(name: &str) -> Result<(), String> {
@@ -204,5 +234,33 @@ mod tests {
     #[test]
     fn default_model_is_stable_tag() {
         assert!(DEFAULT_MODEL.contains(':'));
+    }
+
+    #[test]
+    fn chat_models_skip_embedding_only_installs() {
+        let tags = serde_json::json!({
+            "models": [
+                {"name": "nomic-embed-text:latest"},
+                {"name": "bge-reranker:latest"},
+            ]
+        });
+        assert!(chat_models_from_tags(&tags).is_empty());
+    }
+
+    #[test]
+    fn chat_models_keep_a_users_existing_model() {
+        let tags = serde_json::json!({
+            "models": [
+                {"name": "nomic-embed-text:latest"},
+                {"name": "llama3.1:8b"},
+            ]
+        });
+        assert_eq!(chat_models_from_tags(&tags), vec!["llama3.1:8b".to_string()]);
+    }
+
+    #[test]
+    fn chat_models_tolerate_missing_or_odd_payloads() {
+        assert!(chat_models_from_tags(&serde_json::json!({})).is_empty());
+        assert!(chat_models_from_tags(&serde_json::json!({"models": "nope"})).is_empty());
     }
 }

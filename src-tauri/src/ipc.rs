@@ -315,7 +315,7 @@ mod tests {
     #[test]
     fn action_chat_serializes_tag() {
         let a = Action::Chat {
-            model: "llama3.2:1b".to_string(),
+            model: Some("llama3.2:1b".to_string()),
             message: "hello".to_string(),
         };
         let json = serde_json::to_string(&a).unwrap();
