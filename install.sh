@@ -217,4 +217,6 @@ if (( ! SKIP_LAUNCH && ! WHAT_IF )); then
 fi
 
 echo "DONE — complete onboarding (Microphone + Accessibility for media keys)."
+echo "Bunny can Install & start Ollama for you on first launch."
+echo "UNSIGNED BETA: if macOS still blocks the app, right-click → Open."
 echo "Uninstall: docs/uninstall.md"

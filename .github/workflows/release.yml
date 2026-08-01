@@ -1,9 +1,8 @@
 name: release
 
-# Build Windows MSI + macOS DMGs (arm64 + x86_64), publish a real GitHub Release
-# with SHA256SUMS.txt so install.ps1 / install.sh can verify.
-#
-# Triggers: version tags (v*) or workflow_dispatch.
+# Unsigned beta builds: Windows MSI + macOS DMGs + SHA256SUMS.txt.
+# No paid code-signing / notarization — install scripts clear macOS quarantine;
+# Windows may show SmartScreen (More info → Run anyway).
 
 on:
   push:
@@ -12,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (e.g. v0.1.0). Required for manual runs."
+        description: "Release tag (e.g. v0.1.1). Required for manual runs."
         required: true
         type: string
 
@@ -55,41 +54,19 @@ jobs:
           $env:BUNNY_PREFETCH_WHISPER = "1"
           pwsh -File scripts/package-sidecar.ps1
 
-      - name: Build Tauri installer
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Optional Authenticode — set TAURI_SIGNING_* / Windows cert secrets when you have a cert.
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          projectPath: .
-          tauriScript: npm run build
-          tagName: ${{ env.RELEASE_TAG }}
-          releaseName: Bunny OS ${{ env.RELEASE_TAG }}
-          releaseBody: |
-            ## Install
-            - **Windows:** `irm https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.ps1 | iex`
-            - **macOS:** `curl -fsSL https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.sh | bash`
+      - name: Build Tauri MSI (unsigned)
+        shell: pwsh
+        run: |
+          # Do not set TAURI_SIGNING_* — empty secrets break the build.
+          npm run build -- --bundles msi
+          Get-ChildItem -Recurse src-tauri\target\release\bundle | Select-Object FullName, Length
 
-            Installers verify SHA256 against `SHA256SUMS.txt` on this release.
-
-            ## Notes
-            - Ollama is external (`ollama serve`)
-            - Default wake phrase: **Hey Bunny** (customizable)
-            - First launch opens onboarding (mic + Accessibility on macOS)
-            - Unsigned builds may need SmartScreen / Gatekeeper override until code-signing certs are configured
-          releaseDraft: false
-          prerelease: false
-          includeUpdaterJson: false
-
-      - name: Upload Windows bundle for checksum job
+      - name: Upload Windows bundle
         uses: actions/upload-artifact@v4
         with:
           name: windows-bundle
           path: |
             src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: error
 
   macos:
@@ -135,25 +112,11 @@ jobs:
           export BUNNY_PREFETCH_WHISPER=1
           ./scripts/package-sidecar.sh
 
-      - name: Build Tauri DMG
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        with:
-          projectPath: .
-          tauriScript: npm run build
-          args: --target ${{ matrix.triple }}
-          tagName: ${{ env.RELEASE_TAG }}
-          releaseName: Bunny OS ${{ env.RELEASE_TAG }}
-          releaseDraft: false
-          prerelease: false
-          includeUpdaterJson: false
+      - name: Build Tauri DMG (unsigned / ad-hoc)
+        run: |
+          # signingIdentity "-" in tauri.conf = ad-hoc, no Apple Developer cert.
+          npm run build -- --target ${{ matrix.triple }} --bundles dmg
+          find src-tauri/target -path '*/bundle/dmg/*.dmg' -print
 
       - name: Upload macOS ${{ matrix.arch_label }} bundle
         uses: actions/upload-artifact@v4
@@ -162,9 +125,9 @@ jobs:
           path: |
             src-tauri/target/${{ matrix.triple }}/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/dmg/*.dmg
-          if-no-files-found: warn
+          if-no-files-found: error
 
-  checksums:
+  publish:
     needs: [windows, macos]
     runs-on: ubuntu-latest
     steps:
@@ -175,7 +138,7 @@ jobs:
         with:
           path: artifacts
 
-      - name: Build SHA256SUMS.txt and upload to release
+      - name: Create / update GitHub Release + SHA256SUMS
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ env.RELEASE_TAG }}
@@ -183,28 +146,47 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           : > dist/SHA256SUMS.txt
-          found=0
-          while IFS= read -r -d '' f; do
-            base="$(basename "$f")"
-            hash="$(sha256sum "$f" | awk '{print $1}')"
-            echo "$hash  $base" | tee -a dist/SHA256SUMS.txt
-            found=1
-          done < <(find artifacts -type f \( -name '*.msi' -o -name '*.dmg' -o -name '*setup*.exe' -o -name '*nsis*.exe' \) -print0)
 
-          if [[ "$found" -eq 0 ]]; then
-            echo "No installer artifacts found for checksums" >&2
-            find artifacts -type f | head -n 100 >&2 || true
+          mapfile -d '' files < <(find artifacts -type f \( -name '*.msi' -o -name '*.dmg' \) -print0)
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "No MSI/DMG artifacts found" >&2
+            find artifacts -type f | head -n 200 >&2 || true
             exit 1
           fi
 
-          # Ensure the release exists (created by tauri-action) then attach sums.
-          gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null
-          gh release upload "$TAG" dist/SHA256SUMS.txt --repo "${{ github.repository }}" --clobber
+          for f in "${files[@]}"; do
+            base="$(basename "$f")"
+            # Flatten into dist/ with arch-aware names when possible
+            cp -f "$f" "dist/$base"
+            hash="$(sha256sum "dist/$base" | awk '{print $1}')"
+            echo "$hash  $base" | tee -a dist/SHA256SUMS.txt
+          done
 
-          # Also attach any DMG/MSI that tauri-action missed (idempotent clobber).
-          while IFS= read -r -d '' f; do
-            gh release upload "$TAG" "$f" --repo "${{ github.repository }}" --clobber || true
-          done < <(find artifacts -type f \( -name '*.msi' -o -name '*.dmg' \) -print0)
+          BODY=$(cat <<'EOF'
+          ## Bunny OS (unsigned beta)
 
-          echo "Published SHA256SUMS.txt on $TAG"
+          ### Install
+          - **Windows:** `irm https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.ps1 | iex`
+          - **macOS:** `curl -fsSL https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.sh | bash`
+
+          Installers **require** `SHA256SUMS.txt` on this release.
+
+          ### Notes
+          - No paid code-signing. Windows SmartScreen → More info → Run anyway. macOS: installer clears quarantine.
+          - First launch: onboarding; Bunny can install official Ollama + default model for you.
+          - Default wake phrase: **Hey Bunny**
+          EOF
+          )
+
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --repo "${{ github.repository }}" --clobber
+          else
+            gh release create "$TAG" dist/* \
+              --repo "${{ github.repository }}" \
+              --title "Bunny OS $TAG" \
+              --notes "$BODY"
+          fi
+
+          echo "Published:"
           cat dist/SHA256SUMS.txt
+          gh release view "$TAG" --repo "${{ github.repository }}"

@@ -18,7 +18,7 @@ curl -fsSL https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.sh | 
 
 Picks the DMG for your CPU (Apple Silicon or Intel), verifies SHA256, copies into `/Applications`, and launches. Needs a published `v*` release.
 
-See [docs/SHIPPING.md](docs/SHIPPING.md) for signing / notarization before wide public traffic.
+See [docs/SHIPPING.md](docs/SHIPPING.md). **Unsigned beta** — SmartScreen / Gatekeeper warnings are expected (no paid certs).
 
 ## Quick start
 

@@ -175,6 +175,7 @@ if (-not $SkipLaunch -and -not $WhatIf) {
   }
 }
 
-Write-Host "DONE — complete onboarding in the app (mic permission + system scan)."
-Write-Host "Uninstall help: https://github.com/harsh4k/Bunny-OS/blob/main/docs/uninstall.md"
-Write-Host "If Windows SmartScreen blocks the installer, choose More info → Run anyway until Authenticode signing is configured."
+Write-Host "DONE — complete onboarding in the app (mic + Install Ollama if offered)."
+Write-Host "Uninstall: https://github.com/harsh4k/Bunny-OS/blob/main/docs/uninstall.md"
+Write-Host ""
+Write-Host "UNSIGNED BETA: If SmartScreen says Windows protected your PC → More info → Run anyway."
