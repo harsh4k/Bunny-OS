@@ -53,16 +53,19 @@ Bunny OS: local-only privacy-first desktop automation suite for Windows 10/11. N
 - faster-whisper & Ollama not bundled; user-provided
 - Signing keys, checksums, update verification: [PLANNED] never store private keys in repo
 
-## Current status
-- Done: Architecture/security contract through voice, wake, memory
-- Done: Packaging scripts, structured logs, diagnostics, first-run notice, beta checklist
-- Human gates: MSVC `npm run build`, code-signing cert, daily-drive soak (`docs/beta-checklist.md`)
-
 ## Run commands
 ```powershell
 npm install
 python scripts/gen-icons.py
 pwsh -File scripts/verify-beta.ps1
-# pwsh -File scripts/prepare-release.ps1   # needs MSVC + PyInstaller
+pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSVC present
+# pwsh -File scripts/prepare-release.ps1 # needs MSVC + PyInstaller path
 # pwsh -File scripts/export-diagnostics.ps1
 ```
+
+## Current status
+- Done: Architecture/security contract through voice, wake, memory
+- Done: Packaging scripts, structured logs, diagnostics, first-run notice, beta checklist
+- Done: P0 wiring — `externalBin`, `requirements-bundle.txt`, hardened `package-sidecar.ps1`, CI `release-windows.yml`
+- Human gates: MSVC `npm run build` (or tag `v*` for CI), code-signing cert, daily-drive soak (`docs/beta-checklist.md`)
+- Next (P1): `install.ps1` one-liner once a release artifact exists

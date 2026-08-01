@@ -41,6 +41,9 @@
       "icons/icon.ico"
     ],
     "resources": [],
+    "externalBin": [
+      "binaries/bunny-sidecar"
+    ],
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",

@@ -1,0 +1,19 @@
+# Frozen sidecar runtime (PyInstaller bundle).
+# Used only by scripts/package-sidecar.ps1 — not for day-to-day `pip install -r`.
+#
+# Core stays stdlib-only in requirements.txt so debug `python sidecar/main.py`
+# still starts without optional voice deps. The installer ships this full set.
+
+pyinstaller>=6.3
+
+# Voice STT / mic
+faster-whisper>=1.0.0
+sounddevice>=0.4.6
+numpy>=1.26
+
+# TTS (Windows SAPI COM)
+pywin32>=306; sys_platform == "win32"
+
+# Wake word
+openwakeword>=0.6.0
+onnxruntime>=1.16
