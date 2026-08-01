@@ -70,7 +70,6 @@ pub fn run() {
             commands::ollama_running,
             commands::open_mic_privacy_settings,
             commands::open_sound_settings,
-            commands::open_speech_settings,
             commands::onboarding_scan,
             commands::quit_app,
             commands::restart_sidecar,

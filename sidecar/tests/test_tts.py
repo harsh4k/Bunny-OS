@@ -13,7 +13,8 @@ import types
 import unittest
 from unittest import mock
 
-from tts import SVSF_PURGE_BEFORE_SPEAK, FakeTts, WindowsSapiTts
+from fakes import FakeTts
+from tts import SVSF_PURGE_BEFORE_SPEAK, WindowsSapiTts
 
 
 class FakeVoice:

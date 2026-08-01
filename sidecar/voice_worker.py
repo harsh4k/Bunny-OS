@@ -331,7 +331,7 @@ class VoiceWorker:
         if not self._advance(msg_id, VoiceState.TRANSCRIBING, "stt"):
             return None
         try:
-            engine = self._stt or create_stt(prefer_cuda=False)
+            engine = self._stt or create_stt()
             self._stt = engine
             text = engine.transcribe(samples)
         except Exception as exc:  # noqa: BLE001

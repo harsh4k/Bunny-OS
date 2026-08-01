@@ -338,28 +338,7 @@ def _collect_lnk(dir_path: Path, apps: dict[str, str], depth: int) -> None:
 def _system_summary() -> str:
     import platform
 
-    ram = ""
-    try:
-        import ctypes
+    from hw_probe import get_hardware
 
-        class MEMORYSTATUSEX(ctypes.Structure):
-            _fields_ = [
-                ("dwLength", ctypes.c_ulong),
-                ("dwMemoryLoad", ctypes.c_ulong),
-                ("ullTotalPhys", ctypes.c_ulonglong),
-                ("ullAvailPhys", ctypes.c_ulonglong),
-                ("ullTotalPageFile", ctypes.c_ulonglong),
-                ("ullAvailPageFile", ctypes.c_ulonglong),
-                ("ullTotalVirtual", ctypes.c_ulonglong),
-                ("ullAvailVirtual", ctypes.c_ulonglong),
-                ("sullAvailExtendedVirtual", ctypes.c_ulonglong),
-            ]
-
-        stat = MEMORYSTATUSEX()
-        stat.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
-        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat)):
-            gb = round(stat.ullTotalPhys / (1024**3))
-            ram = f", {gb} GB RAM"
-    except Exception:  # noqa: BLE001
-        ram = ""
-    return f"You're on {platform.system()} {platform.release()}, {platform.machine()}{ram}."
+    hw = get_hardware()
+    return f"You're on {hw.os}, {platform.machine()}, {hw.ram_gb} GB RAM."

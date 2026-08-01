@@ -111,7 +111,7 @@ def main() -> int:
     tts = WindowsSapiTts()
     worker = VoiceWorker(
         write_fn=write,
-        stt=create_stt(prefer_cuda=False),
+        stt=create_stt(),
         tts=tts,
         audio=PlaybackAudio(samples),
         on_busy_change=busy.append,

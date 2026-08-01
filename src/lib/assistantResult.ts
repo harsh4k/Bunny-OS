@@ -25,11 +25,22 @@ function parseAction(raw: unknown): AssistantAction | null {
       if (!raw.url.startsWith("https://") || raw.url.length > MAX_URL) return null;
       return { action: "open_url", url: raw.url };
     }
-    case "youtube_search": {
+    case "youtube_search":
+    case "youtube_play":
+    case "spotify_search":
+    case "spotify_play": {
       if (typeof raw.query !== "string") return null;
       if (!raw.query || raw.query.length > MAX_QUERY) return null;
-      return { action: "youtube_search", query: raw.query };
+      return { action: raw.action, query: raw.query };
     }
+    case "spotify_open":
+      return { action: "spotify_open" };
+    case "media_play":
+      return { action: "media_play" };
+    case "media_next":
+      return { action: "media_next" };
+    case "media_prev":
+      return { action: "media_prev" };
     case "show_system_summary":
       return { action: "show_system_summary" };
     default:

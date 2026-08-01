@@ -32,27 +32,5 @@ class FasterWhisperStt:
         return " ".join(seg.text.strip() for seg in segments).strip()
 
 
-class FakeStt:
-    """Deterministic STT for tests."""
-
-    def __init__(self, text: str = "hello bunny") -> None:
-        self.text = text
-        self.calls = 0
-
-    def transcribe(self, samples: list[float], sample_rate: int = 16_000) -> str:
-        self.calls += 1
-        if not samples:
-            return ""
-        return self.text
-
-
-def create_stt(prefer_cuda: bool = False) -> SttEngine:
-    device = "cpu"
-    if prefer_cuda:
-        try:
-            import ctranslate2  # type: ignore  # noqa: F401
-
-            device = "cuda"
-        except Exception:  # noqa: BLE001
-            device = "cpu"
-    return FasterWhisperStt(device=device)
+def create_stt() -> SttEngine:
+    return FasterWhisperStt(device="cpu")

@@ -25,10 +25,6 @@
   --color-island-sheen:     rgba(255, 255, 255, 0.08);
   --color-island-glow:      rgba(255, 255, 255, 0.06);
   --color-inner-highlight:  rgba(255, 255, 255, 0.12);
-  --color-notification:     var(--color-island);
-  --color-notification-hover: var(--color-island-hover);
-  --color-notification-core: rgba(10, 10, 14, 0.96);
-  --color-notification-border: var(--color-island-rim);
 
   /* Text */
   --color-text-primary:     #eef0f4;
@@ -44,11 +40,7 @@
   --color-accent-warm-glow: rgba(232, 176, 122, 0.4);
   --color-wave-muted:       #7a7870;
 
-  /* Elevation */
-  --shadow-floating:
-    0 2px 5px rgba(0, 0, 0, 0.22),
-    0 12px 28px rgba(0, 0, 0, 0.24);
-  /* Inset-only on island — outer drop shadows clip into a squared window frame. */
+  /* Elevation — inset-only on island; outer drop shadows clip into a squared window frame. */
   --shadow-island-inset: inset 0 1px 0 rgba(255, 255, 255, 0.12);
   --shadow-island: var(--shadow-island-inset);
   --shadow-island-focus: inset 0 0 0 1px var(--color-brand-soft);

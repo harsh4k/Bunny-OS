@@ -67,17 +67,3 @@ class WindowsSapiTts:
 
     def stop(self) -> None:
         self._stop.set()
-
-
-class FakeTts:
-    def __init__(self) -> None:
-        self.spoken: list[str] = []
-        self.stopped = 0
-
-    def speak(self, text: str, cancel_event: threading.Event | None = None) -> None:
-        if cancel_event is not None and cancel_event.is_set():
-            return
-        self.spoken.append(text)
-
-    def stop(self) -> None:
-        self.stopped += 1

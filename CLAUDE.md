@@ -70,5 +70,5 @@ pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSV
 - Done: P1 — `install.ps1` one-liner bootstrap (`-WhatIf` / `-LocalMsi`)
 - Done: P2 — onboarding wizard (scan + mic/sound settings + Ollama)
 - Done: P3 — uninstall docs + beta checklist install path
-- Scaffold: P4 — `install.sh` + `platform_seams.py` (macOS not runnable yet)
+- Scaffold: P4 — `install.sh` (macOS not runnable yet)
 - Human gates: MSVC installer or `v*` CI tag, code-signing, soak (`docs/beta-checklist.md`)

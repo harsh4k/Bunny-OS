@@ -10,8 +10,7 @@ from unittest import mock
 
 import voice_worker as voice_worker_module
 from audio_pipeline import AudioPipeline
-from stt import FakeStt
-from tts import FakeTts
+from fakes import FakeStt, FakeTts
 from voice_state import VoiceState
 from voice_worker import VoiceWorker
 

@@ -226,26 +226,18 @@ def dispatch(action: str, payload: dict, msg_id: str, ctx: dict) -> object:
     if action == "memory_export":
         return memory.export_json()
 
-    if action == "show_system_summary":
-        return "Use the Rust broker show_system_summary action from the chat UI."
-
+    _SIDECAR_LOCAL = frozenset({
+        "open_app", "open_url", "youtube_search", "youtube_play",
+        "spotify_open", "spotify_search", "spotify_play",
+        "media_play", "media_next", "media_prev",
+        "show_system_summary", "get_local_time", "get_local_date",
+    })
+    if action in _SIDECAR_LOCAL:
+        from local_actions import execute
+        body = payload if "action" in payload else {**payload, "action": action}
+        return execute(body)
     if action == "respond":
-        return f"Echo: {payload.get('input', '')!r}"
-
-    if action in (
-        "open_app",
-        "open_url",
-        "youtube_search",
-        "youtube_play",
-        "spotify_open",
-        "spotify_search",
-        "spotify_play",
-        "media_play",
-        "media_next",
-        "media_prev",
-    ):
-        raise NotImplementedError(f"{action} executes in Rust broker only")
-
+        return str(payload.get("input") or "")
     raise ValueError(f"action '{action}' not in allowlist")
 
 

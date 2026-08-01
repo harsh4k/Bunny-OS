@@ -14,7 +14,7 @@ import styles from "./AdvisorPanel.module.css";
 
 // ── Results section ────────────────────────────────────────────────────────────
 
-export interface ResultsProps {
+interface ResultsProps {
   data: GetAdvisorResponse;
   confirmPull: string | null;
   onRequestPull: (name: string) => void;
@@ -119,7 +119,7 @@ interface RecCardProps {
   onCancelPull: () => void;
 }
 
-export function RecCard({
+function RecCard({
   rec,
   confirmPull,
   onRequestPull,
@@ -178,7 +178,7 @@ export function RecCard({
 
 // ── Small helpers ──────────────────────────────────────────────────────────────
 
-export function HwRow({ label, value }: { label: string; value: string }) {
+function HwRow({ label, value }: { label: string; value: string }) {
   return (
     <div className={styles.hwRow}>
       <span className={styles.hwKey}>{label}</span>
@@ -187,7 +187,7 @@ export function HwRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function constraintLabel(c: AdvisorConstraint): string {
+function constraintLabel(c: AdvisorConstraint): string {
   if (c === "cpu_only") return "CPU only";
   if (c === "vram_limited") return "Limited VRAM";
   return "GPU ready";

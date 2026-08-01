@@ -44,7 +44,6 @@ export function FirstRunNotice({ onDismiss }: Props) {
   const finish = useCallback(() => {
     try {
       localStorage.setItem(KEY, "1");
-      localStorage.setItem(LEGACY_KEY, "1");
     } catch {
       /* ignore */
     }

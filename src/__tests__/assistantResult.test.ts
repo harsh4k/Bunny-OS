@@ -39,7 +39,37 @@ describe("parseAssistantResult", () => {
     ).toBeNull();
   });
 
-  it("rejects missing respond text", () => {
-    expect(parseAssistantResult(JSON.stringify({ kind: "respond" }))).toBeNull();
+  it("parses youtube_play and media actions", () => {
+    expect(
+      parseAssistantResult(
+        JSON.stringify({
+          kind: "action",
+          action: { action: "youtube_play", query: "lofi" },
+        })
+      )
+    ).toEqual({ kind: "action", action: { action: "youtube_play", query: "lofi" } });
+
+    expect(
+      parseAssistantResult(
+        JSON.stringify({ kind: "action", action: { action: "spotify_open" } })
+      )
+    ).toEqual({ kind: "action", action: { action: "spotify_open" } });
+
+    expect(
+      parseAssistantResult(
+        JSON.stringify({ kind: "action", action: { action: "media_next" } })
+      )
+    ).toEqual({ kind: "action", action: { action: "media_next" } });
+  });
+
+  it("rejects empty query for spotify_play", () => {
+    expect(
+      parseAssistantResult(
+        JSON.stringify({
+          kind: "action",
+          action: { action: "spotify_play", query: "" },
+        })
+      )
+    ).toBeNull();
   });
 });

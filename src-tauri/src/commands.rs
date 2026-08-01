@@ -92,17 +92,6 @@ pub async fn onboarding_scan() -> Result<OnboardingScan, String> {
     Ok(scan)
 }
 
-/// Open Windows Settings → Time & language → Speech (add voices).
-#[tauri::command]
-pub async fn open_speech_settings() -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(|| {
-        open::that("ms-settings:speech")
-            .map_err(|e| format!("Could not open speech settings: {e}"))
-    })
-    .await
-    .map_err(|e| format!("open_speech_settings task failed: {e}"))?
-}
-
 /// Forward a typed action to the running sidecar.
 #[tauri::command]
 pub async fn send_action(
