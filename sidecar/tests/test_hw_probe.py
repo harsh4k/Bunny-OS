@@ -112,8 +112,24 @@ class TestGpuDetection(unittest.TestCase):
         with patch("subprocess.run", side_effect=FileNotFoundError):
             gpu, note = hw_probe._get_gpu()
         self.assertIsNone(gpu)
-        self.assertIn("nvidia-smi", note)
         self.assertIn("NVIDIA", note)
+        self.assertNotIn("nvidia-smi", note)
+
+    def test_run_hides_console_on_windows(self):
+        if not sys.platform.startswith("win"):
+            self.skipTest("Windows-only creationflags")
+        seen: dict = {}
+
+        def fake_run(*args, **kwargs):
+            seen.update(kwargs)
+            mock = MagicMock()
+            mock.returncode = 1
+            mock.stdout = ""
+            return mock
+
+        with patch("subprocess.run", side_effect=fake_run):
+            hw_probe._run(["nvidia-smi"], timeout=1)
+        self.assertEqual(seen.get("creationflags"), 0x08000000)
 
     def test_timeout_returns_note(self):
         with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("nvidia-smi", 5)):

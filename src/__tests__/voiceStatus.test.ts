@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  friendlyError,
   isCancellation,
   levelBars,
   parseVoiceChunk,
@@ -71,6 +72,10 @@ describe("shortErrorLabel", () => {
     ["Chat error: Reply too long", "Reply too long"],
     ["Response exceeds 200 NDJSON lines", "Reply too long"],
     ["something nobody predicted", "Voice error"],
+    [
+      'failed to spawn sidecar: "C:\\Program Files\\Bunny OS\\bunny-sidecar.exe"',
+      "Helper not running",
+    ],
   ];
 
   it.each(cases)("maps %s", (raw, expected) => {
@@ -81,6 +86,26 @@ describe("shortErrorLabel", () => {
     for (const [raw] of cases) {
       expect(shortErrorLabel(raw).length).toBeLessThanOrEqual(24);
     }
+  });
+});
+
+describe("friendlyError", () => {
+  it("never forwards paths, pip hints, or curl codes to the user", () => {
+    const scary = [
+      'failed to spawn sidecar: "C:\\Program Files\\Bunny OS\\bunny-sidecar.exe"',
+      "sounddevice not installed. pip install sounddevice",
+      "Download failed (curl exit 6). URL: https://ollama.com/download/OllamaSetup.exe",
+      "STT error: Unable to open file 'model.bin' in model 'C:\\Users\\x\\faster-whisper-base\\snapshots\\abc'",
+    ];
+    for (const raw of scary) {
+      const out = friendlyError(raw);
+      expect(out.toLowerCase()).not.toMatch(/program files|pip install|curl exit|model\.bin|c:\\/);
+      expect(out.length).toBeGreaterThan(10);
+    }
+  });
+
+  it("points recover for sidecar failures", () => {
+    expect(friendlyError("sidecar handshake timed out after 60s")).toMatch(/Recover/);
   });
 });
 

@@ -72,10 +72,8 @@ export function VoicePill({ onExpand, onHoverChange }: Props) {
           type="button"
           className={styles.expand}
           onClick={onExpand}
-          aria-label={
-            error ? `${label}. ${error}. Open Bunny OS` : `${label}. Open Bunny OS`
-          }
-          title={error ?? undefined}
+          aria-label={`${label}. Open Bunny OS`}
+          title={error ? label : undefined}
           aria-expanded="false"
         >
           <span className={styles.dot} data-active={active} data-tone={tone} aria-hidden="true" />

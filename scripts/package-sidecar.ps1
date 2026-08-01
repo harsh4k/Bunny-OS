@@ -77,6 +77,9 @@ $pyArgs = @(
   "--noconfirm",
   "--clean",
   "--onefile",
+  # WINDOWS_GUI subsystem — no black console window when Bunny starts the sidecar.
+  # stdin/stdout pipes used for IPC still work; only the visible console is gone.
+  "--noconsole",
   "--name", "bunny-sidecar",
   "--paths", "sidecar",
   "--distpath", $distDir,
@@ -115,6 +118,16 @@ $built = Join-Path $distDir "bunny-sidecar.exe"
 if (-not (Test-Path $built)) {
   throw "PyInstaller did not produce $built"
 }
+
+# A console-subsystem sidecar pops a black terminal on the user's desktop, and
+# closing it kills Bunny's helper. Never let that build escape again.
+$bytes = [System.IO.File]::ReadAllBytes($built)
+$peOffset = [System.BitConverter]::ToInt32($bytes, 0x3c)
+$subsystem = [System.BitConverter]::ToUInt16($bytes, $peOffset + 24 + 68)
+if ($subsystem -ne 2) {
+  throw "bunny-sidecar.exe is subsystem $subsystem (need 2 = WINDOWS_GUI). Is --noconsole set?"
+}
+Write-Host "==> Verified sidecar is WINDOWS_GUI (no console window)"
 
 New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
 Copy-Item -Force $built $dest

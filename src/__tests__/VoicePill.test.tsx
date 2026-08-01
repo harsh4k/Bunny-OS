@@ -108,8 +108,9 @@ describe("VoicePill", () => {
     });
 
     expect(screen.getByText("Ollama is offline")).toBeTruthy();
-    // Full text stays reachable for anyone who wants it.
-    expect(screen.getByTitle(/WinError 10061/)).toBeTruthy();
+    // Tooltip / aria must NOT leak WinError paths or "ollama serve" to users.
+    expect(screen.getByTitle("Ollama is offline")).toBeTruthy();
+    expect(screen.queryByTitle(/WinError 10061/)).toBeNull();
   });
 
   it("ignores cancellation, which is a user action rather than a failure", async () => {

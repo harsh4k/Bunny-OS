@@ -107,8 +107,8 @@ export function statusLabel(status: AppLifecycle): string {
   const labels: Record<AppLifecycle, string> = {
     starting: "Starting…",
     ready: "Ready",
-    degraded: "Degraded",
-    error: "Error",
+    degraded: "Having trouble",
+    error: "Needs attention",
     stopped: "Stopped",
   };
   return labels[status];

@@ -10,6 +10,27 @@ import platform
 import subprocess
 import sys
 from dataclasses import dataclass
+from typing import Any
+
+# The frozen sidecar is a GUI binary, so a console child (nvidia-smi) would
+# otherwise allocate its own black window on the user's desktop.
+_CREATE_NO_WINDOW = 0x08000000
+
+
+def _run(args: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
+    """subprocess.run that never flashes a console window on Windows."""
+    kwargs: dict[str, Any] = {}
+    if sys.platform.startswith("win"):
+        kwargs["creationflags"] = _CREATE_NO_WINDOW
+    return subprocess.run(
+        args,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        shell=False,
+        check=False,
+        **kwargs,
+    )
 
 
 @dataclass
@@ -74,14 +95,7 @@ def _get_cpu_name() -> str:
             pass
     if sys.platform == "darwin":
         try:
-            out = subprocess.run(
-                ["/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                shell=False,
-                check=False,
-            )
+            out = _run(["/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string"], timeout=2)
             if out.returncode == 0 and out.stdout.strip():
                 return out.stdout.strip()
         except (OSError, subprocess.TimeoutExpired):
@@ -112,14 +126,7 @@ def _get_ram_gb() -> float:
         return stat.ullTotalPhys / (1024**3)
     if sys.platform == "darwin":
         try:
-            out = subprocess.run(
-                ["/usr/sbin/sysctl", "-n", "hw.memsize"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                shell=False,
-                check=False,
-            )
+            out = _run(["/usr/sbin/sysctl", "-n", "hw.memsize"], timeout=2)
             if out.returncode == 0:
                 return int(out.stdout.strip()) / (1024**3)
         except (OSError, ValueError, subprocess.TimeoutExpired):
@@ -128,23 +135,19 @@ def _get_ram_gb() -> float:
 
 
 _SMI_DISCLOSURE = (
-    "VRAM detection uses nvidia-smi (NVIDIA only). "
-    "AMD, Intel, and other GPUs are not detected."
+    "No NVIDIA GPU detected. AMD, Intel, and other GPUs are not shown yet."
 )
 
 
 def _get_gpu() -> tuple[GpuInfo | None, str]:
     try:
-        result = subprocess.run(
+        result = _run(
             [
                 "nvidia-smi",
                 "--query-gpu=name,memory.total",
                 "--format=csv,noheader,nounits",
             ],
-            capture_output=True,
-            text=True,
             timeout=5,
-            shell=False,
         )
         if result.returncode != 0:
             return None, "nvidia-smi found but reported no NVIDIA GPU."

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { friendlyError } from "../lib/voiceStatus";
 import {
   IconChat,
   IconMemory,
@@ -57,14 +58,16 @@ export function OverviewPane({
         <div className={styles.dot} aria-hidden="true" />
         <div className={styles.statusText}>
           <div className={styles.statusLabel}>{statusLabel}</div>
-          {reason && <div className={styles.statusReason}>{reason}</div>}
+          {reason && (
+            <div className={styles.statusReason}>{friendlyError(reason)}</div>
+          )}
         </div>
       </div>
 
       <div className={styles.body}>
         <div className={styles.metrics}>
           <div className={styles.metric}>
-            <span className={styles.metricLabel}>Crashes</span>
+            <span className={styles.metricLabel}>Restarts</span>
             <span className={styles.metricValue}>{crashCount}</span>
           </div>
           <div className={styles.metric}>
@@ -82,7 +85,7 @@ export function OverviewPane({
         </div>
         {lastCrashAt != null && (
           <div className={styles.metric}>
-            <span className={styles.metricLabel}>Last crash</span>
+            <span className={styles.metricLabel}>Last restart</span>
             <span className={styles.metricValue}>
               {new Date(lastCrashAt).toLocaleTimeString()}
             </span>

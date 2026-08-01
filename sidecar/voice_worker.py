@@ -210,7 +210,11 @@ class VoiceWorker:
             try:
                 self._audio.start()
             except Exception as exc:  # noqa: BLE001
-                self._fail_spoken(msg_id, str(exc), f"Mic error: {exc}")
+                self._fail_spoken(
+                    msg_id,
+                    _spoken_error(str(exc)),
+                    f"Mic error: {exc}",
+                )
                 return
 
             self._record(auto_stop)

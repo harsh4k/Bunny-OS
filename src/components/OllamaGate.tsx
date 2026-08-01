@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { friendlyError } from "../lib/voiceStatus";
 import styles from "./ChatPanel.module.css";
 
 interface Props {
@@ -58,7 +59,9 @@ export function OllamaGate({ onReady }: Props) {
       onReady?.();
     } catch (err) {
       setPhase("failed");
-      setMessage(err instanceof Error ? err.message : String(err));
+      setMessage(
+        friendlyError(err instanceof Error ? err.message : String(err)),
+      );
     }
   };
 
