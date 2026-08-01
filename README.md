@@ -31,7 +31,7 @@ The script downloads the latest GitHub Release, verifies `SHA256SUMS.txt`, insta
 
 | | |
 |---|---|
-| **Latest** | [v0.1.6](https://github.com/harsh4k/Bunny-OS/releases/latest) |
+| **Latest** | [v0.1.0](https://github.com/harsh4k/Bunny-OS/releases/latest) |
 | **Unsigned beta** | Windows SmartScreen → *More info* → *Run anyway*. macOS: right-click → *Open* if Gatekeeper blocks. |
 | **Uninstall** | [docs/uninstall.md](docs/uninstall.md) |
 
