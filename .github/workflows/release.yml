@@ -69,6 +69,8 @@ jobs:
             src-tauri/target/release/bundle/msi/*.msi
           if-no-files-found: error
 
+  # Apple Silicon only for unsigned beta. macos-13 (Intel) runners are scarce and
+  # can sit "Waiting for a runner…" for hours, blocking publish. Most Macs are arm64.
   macos:
     strategy:
       fail-fast: false
@@ -77,9 +79,6 @@ jobs:
           - os: macos-14
             triple: aarch64-apple-darwin
             arch_label: arm64
-          - os: macos-13
-            triple: x86_64-apple-darwin
-            arch_label: x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
