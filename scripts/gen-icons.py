@@ -10,7 +10,7 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE = ROOT / "bunny OS.jpg"
+SOURCE = ROOT / "bunny-os.jpg"
 ICONS_DIR = ROOT / "src-tauri" / "icons"
 CANVAS_SIZE = 1024
 ART_PADDING = 112
