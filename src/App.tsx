@@ -2,12 +2,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { LogicalPosition, LogicalSize } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
-import { currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
+import {
+  cursorPosition,
+  currentMonitor,
+  getCurrentWindow,
+} from "@tauri-apps/api/window";
 import { ExpandedDashboard } from "./components/ExpandedDashboard";
 import type { PanelView } from "./components/CompactPanel";
 import { VoicePill } from "./components/VoicePill";
 import {
   ISLAND_WINDOW,
+  PAD_X,
+  PAD_Y,
+  PILL_BORDER_Y,
+  PILL_H,
+  PILL_W,
   TOP_INSET,
   WINDOW_W,
   applyIslandCssVars,
@@ -18,6 +27,8 @@ import { ACTIVE_VOICE_STATES } from "./lib/voiceStatus";
 const DASHBOARD = { width: 820, height: 560 } as const;
 /** Idle pill lingers this long before tucking itself away. */
 const AUTO_HIDE_MS = 6_000;
+/** Poll while click-through so hover can re-arm the pill. */
+const HIT_POLL_MS = 80;
 const ONBOARDING_KEY = "bunnyos.onboarding.v1";
 const ONBOARDING_LEGACY = "bunnyos.firstRunAck.v1";
 
@@ -38,6 +49,8 @@ function App() {
   const [activeView, setActiveView] = useState<PanelView>("overview");
   const [micMuted, setMicMuted] = useState(true);
   const [pillHovered, setPillHovered] = useState(false);
+  /** False after auto-hide / close — skip hit-testing a tucked window. */
+  const [islandShown, setIslandShown] = useState(true);
   const { state: voiceState, error: voiceError } = useVoiceStatus();
   const expandedRef = useRef(expanded);
   expandedRef.current = expanded;
@@ -76,6 +89,8 @@ function App() {
   const handleClose = () => {
     if (onboardingPending) return;
     setExpanded(false);
+    setPillHovered(false);
+    setIslandShown(false);
     void placeWindow(false).finally(() => {
       invoke("hide_window").catch(console.error);
     });
@@ -97,6 +112,7 @@ function App() {
 
   useEffect(() => {
     if (!onboardingPending) return;
+    setIslandShown(true);
     setExpanded(true);
     void invoke("show_window").catch(() => {});
   }, [onboardingPending]);
@@ -113,10 +129,63 @@ function App() {
     if (onboardingPending || expanded || pillHovered) return;
     if (voiceError !== null || ACTIVE_VOICE_STATES.has(voiceState)) return;
     const timer = setTimeout(() => {
+      setPillHovered(false);
+      setIslandShown(false);
       invoke("hide_window").catch(() => {});
     }, AUTO_HIDE_MS);
     return () => clearTimeout(timer);
   }, [onboardingPending, expanded, pillHovered, voiceState, voiceError]);
+
+  // Idle island: pass clicks through; poll pill hit-box so hover can't stick.
+  useEffect(() => {
+    const apply = (ignore: boolean) => {
+      getCurrentWindow()
+        .setIgnoreCursorEvents(ignore)
+        .catch(() => {});
+    };
+
+    // Hidden / expanded dashboard: always accept cursor (tray will show again).
+    if (!islandShown || expanded) {
+      apply(false);
+      return;
+    }
+
+    let cancelled = false;
+    const tick = async () => {
+      if (cancelled) return;
+      const voiceBusy =
+        voiceError !== null || ACTIVE_VOICE_STATES.has(voiceState);
+      try {
+        const window = getCurrentWindow();
+        const [pos, scale] = await Promise.all([
+          window.outerPosition(),
+          window.scaleFactor(),
+        ]);
+        const cursor = await cursorPosition();
+        const pillLeft = pos.x + PAD_X * scale;
+        const pillTop = pos.y + PAD_Y * scale;
+        const pillRight = pillLeft + PILL_W * scale;
+        const pillBottom = pillTop + (PILL_H + PILL_BORDER_Y) * scale;
+        const overPill =
+          cursor.x >= pillLeft &&
+          cursor.x <= pillRight &&
+          cursor.y >= pillTop &&
+          cursor.y <= pillBottom;
+        setPillHovered(overPill);
+        await window.setIgnoreCursorEvents(!(overPill || voiceBusy));
+      } catch {
+        /* web / missing API */
+      }
+    };
+    void tick();
+    const id = window.setInterval(() => {
+      void tick();
+    }, HIT_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [expanded, voiceState, voiceError, islandShown]);
 
   useEffect(() => {
     invoke<boolean>("get_mic_muted")
@@ -129,17 +198,23 @@ function App() {
         return;
       }
       if (payload.cmd === "ptt") {
+        setPillHovered(false);
+        setIslandShown(true);
         setActiveView("overview");
         setExpanded(true);
         return;
       }
       if (payload.cmd === "wake") {
+        setPillHovered(false);
+        setIslandShown(true);
         setActiveView("wake");
         setExpanded(true);
       }
     });
 
     const unlistenShown = listen("window-shown", () => {
+      setPillHovered(false);
+      setIslandShown(true);
       void placeWindow(expandedRef.current);
     });
 
@@ -152,7 +227,11 @@ function App() {
   if (!expanded) {
     return (
       <VoicePill
-        onExpand={() => setExpanded(true)}
+        onExpand={() => {
+          setPillHovered(false);
+          setIslandShown(true);
+          setExpanded(true);
+        }}
         onHoverChange={setPillHovered}
       />
     );

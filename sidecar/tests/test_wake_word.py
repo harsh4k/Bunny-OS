@@ -43,11 +43,18 @@ class TestWakePhrase(unittest.TestCase):
     def test_persist_roundtrip(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             with patch.dict("os.environ", {"BUNNY_APP_DATA": tmp}):
-                save_settings("Hey Bunny", 0.6, 2.5)
+                save_settings("Hey Bunny", 0.6, 2.5, enabled=True)
                 loaded = load_settings()
                 self.assertEqual(loaded["phrase"], "hey bunny")
                 self.assertAlmostEqual(loaded["sensitivity"], 0.6)
                 self.assertAlmostEqual(loaded["cooldown_secs"], 2.5)
+                self.assertTrue(loaded["enabled"])
+
+    def test_enabled_defaults_false(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BUNNY_APP_DATA": tmp}):
+                loaded = load_settings()
+                self.assertFalse(loaded["enabled"])
 
 
 class TestWakeWordCustom(unittest.TestCase):
@@ -104,6 +111,44 @@ class TestWakeWordCustom(unittest.TestCase):
                 w._on_detect = lambda: fired.append(True)
                 w._score_utterance(w._stt, [0.1] * 1600)
                 self.assertEqual(fired, [])
+
+    def test_start_persists_enabled(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BUNNY_APP_DATA": tmp}):
+                w = WakeWordDetector(on_detect=lambda: None)
+
+                def fake_run() -> None:
+                    w._state = STATE_OFF
+
+                w._run = fake_run  # type: ignore[method-assign]
+                w.start()
+                self.assertTrue(load_settings()["enabled"])
+                w.stop()
+                self.assertFalse(load_settings()["enabled"])
+
+    def test_stop_without_persist_keeps_enabled(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BUNNY_APP_DATA": tmp}):
+                w = WakeWordDetector(on_detect=lambda: None)
+
+                def fake_run() -> None:
+                    w._state = STATE_OFF
+
+                w._run = fake_run  # type: ignore[method-assign]
+                w.start()
+                self.assertTrue(load_settings()["enabled"])
+                w.stop(persist=False)
+                self.assertTrue(load_settings()["enabled"])
+                self.assertTrue(w.status()["enabled"])
+
+    def test_enabled_follows_user_preference_not_only_runtime(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BUNNY_APP_DATA": tmp}):
+                w = WakeWordDetector(on_detect=lambda: None)
+                self.assertFalse(w.status()["enabled"])
+                w._desired_enabled = True
+                w._state = STATE_OFF
+                self.assertTrue(w.status()["enabled"])
 
 
 if __name__ == "__main__":

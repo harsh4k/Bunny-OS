@@ -4,7 +4,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: var(--island-pad-y, 14px) var(--island-pad-x, 22px);
+  padding: var(--island-pad-y, 6px) var(--island-pad-x, 8px);
   margin: 0;
   background: transparent;
   border: 0;
@@ -12,6 +12,7 @@
   box-shadow: none;
   overflow: hidden;
   box-sizing: border-box;
+  pointer-events: none;
 }
 
 .pill {
@@ -33,6 +34,7 @@
   box-shadow: var(--shadow-island-inset);
   backdrop-filter: blur(28px) saturate(1.35);
   overflow: hidden;
+  pointer-events: auto;
   transition:
     border-color 280ms var(--ease-island),
     background 280ms var(--ease-island);

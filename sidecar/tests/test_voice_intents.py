@@ -9,6 +9,11 @@ from voice_intents import match_intent
 
 
 class TestVoiceIntents(unittest.TestCase):
+    def setUp(self):
+        from voice_intents import reset_dialog_domain
+
+        reset_dialog_domain()
+
     def test_time_phrases(self):
         for phrase in (
             "what time is it",
@@ -184,6 +189,74 @@ class TestVoiceIntents(unittest.TestCase):
     def test_complex_falls_through(self):
         self.assertIsNone(match_intent("what can you do for me"))
         self.assertIsNone(match_intent("write a poem about rain"))
+
+    def test_open_youtube_and_yt_alias(self):
+        from voice_intents import reset_dialog_domain
+
+        reset_dialog_domain()
+        for phrase in ("open youtube", "open yt", "launch YouTube"):
+            result = match_intent(phrase)
+            self.assertEqual(
+                result,
+                {
+                    "kind": "action",
+                    "action": {
+                        "action": "open_url",
+                        "url": "https://www.youtube.com",
+                    },
+                },
+                phrase,
+            )
+
+    def test_yt_search_alias(self):
+        from voice_intents import reset_dialog_domain
+
+        reset_dialog_domain()
+        result = match_intent("search yt for loft jazz")
+        self.assertEqual(
+            result,
+            {
+                "kind": "action",
+                "action": {"action": "youtube_search", "query": "loft jazz"},
+            },
+        )
+
+    def test_follow_up_search_uses_youtube_domain(self):
+        from voice_intents import reset_dialog_domain
+
+        reset_dialog_domain()
+        self.assertIsNotNone(match_intent("open youtube"))
+        result = match_intent("search sunflower")
+        self.assertEqual(
+            result,
+            {
+                "kind": "action",
+                "action": {"action": "youtube_search", "query": "sunflower"},
+            },
+        )
+
+    def test_find_does_not_use_stale_domain(self):
+        from voice_intents import reset_dialog_domain
+
+        reset_dialog_domain()
+        self.assertIsNotNone(match_intent("open youtube"))
+        self.assertIsNone(match_intent("find my calendar"))
+
+    def test_fallthrough_clears_domain(self):
+        from voice_intents import reset_dialog_domain
+
+        reset_dialog_domain()
+        self.assertIsNotNone(match_intent("open youtube"))
+        self.assertIsNone(match_intent("what can you do for me"))
+        self.assertIsNone(match_intent("search sunflower"))
+
+    def test_unrelated_intent_clears_domain(self):
+        from voice_intents import reset_dialog_domain
+
+        reset_dialog_domain()
+        self.assertIsNotNone(match_intent("open youtube"))
+        self.assertIsNotNone(match_intent("what time is it"))
+        self.assertIsNone(match_intent("search sunflower"))
 
 
 class TestLocalActions(unittest.TestCase):

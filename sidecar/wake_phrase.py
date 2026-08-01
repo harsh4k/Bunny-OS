@@ -59,6 +59,7 @@ def load_settings() -> dict:
         "phrase": DEFAULT_PHRASE,
         "sensitivity": 0.5,
         "cooldown_secs": 2.0,
+        "enabled": False,
     }
     if not path.is_file():
         return defaults
@@ -82,10 +83,20 @@ def load_settings() -> dict:
         out["sensitivity"] = float(raw["sensitivity"])
     if isinstance(raw.get("cooldown_secs"), (int, float)):
         out["cooldown_secs"] = float(raw["cooldown_secs"])
+    if isinstance(raw.get("enabled"), bool):
+        out["enabled"] = raw["enabled"]
+    elif raw.get("enabled") in (0, 1, "0", "1"):
+        out["enabled"] = raw["enabled"] in (1, "1")
     return out
 
 
-def save_settings(phrase: str, sensitivity: float, cooldown_secs: float) -> None:
+def save_settings(
+    phrase: str,
+    sensitivity: float,
+    cooldown_secs: float,
+    *,
+    enabled: bool | None = None,
+) -> None:
     directory = wake_dir()
     directory.mkdir(parents=True, exist_ok=True)
     # Model stems (hey_jarvis) keep underscores; free text is normalized.
@@ -94,9 +105,12 @@ def save_settings(phrase: str, sensitivity: float, cooldown_secs: float) -> None
         stored = cleaned.lower()
     else:
         stored = validate_phrase(cleaned)
+    previous = load_settings()
+    want_enabled = previous["enabled"] if enabled is None else bool(enabled)
     payload = {
         "phrase": stored,
         "sensitivity": float(sensitivity),
         "cooldown_secs": float(cooldown_secs),
+        "enabled": want_enabled,
     }
     settings_path().write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

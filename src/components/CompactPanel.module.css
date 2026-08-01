@@ -161,7 +161,26 @@
   gap: var(--sp-4);
   overflow-x: hidden;
   overflow-y: auto;
-  padding-right: 2px;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+.scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
 }
 
 .body {
@@ -184,7 +203,8 @@
 .metric {
   min-width: 0;
   padding: 12px;
-  border-radius: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
   background: var(--color-surface-elevated);
 }
 
@@ -228,8 +248,8 @@
   gap: 8px;
   min-height: 42px;
   padding: 10px 14px;
-  border: 0;
-  border-radius: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   font-weight: 550;
@@ -268,6 +288,7 @@
 .btnSecondary {
   background: var(--color-surface-elevated);
   color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
 }
 
 .btnSecondary:hover:not(:disabled) {
@@ -308,8 +329,8 @@
   gap: 10px;
   min-height: 88px;
   padding: 14px;
-  border: 0;
-  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
   color: var(--color-text-primary);
   background: var(--color-surface-elevated);
   font: inherit;
@@ -318,7 +339,8 @@
   transition:
     background 180ms ease,
     transform 220ms var(--ease-spring),
-    color 180ms ease;
+    color 180ms ease,
+    border-color 180ms ease;
 }
 
 .tile:disabled {

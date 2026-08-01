@@ -67,6 +67,13 @@ def main() -> int:
     )
     wake = WakeWordDetector(on_detect=voice_worker.start_wake_session)
     wake_ref["wake"] = wake
+    try:
+        from wake_phrase import load_settings as _load_wake_settings
+
+        if _load_wake_settings().get("enabled"):
+            wake.start(persist=False)
+    except Exception as exc:  # noqa: BLE001
+        _log_err(f"wake auto-start skipped: {exc}")
 
     ctx = {
         "pull": pull_worker,
@@ -108,7 +115,8 @@ def _shutdown_all(ctx: dict) -> None:
     ctx["pull"].cancel()
     ctx["chat"].cancel()
     ctx["voice"].cancel()
-    ctx["wake"].stop()
+    # Stop the mic loop only — do not wipe the user's saved wake-enabled preference.
+    ctx["wake"].stop(persist=False)
 
 
 def handle_action(msg: ActionMessage, ctx: dict) -> None:

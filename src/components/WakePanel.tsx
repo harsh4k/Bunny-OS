@@ -26,7 +26,7 @@ const STATE_LABEL: Record<WakeStatus["state"], string> = {
   off: "Off",
   loading: "Loading model…",
   listening: "Listening for the wake phrase",
-  error: "Stopped",
+  error: "Error — see details below",
 };
 
 function prettyPhrase(phrase: string): string {
@@ -98,7 +98,7 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
   }, [refresh]);
 
   useEffect(() => {
-    if (status?.state !== "loading") return;
+    if (status?.state !== "loading" && status?.state !== "error") return;
     const timer = setInterval(() => void refresh(), 1_500);
     return () => clearInterval(timer);
   }, [status?.state, refresh]);
@@ -108,8 +108,26 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const action = status.enabled ? "wake_stop" : "wake_start";
+      const running = status.state === "listening" || status.state === "loading";
+      // Preference on but not running → retry start; running → stop; else enable.
+      const action = running ? "wake_stop" : "wake_start";
       const raw = await send({ action });
+      const next = JSON.parse(raw) as WakeStatus;
+      setStatus(next);
+      setDraftPhrase(next.phrase);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disableWake = async () => {
+    if (!status) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const raw = await send({ action: "wake_stop" });
       const next = JSON.parse(raw) as WakeStatus;
       setStatus(next);
       setDraftPhrase(next.phrase);
@@ -165,15 +183,35 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
             <p className={styles.idleHint}>
               Status: {STATE_LABEL[status.state]} · “{prettyPhrase(status.phrase)}”
               {status.mode ? ` · ${status.mode === "text" ? "custom phrase" : "model"}` : ""}
+              {status.enabled && status.state === "off" ? " · will retry on restart" : ""}
             </p>
-            {status.error ? <p className={styles.errorMsg}>{status.error}</p> : null}
+            {status.error ? (
+              <div className={styles.errorState} role="alert">
+                <p className={styles.errorMsg}>{status.error}</p>
+              </div>
+            ) : null}
             <button
               className={`${styles.btn} ${styles.btnPrimary}`}
               disabled={!sidecarReady || busy}
               onClick={() => void toggle()}
             >
-              {status.enabled ? "Disable wake word" : "Enable wake word"}
+              {status.state === "listening" || status.state === "loading"
+                ? "Disable wake word"
+                : status.enabled
+                  ? "Retry wake word"
+                  : "Enable wake word"}
             </button>
+            {status.enabled &&
+            status.state !== "listening" &&
+            status.state !== "loading" ? (
+              <button
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                disabled={!sidecarReady || busy}
+                onClick={() => void disableWake()}
+              >
+                Disable wake word
+              </button>
+            ) : null}
             <label className={styles.fieldLabel}>
               Custom wake phrase
               <input

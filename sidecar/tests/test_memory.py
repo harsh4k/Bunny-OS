@@ -53,6 +53,28 @@ class TestMemoryStore(unittest.TestCase):
         data = self.store.export_json()
         self.assertIn("tea", data)
 
+    def test_extract_voice_fact(self):
+        fact = self.store.extract_voice_fact("Remember that I prefer dark mode")
+        self.assertIsNotNone(fact)
+        assert fact is not None
+        self.assertIn("prefer", fact.lower())
+
+    def test_maybe_remember_voice_persists(self):
+        result = self.store.maybe_remember_voice("My name is Harsh")
+        self.assertIsNotNone(result)
+        facts = self.store.list_facts()
+        self.assertEqual(len(facts), 1)
+        self.assertEqual(facts[0]["source"], "voice")
+
+    def test_maybe_remember_skips_commands(self):
+        self.assertIsNone(self.store.maybe_remember_voice("open notepad"))
+        self.assertIsNone(self.store.maybe_remember_voice("search youtube for cats"))
+        self.assertEqual(self.store.list_facts(), [])
+
+    def test_maybe_remember_respects_off(self):
+        self.store.set_enabled(False)
+        self.assertIsNone(self.store.maybe_remember_voice("I prefer tea"))
+
 
 if __name__ == "__main__":
     unittest.main()

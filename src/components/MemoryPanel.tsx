@@ -81,6 +81,15 @@ export function MemoryPanel({ onClose, sidecarReady }: Props) {
     void refresh();
   }, [refresh]);
 
+  // Voice auto-facts land in SQLite without a push — poll while the panel is open.
+  useEffect(() => {
+    if (!sidecarReady || busy) return;
+    const timer = setInterval(() => {
+      if (!busy) void refresh();
+    }, 4_000);
+    return () => clearInterval(timer);
+  }, [sidecarReady, busy, refresh]);
+
   const addFact = async () => {
     const text = draft.trim();
     if (!text) return;

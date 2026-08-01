@@ -102,9 +102,9 @@ export function IconTalk(p: IconProps) {
 export function IconCollapse(p: IconProps) {
   return (
     <Svg {...p}>
-      {/* Chevron up into a capsule — “collapse to island” */}
-      <rect x="6" y="4" width="12" height="7" rx="3.5" />
-      <path d="m8 16 4-3 4 3" />
+      {/* Compact island capsule — clearer “collapse to pill” affordance */}
+      <rect x="4" y="9" width="16" height="6" rx="3" />
+      <path d="M9 6.5 12 4l3 2.5" />
     </Svg>
   );
 }

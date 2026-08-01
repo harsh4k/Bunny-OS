@@ -86,6 +86,8 @@ class WakeWordDetector:
         self._error = ""
         self._last_detect = 0.0
         self._mode = "model" if is_model_phrase(self._phrase) else "text"
+        # User preference (persisted). Distinct from runtime listening state.
+        self._desired_enabled = bool(saved.get("enabled"))
 
     @property
     def available(self) -> bool:
@@ -93,7 +95,8 @@ class WakeWordDetector:
 
     @property
     def enabled(self) -> bool:
-        return self._state in (STATE_LOADING, STATE_LISTENING)
+        """True when the user wants wake on (may be erroring / restarting)."""
+        return self._desired_enabled
 
     @property
     def error(self) -> str:
@@ -131,28 +134,34 @@ class WakeWordDetector:
             self._mode = "model" if is_model_phrase(self._phrase) else "text"
         self._persist()
         if phrase is not None and self._state in (STATE_LOADING, STATE_LISTENING):
-            self.stop()
-            self.start()
+            # Restart listener without clearing the user's saved enabled preference.
+            self.stop(persist=False)
+            self.start(persist=False)
 
-    def start(self) -> dict:
+    def start(self, *, persist: bool = True) -> dict:
         if self._state in (STATE_LOADING, STATE_LISTENING):
             return self.status()
         self._stop.clear()
         self._paused.clear()
         self._error = ""
         self._state = STATE_LOADING
+        if persist:
+            self._desired_enabled = True
+            self._persist(enabled=True)
         self._thread = threading.Thread(target=self._run, daemon=True, name="wake-word")
         self._thread.start()
         return self.status()
 
-    def stop(self) -> dict:
+    def stop(self, *, persist: bool = True) -> dict:
         self._stop.set()
         thread = self._thread
         if thread is not None and thread is not threading.current_thread():
             thread.join(timeout=2.0)
         self._thread = None
-        if self._state != STATE_ERROR:
-            self._state = STATE_OFF
+        self._state = STATE_OFF
+        if persist:
+            self._desired_enabled = False
+            self._persist(enabled=False)
         return self.status()
 
     def pause(self) -> None:
@@ -161,9 +170,14 @@ class WakeWordDetector:
     def resume(self) -> None:
         self._paused.clear()
 
-    def _persist(self) -> None:
+    def _persist(self, enabled: bool | None = None) -> None:
         try:
-            save_settings(self._phrase, self._sensitivity, self._cooldown)
+            save_settings(
+                self._phrase,
+                self._sensitivity,
+                self._cooldown,
+                enabled=enabled,
+            )
         except (OSError, ValueError):
             pass
 
@@ -188,7 +202,13 @@ class WakeWordDetector:
                 self._detect_loop_text(self._ensure_stt())
         except Exception as exc:  # noqa: BLE001
             self._state = STATE_ERROR
-            self._error = str(exc)
+            msg = str(exc).strip() or exc.__class__.__name__
+            if "mic" in msg.lower() or "audio" in msg.lower() or "sounddevice" in msg.lower():
+                self._error = f"Wake mic error: {msg}. Check microphone permission."
+            elif "whisper" in msg.lower() or "speech" in msg.lower() or _INSTALL_HINT in msg:
+                self._error = msg if msg.startswith("Wake") else f"{msg}"
+            else:
+                self._error = f"Wake failed: {msg}"
             return
         if self._state != STATE_ERROR:
             self._state = STATE_OFF
@@ -258,10 +278,15 @@ class WakeWordDetector:
         try:
             text = stt.transcribe(samples, SAMPLE_RATE)
         except Exception as exc:  # noqa: BLE001
-            self._error = f"Wake STT failed: {exc}"
+            # Soft failure — keep listening so the user can still Disable wake.
+            self._error = (
+                f"Wake speech recognition failed: {exc}. "
+                "Push-to-talk still works. Check the mic, or Disable/Enable wake."
+            )
             return
         if not phrase_matches(text, self._phrase):
             return
+        self._error = ""
         self._last_detect = now
         self._fire()
 
@@ -269,4 +294,4 @@ class WakeWordDetector:
         try:
             self._on_detect()
         except Exception as exc:  # noqa: BLE001
-            self._error = f"Wake handler failed: {exc}"
+            self._error = f"Wake started but the listener failed: {exc}"

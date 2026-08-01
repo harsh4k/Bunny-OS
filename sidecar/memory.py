@@ -28,6 +28,26 @@ _SECRET_RE = re.compile(
 MAX_MEMORY_CHARS = 1500
 MAX_FACT_LEN = 400
 
+# Short self-statements worth keeping as durable facts after a voice turn.
+_FACT_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(
+        r"\b(?:my name is|i(?:'m| am) called|call me)\s+([a-z][\w' -]{0,40})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bi (?:prefer|like|love|hate|use|need)\s+(.{3,80})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bi (?:live|work|am based)(?:\s+in)?\s+(.{3,60})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:remember(?: that)?|don'?t forget(?: that)?)\s+(.{3,120})",
+        re.IGNORECASE,
+    ),
+)
+
 
 @dataclass
 class MemoryFact:
@@ -166,6 +186,61 @@ class MemoryStore:
         if cleaned:
             self._session.append(cleaned[:500])
             self._session = self._session[-20:]
+
+    def extract_voice_fact(self, utterance: str) -> str | None:
+        """Return a short durable fact inferred from a voice utterance, or None."""
+        text = " ".join((utterance or "").strip().split())
+        if len(text) < 8 or len(text) > 240:
+            return None
+        if self.contains_secret(text):
+            return None
+        lower = text.lower()
+        # Skip pure commands / media asks — not profile facts.
+        if re.match(
+            r"^(?:please\s+)?(?:open|launch|play|search|find|look up|skip|pause|resume)\b",
+            lower,
+        ):
+            return None
+        for pattern in _FACT_PATTERNS:
+            match = pattern.search(text)
+            if not match:
+                continue
+            # Prefer a clean full-clause fact when the utterance is short.
+            if len(text) <= MAX_FACT_LEN and (
+                "remember" in lower
+                or "don't forget" in lower
+                or "dont forget" in lower
+                or "my name" in lower
+                or "call me" in lower
+                or "i prefer" in lower
+                or "i like" in lower
+                or "i love" in lower
+                or "i hate" in lower
+                or "i live" in lower
+                or "i work" in lower
+            ):
+                fact = text.rstrip(".!?")
+            else:
+                fact = match.group(0).strip().rstrip(".!?")
+            fact = self.redact(fact)
+            if len(fact) < 8:
+                return None
+            return fact[:MAX_FACT_LEN]
+        return None
+
+    def maybe_remember_voice(self, utterance: str) -> dict[str, Any] | None:
+        """Persist an auto-fact after a voice turn when Memory is On."""
+        if not self.is_enabled():
+            return None
+        fact = self.extract_voice_fact(utterance)
+        if not fact:
+            return None
+        # Avoid dupes of the same text.
+        existing = {f["text"].lower() for f in self.list_facts()[:40]}
+        if fact.lower() in existing:
+            return None
+        result = self.add_fact(fact, source="voice", confidence=0.6)
+        return result if result.get("ok") else None
 
     def export_json(self) -> str:
         payload = {

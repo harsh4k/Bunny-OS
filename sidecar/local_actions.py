@@ -25,6 +25,8 @@ _MAX_URL_LEN = 2048
 # Spoken / casual names → catalog stems (lowercase).
 _APP_ALIASES: dict[str, str] = {
     "spotify": "spotify",
+    "youtube": "youtube",
+    "yt": "youtube",
     "chrome": "google chrome",
     "google chrome": "google chrome",
     "edge": "microsoft edge",

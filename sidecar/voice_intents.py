@@ -4,15 +4,23 @@ Fast local intent matching for voice.
 Obvious daily requests (time, date, open app, YouTube, Spotify, HTTPS URL) are
 answered or acted on here without waiting on a reasoning model. Unmatched
 phrases fall through to Ollama.
+
+Keeps a short-lived dialog domain so follow-ups like "search sunflower" after
+YouTube still resolve to youtube_search.
 """
 from __future__ import annotations
 
 import re
+import time
 from typing import Any
 
 from local_actions import execute
 
 _Result = dict[str, Any]
+
+_DOMAIN_TTL_SECS = 90.0
+_last_domain: str | None = None
+_domain_ts: float = 0.0
 
 _TIME = re.compile(
     r"\b("
@@ -36,17 +44,24 @@ _DATE = re.compile(
 # "start" is a play verb far more often than an app verb, so media patterns
 # must be tried before _OPEN_APP ever sees the phrase.
 _PLAY_VERB = r"(?:play|watch|start|put\s+on)"
+_YT = r"(?:youtube|yt|you\s*tube)"
 
 _YOUTUBE_PLAY = re.compile(
     rf"(?:"
-    rf"(?:please\s+)?{_PLAY_VERB}\s+(.+?)\s+on\s+youtube"
-    rf"|youtube\s+{_PLAY_VERB}\s+(.+)"
+    rf"(?:please\s+)?{_PLAY_VERB}\s+(.+?)\s+on\s+{_YT}"
+    rf"|{_YT}\s+{_PLAY_VERB}\s+(.+)"
     rf")$",
     re.IGNORECASE,
 )
 _YOUTUBE_SEARCH = re.compile(
-    r"(?:(?:please\s+)?(?:search(?:\s+on)?|find|look up)\s+(?:on\s+)?youtube(?:\s+for)?|"
-    r"youtube(?:\s+search)?(?:\s+for)?)\s+(.+)$",
+    rf"(?:(?:please\s+)?(?:search(?:\s+on)?|find|look up)\s+(?:on\s+)?{_YT}(?:\s+for)?|"
+    rf"{_YT}(?:\s+search)?(?:\s+for)?)\s+(.+)$",
+    re.IGNORECASE,
+)
+_OPEN_YOUTUBE = re.compile(
+    rf"^(?:please\s+)?(?:can you\s+|could you\s+)?"
+    rf"(?:open|launch|start|run)\s+(?:{_YT}|you\s+tube)"
+    rf"(?:\s+please|\s+for me)?$",
     re.IGNORECASE,
 )
 _SPOTIFY_PLAY = re.compile(
@@ -86,6 +101,11 @@ _SPOTIFY_OPEN = re.compile(
     r"^(?:please\s+)?(?:can you\s+|could you\s+)?"
     r"(?:open|launch|start|run)\s+spotify"
     r"(?:\s+please|\s+for me)?$",
+    re.IGNORECASE,
+)
+_FOLLOW_SEARCH = re.compile(
+    # Bare "search …" only — "find/look up" stay free for Ollama / other intents.
+    r"^(?:please\s+)?search(?:\s+for)?\s+(.+)$",
     re.IGNORECASE,
 )
 _OPEN_URL = re.compile(
@@ -142,6 +162,34 @@ _FILLER = re.compile(
 )
 
 
+def reset_dialog_domain() -> None:
+    """Test helper — clear follow-up domain."""
+    global _last_domain, _domain_ts
+    _last_domain = None
+    _domain_ts = 0.0
+
+
+def _set_domain(domain: str) -> None:
+    global _last_domain, _domain_ts
+    _last_domain = domain
+    _domain_ts = time.monotonic()
+
+
+def _clear_domain() -> None:
+    global _last_domain, _domain_ts
+    _last_domain = None
+    _domain_ts = 0.0
+
+
+def _active_domain() -> str | None:
+    if _last_domain is None:
+        return None
+    if time.monotonic() - _domain_ts > _DOMAIN_TTL_SECS:
+        _clear_domain()
+        return None
+    return _last_domain
+
+
 def match_intent(spoken: str) -> _Result | None:
     """
     Return a respond/action result if the phrase is unambiguous, else None.
@@ -153,26 +201,46 @@ def match_intent(spoken: str) -> _Result | None:
         return None
 
     if _TIME.search(text):
+        _clear_domain()
         return {"kind": "respond", "text": execute({"action": "get_local_time"})}
     if _DATE.search(text):
+        _clear_domain()
         return {"kind": "respond", "text": execute({"action": "get_local_date"})}
     if _SYSTEM.search(text):
+        _clear_domain()
         return {"kind": "respond", "text": execute({"action": "show_system_summary"})}
 
     # Media keys before any "play …" pattern so bare "play" isn't lost.
     if _MEDIA_NEXT.match(text):
+        _clear_domain()
         return {"kind": "action", "action": {"action": "media_next"}}
     if _MEDIA_PREV.match(text):
+        _clear_domain()
         return {"kind": "action", "action": {"action": "media_prev"}}
     if _MEDIA_PLAY.match(text):
+        _clear_domain()
         return {"kind": "action", "action": {"action": "media_play"}}
 
     url_match = _OPEN_URL.search(text)
     if url_match:
         url = url_match.group(1).rstrip(".,)!?")
+        if "youtube.com" in url.lower() or "youtu.be" in url.lower():
+            _set_domain("youtube")
+        elif "spotify.com" in url.lower():
+            _set_domain("spotify")
+        else:
+            _clear_domain()
         return {"kind": "action", "action": {"action": "open_url", "url": url}}
 
+    if _OPEN_YOUTUBE.match(text):
+        _set_domain("youtube")
+        return {
+            "kind": "action",
+            "action": {"action": "open_url", "url": "https://www.youtube.com"},
+        }
+
     if _SPOTIFY_OPEN.match(text):
+        _set_domain("spotify")
         return {"kind": "action", "action": {"action": "spotify_open"}}
 
     sp_play = _SPOTIFY_PLAY.search(text)
@@ -182,6 +250,7 @@ def match_intent(spoken: str) -> _Result | None:
             # Keep "playlist" in the query so local_actions uses the playlist URI.
             if "playlist" in text.lower() and "playlist" not in query.lower():
                 query = f"{query} playlist"
+            _set_domain("spotify")
             return {
                 "kind": "action",
                 "action": {"action": "spotify_play", "query": query},
@@ -191,6 +260,7 @@ def match_intent(spoken: str) -> _Result | None:
     if sp_search:
         query = sp_search.group(1).strip().rstrip(".,!?")
         if query:
+            _set_domain("spotify")
             return {
                 "kind": "action",
                 "action": {"action": "spotify_search", "query": query},
@@ -200,6 +270,7 @@ def match_intent(spoken: str) -> _Result | None:
     if yt_play:
         query = _first_group(yt_play)
         if query:
+            _set_domain("youtube")
             return {
                 "kind": "action",
                 "action": {"action": "youtube_play", "query": query},
@@ -209,6 +280,7 @@ def match_intent(spoken: str) -> _Result | None:
     if yt:
         query = yt.group(1).strip().rstrip(".,!?")
         if query:
+            _set_domain("youtube")
             return {
                 "kind": "action",
                 "action": {"action": "youtube_search", "query": query},
@@ -220,6 +292,7 @@ def match_intent(spoken: str) -> _Result | None:
         if not name:
             return {"kind": "respond", "text": "Which playlist would you like?"}
         keyword = bare_playlist.group("kw").lower()
+        _set_domain("spotify")
         return {
             "kind": "action",
             "action": {"action": "spotify_play", "query": f"{name} {keyword}"},
@@ -231,21 +304,37 @@ def match_intent(spoken: str) -> _Result | None:
         if not name:
             return {"kind": "respond", "text": "Which video would you like?"}
         keyword = bare_video.group("kw").lower()
+        _set_domain("youtube")
         return {
             "kind": "action",
             "action": {"action": "youtube_play", "query": f"{name} {keyword}"},
         }
 
+    # Follow-ups in the active dialog domain (e.g. "search sunflower" after YT).
+    # Search-only — "start/play …" must not steal open_app (e.g. "start Notepad").
+    domain = _active_domain()
+    if domain in ("youtube", "spotify"):
+        follow_search = _FOLLOW_SEARCH.match(text)
+        if follow_search:
+            query = follow_search.group(1).strip().rstrip(".,!?")
+            if query and "youtube" not in query.lower() and "spotify" not in query.lower():
+                _set_domain(domain)
+                action = "youtube_search" if domain == "youtube" else "spotify_search"
+                return {"kind": "action", "action": {"action": action, "query": query}}
+
     app = _OPEN_APP.match(text)
     if app and not _MEDIA_WORDS.search(text):
         name = _clean_name(app.group("name"))
         lower = name.lower()
-        if name and "youtube" not in lower and lower != "spotify":
+        if name and "youtube" not in lower and lower not in ("yt", "you tube") and lower != "spotify":
+            _clear_domain()
             return {
                 "kind": "action",
                 "action": {"action": "open_app", "app_name": name},
             }
 
+    # Unmatched → Ollama. Drop dialog domain so it can't hijack a later "search …".
+    _clear_domain()
     return None
 
 

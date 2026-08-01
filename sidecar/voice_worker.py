@@ -232,6 +232,8 @@ class VoiceWorker:
                 return
 
             reply = self._ask(msg_id, text)
+            # Persist facts/session even when the model path fails — utterance still happened.
+            self._note_voice_memory(text, reply or "")
             if reply is None:
                 return
 
@@ -242,6 +244,17 @@ class VoiceWorker:
             self._active_id = None
             self._set_busy(False)
             self._lock.release()
+
+    def _note_voice_memory(self, spoken: str, reply: str) -> None:
+        if self._memory is None:
+            return
+        try:
+            self._memory.remember_session(f"user (voice): {spoken[:200]}")
+            if reply:
+                self._memory.remember_session(f"bunny (voice): {reply[:200]}")
+            self._memory.maybe_remember_voice(spoken)
+        except Exception:  # noqa: BLE001
+            pass
 
     def _speak(self, msg_id: str, reply: str) -> None:
         if not self._advance(msg_id, VoiceState.SPEAKING, "tts"):
@@ -457,9 +470,7 @@ class VoiceWorker:
         if self._memory is None:
             return SYSTEM_PROMPT
         try:
-            prompt = self._memory.build_prompt_prefix()
-            self._memory.remember_session(f"user (voice): {spoken[:200]}")
-            return prompt
+            return self._memory.build_prompt_prefix()
         except Exception:  # noqa: BLE001
             return SYSTEM_PROMPT
 

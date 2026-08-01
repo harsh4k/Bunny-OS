@@ -64,10 +64,14 @@ export function VoicePill({ onExpand, onHoverChange }: Props) {
     <section
       className={styles.stage}
       aria-label="Bunny voice notification"
-      onMouseEnter={() => onHoverChange?.(true)}
-      onMouseLeave={() => onHoverChange?.(false)}
     >
-      <div className={styles.pill} data-active={active} data-tone={tone}>
+      <div
+        className={styles.pill}
+        data-active={active}
+        data-tone={tone}
+        onMouseEnter={() => onHoverChange?.(true)}
+        onMouseLeave={() => onHoverChange?.(false)}
+      >
         <button
           type="button"
           className={styles.expand}
