@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Generate Tauri icons from the Bunny OS brand artwork."""
 
+from __future__ import annotations
+
+import io
+import struct
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw
@@ -12,6 +16,17 @@ CANVAS_SIZE = 1024
 ART_PADDING = 112
 CORNER_RADIUS = 224
 BACKGROUND = (16, 16, 16, 255)
+
+# Modern ICNS icon types that embed PNG payloads (accepted by macOS 10.13+).
+_ICNS_PNG_TYPES: list[tuple[bytes, int]] = [
+    (b"icp4", 16),
+    (b"icp5", 32),
+    (b"icp6", 64),
+    (b"ic07", 128),
+    (b"ic08", 256),
+    (b"ic09", 512),
+    (b"ic10", 1024),
+]
 
 
 def build_master() -> Image.Image:
@@ -50,6 +65,23 @@ def save_png(master: Image.Image, size: int, filename: str) -> None:
     print(f"  created {filename} ({size}x{size})")
 
 
+def write_icns(master: Image.Image, path: Path) -> None:
+    """Write a real ICNS with PNG-compressed icon slots (no macOS tooling)."""
+    chunks: list[bytes] = []
+    for type_code, size in _ICNS_PNG_TYPES:
+        buf = io.BytesIO()
+        master.resize((size, size), Image.Resampling.LANCZOS).save(
+            buf, format="PNG", optimize=True
+        )
+        payload = buf.getvalue()
+        # length includes the 8-byte type+size header
+        chunks.append(type_code + struct.pack(">I", 8 + len(payload)) + payload)
+
+    body = b"".join(chunks)
+    path.write_bytes(b"icns" + struct.pack(">I", 8 + len(body)) + body)
+    print(f"  created icon.icns ({len(_ICNS_PNG_TYPES)} PNG slots)")
+
+
 def main() -> None:
     if not SOURCE.is_file():
         raise FileNotFoundError(f"Brand artwork not found: {SOURCE}")
@@ -69,9 +101,7 @@ def main() -> None:
     )
     print("  created icon.ico (16–256px)")
 
-    # Bunny OS currently targets Windows; keep the required macOS placeholder.
-    (ICONS_DIR / "icon.icns").write_bytes(b"icns\x00\x00\x00\x08")
-    print("  created icon.icns (Windows-only placeholder)")
+    write_icns(master, ICONS_DIR / "icon.icns")
 
 
 if __name__ == "__main__":

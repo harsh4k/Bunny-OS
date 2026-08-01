@@ -1,6 +1,7 @@
 //! Structured local logging for Bunny OS.
 //!
-//! Writes to `%LOCALAPPDATA%\BunnyOS\logs\bunny-YYYY-MM-DD.log`.
+//! Windows: `%LOCALAPPDATA%\BunnyOS\logs\bunny-YYYY-MM-DD.log`
+//! macOS: `~/Library/Application Support/BunnyOS/logs/bunny-YYYY-MM-DD.log`
 //! Never logs transcripts, raw audio, memory text, or chat payloads.
 
 use std::fs::{self, OpenOptions};
@@ -14,10 +15,23 @@ static LOG_LOCK: Mutex<()> = Mutex::new(());
 const RETENTION_DAYS: i64 = 7;
 
 fn logs_dir() -> PathBuf {
+    app_data_dir().join("logs")
+}
+
+fn app_data_dir() -> PathBuf {
+    if cfg!(target_os = "macos") {
+        let home = std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("."));
+        return home
+            .join("Library")
+            .join("Application Support")
+            .join("BunnyOS");
+    }
     let base = std::env::var_os("LOCALAPPDATA")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."));
-    base.join("BunnyOS").join("logs")
+    base.join("BunnyOS")
 }
 
 fn today_stamp() -> String {

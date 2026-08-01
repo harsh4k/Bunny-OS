@@ -14,6 +14,10 @@ numpy>=1.26
 # TTS (Windows SAPI COM)
 pywin32>=306; sys_platform == "win32"
 
+# macOS media keys + AppKit helpers
+pyobjc-framework-Cocoa>=10.0; sys_platform == "darwin"
+pyobjc-framework-Quartz>=10.0; sys_platform == "darwin"
+
 # Wake word
 openwakeword>=0.6.0
 onnxruntime>=1.16

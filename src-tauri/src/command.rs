@@ -16,10 +16,8 @@ pub struct SidecarCommand {
 ///
 /// - **debug** – runs Python source directly:
 ///   `python sidecar/main.py`
-/// - **release** – expects a pre-compiled binary at
-///   `<resource_dir>/bunny-sidecar[.exe]`
-///   Build it with:
-///   `cd sidecar && pyinstaller main.py --onefile -n bunny-sidecar`
+/// - **release** – expects a pre-compiled binary under `resource_dir`
+///   named for the host triple (Tauri `externalBin` convention).
 ///
 /// Returns `Err` in release mode when the binary is absent; the supervisor
 /// treats this as an immediate `Error` lifecycle transition.
@@ -34,17 +32,29 @@ pub fn resolve_command(app: &tauri::AppHandle) -> Result<SidecarCommand, String>
             .unwrap_or(script)
             .to_string_lossy()
             .into_owned();
+        let program = if cfg!(target_os = "macos") {
+            "python3".to_string()
+        } else {
+            "python".to_string()
+        };
         return Ok(SidecarCommand {
-            program: "python".to_string(),
+            program,
             args: vec![script],
         });
     }
 
-    // Prefer Tauri externalBin naming, then plain bunny-sidecar.exe.
+    // Prefer Tauri externalBin naming, then a plain bunny-sidecar fallback.
     let candidates: &[&str] = if cfg!(windows) {
         &[
             "bunny-sidecar-x86_64-pc-windows-msvc.exe",
+            "bunny-sidecar-x86_64-pc-windows-gnu.exe",
             "bunny-sidecar.exe",
+        ]
+    } else if cfg!(target_os = "macos") {
+        &[
+            "bunny-sidecar-aarch64-apple-darwin",
+            "bunny-sidecar-x86_64-apple-darwin",
+            "bunny-sidecar",
         ]
     } else {
         &["bunny-sidecar"]
@@ -67,6 +77,6 @@ pub fn resolve_command(app: &tauri::AppHandle) -> Result<SidecarCommand, String>
 
     Err(format!(
         "sidecar binary not found under {resource_dir:?}. \
-         Build with: pwsh -File scripts/package-sidecar.ps1"
+         Build with: scripts/package-sidecar.ps1 (Windows) or scripts/package-sidecar.sh (macOS)"
     ))
 }

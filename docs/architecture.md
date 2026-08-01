@@ -40,7 +40,7 @@
 1. User chats or uses push-to-talk → sidecar streams Ollama response
 2. If the model proposes an action, React shows Confirm (never auto-executes from voice)
 3. On confirm, React calls `execute_assistant_action` → Rust broker
-4. Broker validates Start Menu / HTTPS allowlists and launches via Win32/`open`
+4. Broker validates installed-app / HTTPS allowlists and launches via Win32/`open` (LaunchServices on macOS)
 5. Audit event is emitted to the UI
 
 Voice and wake word only start listening. They never authorize privileged actions.

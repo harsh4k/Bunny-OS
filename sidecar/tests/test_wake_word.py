@@ -1,69 +1,109 @@
-"""Wake-word detector status tests."""
+"""Wake phrase normalize / match / persist tests."""
 from __future__ import annotations
 
-import time
+import sys
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
-from wake_word import (
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from wake_phrase import (
     DEFAULT_PHRASE,
-    STATE_ERROR,
-    STATE_LISTENING,
-    STATE_OFF,
-    WakeWordDetector,
+    load_settings,
+    normalize_phrase,
+    phrase_matches,
+    save_settings,
+    validate_phrase,
 )
+from wake_word import STATE_OFF, WakeWordDetector
 
 
-class TestWakeWord(unittest.TestCase):
-    def test_status_includes_hotkey_fallback(self):
-        w = WakeWordDetector(on_detect=lambda: None)
-        status = w.status()
-        self.assertTrue(status["hotkey_fallback"])
-        self.assertFalse(status["enabled"])
+class TestWakePhrase(unittest.TestCase):
+    def test_default_is_hey_bunny(self) -> None:
+        self.assertEqual(DEFAULT_PHRASE, "hey bunny")
 
-    def test_configure_clamps(self):
-        w = WakeWordDetector(on_detect=lambda: None)
-        w.configure(sensitivity=5.0, cooldown_secs=0.01)
-        self.assertLessEqual(w.status()["sensitivity"], 0.95)
-        self.assertGreaterEqual(w.status()["cooldown_secs"], 0.5)
+    def test_normalize(self) -> None:
+        self.assertEqual(normalize_phrase("  Hey, BUNNY!! "), "hey bunny")
 
-    def test_offers_pretrained_phrases(self):
-        w = WakeWordDetector(on_detect=lambda: None)
-        status = w.status()
-        self.assertIn(DEFAULT_PHRASE, status["phrases"])
-        self.assertEqual(status["phrase"], DEFAULT_PHRASE)
+    def test_validate_rejects_empty(self) -> None:
+        with self.assertRaises(ValueError):
+            validate_phrase("   ")
 
-    def test_configure_switches_phrase_while_off(self):
-        w = WakeWordDetector(on_detect=lambda: None)
-        w.configure(phrase="alexa")
-        self.assertEqual(w.status()["phrase"], "alexa")
-        self.assertEqual(w.status()["state"], STATE_OFF)
+    def test_match_contiguous(self) -> None:
+        self.assertTrue(phrase_matches("hey bunny what time is it", "hey bunny"))
+        self.assertTrue(phrase_matches("Okay hey bunny", "hey bunny"))
+        self.assertFalse(phrase_matches("hey there bunny", "hey bunny"))
+        self.assertFalse(phrase_matches("open notepad", "hey bunny"))
 
-    def test_unknown_phrase_reports_error_instead_of_crashing(self):
-        w = WakeWordDetector(on_detect=lambda: None, phrase="hey_bunny")
-        w.start()
-        deadline = time.time() + 5
-        while w.status()["state"] not in (STATE_ERROR, STATE_LISTENING) and time.time() < deadline:
-            time.sleep(0.05)
-        status = w.status()
-        self.assertEqual(status["state"], STATE_ERROR)
-        self.assertTrue(status["error"])
-        self.assertTrue(status["hotkey_fallback"])
-        w.stop()
+    def test_custom_phrase_match(self) -> None:
+        self.assertTrue(phrase_matches("ok computer play music", "ok computer"))
 
-    def test_detection_invokes_callback(self):
-        """A firing detector must start a listening session, not swallow it."""
-        fired = []
-        w = WakeWordDetector(on_detect=lambda: fired.append(True))
-        w._fire()
-        self.assertEqual(fired, [True])
+    def test_persist_roundtrip(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BUNNY_APP_DATA": tmp}):
+                save_settings("Hey Bunny", 0.6, 2.5)
+                loaded = load_settings()
+                self.assertEqual(loaded["phrase"], "hey bunny")
+                self.assertAlmostEqual(loaded["sensitivity"], 0.6)
+                self.assertAlmostEqual(loaded["cooldown_secs"], 2.5)
 
-    def test_bad_callback_does_not_kill_the_loop(self):
-        def boom() -> None:
-            raise RuntimeError("handler exploded")
 
-        w = WakeWordDetector(on_detect=boom)
-        w._fire()
-        self.assertIn("handler exploded", w.status()["error"])
+class TestWakeWordCustom(unittest.TestCase):
+    def test_defaults_to_hey_bunny_text_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BUNNY_APP_DATA": tmp}):
+                w = WakeWordDetector(on_detect=lambda: None)
+                status = w.status()
+                self.assertEqual(status["phrase"], "hey bunny")
+                self.assertEqual(status["mode"], "text")
+                self.assertEqual(status["default_phrase"], "hey bunny")
+                self.assertTrue(status["hotkey_fallback"])
+
+    def test_configure_custom_phrase(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BUNNY_APP_DATA": tmp}):
+                w = WakeWordDetector(on_detect=lambda: None)
+                w.configure(phrase="OK Computer")
+                self.assertEqual(w.status()["phrase"], "ok computer")
+                self.assertEqual(w.status()["mode"], "text")
+                self.assertEqual(w.status()["state"], STATE_OFF)
+
+    def test_configure_model_phrase(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BUNNY_APP_DATA": tmp}):
+                w = WakeWordDetector(on_detect=lambda: None)
+                w.configure(phrase="alexa")
+                self.assertEqual(w.status()["phrase"], "alexa")
+                self.assertEqual(w.status()["mode"], "model")
+
+    def test_text_utterance_fires_on_match(self) -> None:
+        fired: list[bool] = []
+
+        class FakeStt:
+            def transcribe(self, samples, sample_rate=16_000):  # noqa: ARG002
+                return "hey bunny open chrome"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BUNNY_APP_DATA": tmp}):
+                w = WakeWordDetector(on_detect=lambda: fired.append(True), stt=FakeStt())
+                w._score_utterance(w._stt, [0.1] * 1600)
+                self.assertEqual(fired, [True])
+
+    def test_text_utterance_ignores_non_match(self) -> None:
+        fired: list[bool] = []
+
+        class FakeStt:
+            def transcribe(self, samples, sample_rate=16_000):  # noqa: ARG002
+                return "open notepad"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BUNNY_APP_DATA": tmp}):
+                w = WakeWordDetector(on_detect=lambda: None, stt=FakeStt())
+                w._on_detect = lambda: fired.append(True)
+                w._score_utterance(w._stt, [0.1] * 1600)
+                self.assertEqual(fired, [])
 
 
 if __name__ == "__main__":

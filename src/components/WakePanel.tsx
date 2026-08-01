@@ -1,5 +1,5 @@
 /**
- * WakePanel — enable/disable wake-word scaffold + sensitivity.
+ * WakePanel — enable/disable wake word + custom phrase (default Hey Bunny).
  * Hotkey / Talk remains the reliable fallback. Wake never authorizes actions.
  */
 import { useCallback, useEffect, useState } from "react";
@@ -13,11 +13,13 @@ interface WakeStatus {
   enabled: boolean;
   state: "off" | "loading" | "listening" | "error";
   phrase: string;
+  mode?: "text" | "model";
   phrases: string[];
   sensitivity: number;
   cooldown_secs: number;
   error: string;
   hotkey_fallback: boolean;
+  default_phrase?: string;
 }
 
 const STATE_LABEL: Record<WakeStatus["state"], string> = {
@@ -29,7 +31,8 @@ const STATE_LABEL: Record<WakeStatus["state"], string> = {
 
 function prettyPhrase(phrase: string): string {
   return phrase
-    .split("_")
+    .split(/[_\s]+/)
+    .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
@@ -43,6 +46,7 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
   const [status, setStatus] = useState<WakeStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [draftPhrase, setDraftPhrase] = useState("hey bunny");
 
   const send = useCallback(async (payload: Record<string, unknown>) => {
     const id = crypto.randomUUID();
@@ -79,7 +83,9 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
     setError(null);
     try {
       const raw = await send({ action: "wake_status" });
-      setStatus(JSON.parse(raw) as WakeStatus);
+      const next = JSON.parse(raw) as WakeStatus;
+      setStatus(next);
+      setDraftPhrase(next.phrase);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -91,7 +97,6 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
     void refresh();
   }, [refresh]);
 
-  // Loading the wake model can download weights, so poll until it settles.
   useEffect(() => {
     if (status?.state !== "loading") return;
     const timer = setInterval(() => void refresh(), 1_500);
@@ -105,7 +110,9 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
     try {
       const action = status.enabled ? "wake_stop" : "wake_start";
       const raw = await send({ action });
-      setStatus(JSON.parse(raw) as WakeStatus);
+      const next = JSON.parse(raw) as WakeStatus;
+      setStatus(next);
+      setDraftPhrase(next.phrase);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -115,6 +122,7 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
 
   const configure = async (patch: Record<string, unknown>) => {
     setBusy(true);
+    setError(null);
     try {
       await send({ action: "wake_configure", ...patch });
       await refresh();
@@ -124,6 +132,14 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
       setBusy(false);
     }
   };
+
+  const applyPhrase = () => {
+    const next = draftPhrase.trim();
+    if (!next || next === status?.phrase) return;
+    void configure({ phrase: next });
+  };
+
+  const defaultPhrase = status?.default_phrase ?? "hey bunny";
 
   return (
     <div className={styles.overlay} role="dialog" aria-label="Wake word settings">
@@ -135,10 +151,9 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
       </div>
       <div className={styles.body}>
         <p className={styles.idleHint}>
-          Detection runs entirely on this machine and only starts listening — it can
-          never approve an action. There is no pretrained “Hey Bunny” model, so pick a
-          phrase below, or drop your own .onnx into %LOCALAPPDATA%\BunnyOS\wake\ to have
-          it appear here. The push-to-talk hotkey always works regardless.
+          Say your phrase (default “{prettyPhrase(defaultPhrase)}”) to start listening.
+          It runs on this machine only and never approves an action. Push-to-talk always
+          works as a fallback.
         </p>
         {error && (
           <div className={styles.errorState} role="alert">
@@ -148,7 +163,8 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
         {status && (
           <>
             <p className={styles.idleHint}>
-              Status: {STATE_LABEL[status.state]} · Phrase: “{prettyPhrase(status.phrase)}”
+              Status: {STATE_LABEL[status.state]} · “{prettyPhrase(status.phrase)}”
+              {status.mode ? ` · ${status.mode === "text" ? "custom phrase" : "model"}` : ""}
             </p>
             {status.error ? <p className={styles.errorMsg}>{status.error}</p> : null}
             <button
@@ -159,20 +175,55 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
               {status.enabled ? "Disable wake word" : "Enable wake word"}
             </button>
             <label className={styles.fieldLabel}>
-              Wake phrase
-              <select
-                value={status.phrase}
+              Custom wake phrase
+              <input
+                className={styles.modelInput}
+                type="text"
+                value={draftPhrase}
+                maxLength={48}
                 disabled={!sidecarReady || busy}
-                onChange={(e) => void configure({ phrase: e.target.value })}
-                aria-label="Wake phrase"
-              >
-                {status.phrases.map((phrase) => (
-                  <option key={phrase} value={phrase}>
-                    {prettyPhrase(phrase)}
-                  </option>
-                ))}
-              </select>
+                placeholder={defaultPhrase}
+                aria-label="Custom wake phrase"
+                onChange={(e) => setDraftPhrase(e.target.value)}
+                onBlur={() => applyPhrase()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applyPhrase();
+                  }
+                }}
+              />
             </label>
+            <button
+              className={styles.btn}
+              disabled={!sidecarReady || busy || draftPhrase.trim() === defaultPhrase}
+              onClick={() => {
+                setDraftPhrase(defaultPhrase);
+                void configure({ phrase: defaultPhrase });
+              }}
+            >
+              Reset to {prettyPhrase(defaultPhrase)}
+            </button>
+            {status.phrases.length > 0 ? (
+              <label className={styles.fieldLabel}>
+                Optional model phrase
+                <select
+                  value={status.phrases.includes(status.phrase) ? status.phrase : ""}
+                  disabled={!sidecarReady || busy}
+                  onChange={(e) => {
+                    if (e.target.value) void configure({ phrase: e.target.value });
+                  }}
+                  aria-label="Optional model wake phrase"
+                >
+                  <option value="">Use custom text above</option>
+                  {status.phrases.map((phrase) => (
+                    <option key={phrase} value={phrase}>
+                      {prettyPhrase(phrase)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <label className={styles.fieldLabel}>
               Sensitivity {status.sensitivity.toFixed(2)}
               <input

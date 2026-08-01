@@ -1,8 +1,8 @@
 //! Ollama reachability probe + launcher.
 //!
 //! Bunny OS never bundles Ollama; the user installs and runs it. Everything
-//! here is a localhost TCP probe plus a ShellExecuteW launch of the installed
-//! executable — no cmd.exe, no PowerShell, no network beyond 127.0.0.1.
+//! here is a localhost TCP probe plus a LaunchServices / ShellExecute launch of
+//! the installed app — no cmd.exe, no PowerShell, no network beyond 127.0.0.1.
 
 use std::net::{Ipv4Addr, SocketAddr, TcpStream};
 use std::path::PathBuf;
@@ -21,11 +21,20 @@ pub fn is_running() -> bool {
     TcpStream::connect_timeout(&addr, Duration::from_millis(PROBE_TIMEOUT_MS)).is_ok()
 }
 
-/// Installed Ollama executables, most preferred first.
-///
-/// `ollama app.exe` is the tray application: it starts the server and keeps it
-/// supervised. Plain `ollama.exe` is the CLI and is only a fallback.
+/// Installed Ollama executables / apps, most preferred first.
 fn candidates() -> Vec<PathBuf> {
+    #[cfg(target_os = "macos")]
+    {
+        return macos_candidates();
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        windows_candidates()
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn windows_candidates() -> Vec<PathBuf> {
     let mut out = Vec::new();
     let mut push_dir = |dir: PathBuf| {
         out.push(dir.join("ollama app.exe"));
@@ -36,6 +45,29 @@ fn candidates() -> Vec<PathBuf> {
     }
     if let Ok(pf) = std::env::var("ProgramFiles") {
         push_dir(PathBuf::from(pf).join("Ollama"));
+    }
+    out
+}
+
+#[cfg(target_os = "macos")]
+fn macos_candidates() -> Vec<PathBuf> {
+    let mut out = vec![
+        PathBuf::from("/Applications/Ollama.app"),
+        PathBuf::from("/Applications/Ollama.app/Contents/Resources/ollama"),
+        PathBuf::from("/usr/local/bin/ollama"),
+        PathBuf::from("/opt/homebrew/bin/ollama"),
+    ];
+    if let Ok(home) = std::env::var("HOME") {
+        let user_apps = PathBuf::from(home).join("Applications");
+        out.insert(1, user_apps.join("Ollama.app"));
+        out.insert(
+            2,
+            user_apps
+                .join("Ollama.app")
+                .join("Contents")
+                .join("Resources")
+                .join("ollama"),
+        );
     }
     out
 }
@@ -79,11 +111,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn candidates_are_absolute_and_named() {
+    fn candidates_are_named() {
         for path in candidates() {
-            assert!(path.is_absolute(), "{path:?} should be absolute");
-            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
-            assert!(name.starts_with("ollama"), "unexpected candidate {name:?}");
+            let name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or_default()
+                .to_ascii_lowercase();
+            assert!(
+                name.contains("ollama"),
+                "unexpected candidate {path:?}"
+            );
         }
     }
 

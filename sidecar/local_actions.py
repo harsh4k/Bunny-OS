@@ -2,15 +2,14 @@
 Local allowlisted actions the sidecar can run without the Rust broker.
 
 Used by the voice path (which never reaches ChatPanel's execute button) and by
-in-process tool resolution for time/date/system summary. open_* uses Win32
-ShellExecute via os.startfile — never cmd.exe / powershell.
+in-process tool resolution for time/date/system summary. Opens via platform
+helpers (ShellExecuteW /usr/bin/open) — never cmd.exe / powershell.
 """
 from __future__ import annotations
 
-import os
 import re
+import sys
 from datetime import datetime
-from pathlib import Path
 from urllib.parse import quote, quote_plus
 
 from chat_handler import (
@@ -19,26 +18,28 @@ from chat_handler import (
     _BAD_APP_CHARS,
     _build_action,
 )
+from platform_open import open_application, open_url_or_file
 
 _MAX_URL_LEN = 2048
-_MAX_START_MENU_DEPTH = 8
-_MAX_START_MENU_ENTRIES = 2_000
 
-# Spoken / casual names → Start Menu .lnk stems (lowercase).
+# Spoken / casual names → catalog stems (lowercase).
 _APP_ALIASES: dict[str, str] = {
     "spotify": "spotify",
     "chrome": "google chrome",
     "google chrome": "google chrome",
     "edge": "microsoft edge",
     "microsoft edge": "microsoft edge",
+    "safari": "safari",
     "vscode": "visual studio code",
     "vs code": "visual studio code",
     "visual studio code": "visual studio code",
     "notepad": "notepad",
+    "textedit": "textedit",
     "calculator": "calculator",
     "calc": "calculator",
     "explorer": "file explorer",
     "file explorer": "file explorer",
+    "finder": "finder",
     "discord": "discord",
     "slack": "slack",
     "telegram": "telegram",
@@ -48,7 +49,6 @@ _APP_ALIASES: dict[str, str] = {
     "obsidian": "obsidian",
 }
 
-# YouTube "Videos" filter (sp=EgIQAQ%3D%3D).
 _YT_VIDEOS_FILTER = "EgIQAQ%3D%3D"
 
 
@@ -101,14 +101,14 @@ def _open_app(app_name: str) -> str:
     bad = sorted({c for c in name if c in _BAD_APP_CHARS})
     if bad:
         raise ValueError(f"app_name contains invalid characters: {bad!r}")
-    path = _resolve_start_menu_app(name)
-    os.startfile(path)  # noqa: S606 — ShellExecuteW, not a shell
+    path = _resolve_app(name)
+    open_application(name, path)
     return f"Opening {name}."
 
 
 def _open_url(url: str) -> str:
     _validate_https(url)
-    os.startfile(url)  # noqa: S606
+    open_url_or_file(url)
     domain = url.removeprefix("https://").split("/", 1)[0]
     return f"Opening {domain}."
 
@@ -116,7 +116,7 @@ def _open_url(url: str) -> str:
 def _youtube_search(query: str) -> str:
     q = _require_query(query)
     url = f"https://www.youtube.com/results?search_query={quote_plus(q)}"
-    os.startfile(url)  # noqa: S606
+    open_url_or_file(url)
     return f"Searching YouTube for {q}."
 
 
@@ -128,25 +128,23 @@ def _youtube_play(query: str) -> str:
     if video_id:
         url = watch_url(video_id)
         _validate_https(url)
-        os.startfile(url)  # noqa: S606
+        open_url_or_file(url)
         return f"Playing {q} on YouTube."
 
-    # Fallback when the page shape changes or the network flakes.
     url = (
         f"https://www.youtube.com/results?search_query={quote_plus(q)}"
         f"&sp={_YT_VIDEOS_FILTER}"
     )
-    os.startfile(url)  # noqa: S606
+    open_url_or_file(url)
     return f"Opening YouTube results for {q}."
 
 
 def _spotify_open() -> str:
-    # Prefer the protocol handler; fall back to Start Menu if unregistered.
     try:
-        os.startfile("spotify:")  # noqa: S606
-    except OSError:
-        path = _resolve_start_menu_app("Spotify")
-        os.startfile(path)  # noqa: S606
+        open_url_or_file("spotify:")
+    except (OSError, Exception):
+        path = _resolve_app("Spotify")
+        open_application("Spotify", path)
     return "Opening Spotify."
 
 
@@ -184,32 +182,27 @@ def _spotify_play(query: str) -> str:
 
     if raw.lower().startswith("spotify:"):
         _validate_spotify_uri(raw)
-        os.startfile(raw)  # noqa: S606
+        open_url_or_file(raw)
         return "Opening that in Spotify."
 
     if raw.lower().startswith("https://open.spotify.com/"):
         _validate_https(raw)
         if not _is_open_spotify_host(raw):
             raise ValueError("Only https://open.spotify.com links are allowed")
-        os.startfile(raw)  # noqa: S606
+        open_url_or_file(raw)
         return "Opening that in Spotify."
 
-    # Bare http(s) / other schemes must not become a Spotify search string.
     if "://" in raw:
         raise ValueError("Only spotify: URIs or https://open.spotify.com links are allowed")
 
-    # Spotify has no `playlist:` search filter — `spotify:search:playlist:chill`
-    # searches for that literal text and returns junk. Keeping the bare word in
-    # the query is what actually ranks playlists first.
-    #
-    # Starting playback needs an authenticated Web API call, so these URIs land
-    # on results and the caller must not claim the track is playing.
     playlist = _playlist_query(raw)
     if playlist is not None:
-        _open_spotify_uri(f"spotify:search:{quote(f'{playlist} playlist', safe='')}")
+        open_url_or_file(
+            f"spotify:search:{quote(f'{playlist} playlist', safe='')}"
+        )
         return f"Showing {playlist} playlists in Spotify."
 
-    _open_spotify_uri(f"spotify:search:{quote(raw, safe='')}")
+    open_url_or_file(f"spotify:search:{quote(raw, safe='')}")
     return f"Showing {raw} in Spotify."
 
 
@@ -232,7 +225,7 @@ def _playlist_query(raw: str) -> str | None:
 
 def _open_spotify_uri(uri: str) -> None:
     _validate_spotify_uri(uri)
-    os.startfile(uri)  # noqa: S606
+    open_url_or_file(uri)
 
 
 def _validate_spotify_uri(uri: str) -> None:
@@ -276,34 +269,33 @@ def _validate_https(url: str) -> None:
         raise ValueError("URL contains control characters")
 
 
-def _resolve_start_menu_app(app_name: str) -> str:
-    apps = _discover_start_menu_apps()
+def _resolve_app(app_name: str) -> str | None:
+    """Return a filesystem path, or None when macOS can open by app name."""
+    import os
+    from pathlib import Path
+
+    from app_catalog import get_app_catalog
+
     key = app_name.lower().strip()
     alias = _APP_ALIASES.get(key, key)
+    catalog = get_app_catalog()
 
-    if alias in apps:
-        return apps[alias]
-    if key in apps:
-        return apps[key]
+    for app in catalog:
+        if app.name.lower() in (alias, key) and app.path:
+            return app.path
 
-    # Prefer prefix, then containment.
-    prefix = [p for name, p in apps.items() if name.startswith(alias)]
-    if len(prefix) == 1:
-        return prefix[0]
-    hits = [p for name, p in apps.items() if alias in name or name in alias]
-    if len(hits) == 1:
-        return hits[0]
+    if sys.platform == "darwin":
+        for app in catalog:
+            if app.name.lower() == alias or app.name.lower() == key:
+                return app.path or None
+        names = [a.name for a in catalog]
+        suggestions = [n for n in names if alias in n.lower()][:5]
+        if suggestions:
+            raise ValueError(
+                f"App '{app_name}' not found. Did you mean: {', '.join(suggestions)}?"
+            )
+        raise ValueError(f"App '{app_name}' not found in /Applications.")
 
-    needle = alias[:4] if len(alias) >= 4 else alias
-    suggestions = sorted(n for n in apps if needle in n)[:5]
-    if suggestions:
-        raise ValueError(
-            f"App '{app_name}' not found. Did you mean: {', '.join(suggestions)}?"
-        )
-    raise ValueError(f"App '{app_name}' not found in Start Menu. Check the spelling.")
-
-
-def _discover_start_menu_apps() -> dict[str, str]:
     apps: dict[str, str] = {}
     for env in ("APPDATA", "PROGRAMDATA"):
         base = os.environ.get(env, "")
@@ -311,18 +303,36 @@ def _discover_start_menu_apps() -> dict[str, str]:
             continue
         root = Path(base) / "Microsoft" / "Windows" / "Start Menu" / "Programs"
         _collect_lnk(root, apps, 0)
-    return apps
+    if alias in apps:
+        return apps[alias]
+    if key in apps:
+        return apps[key]
+    prefix = [p for name, p in apps.items() if name.startswith(alias)]
+    if len(prefix) == 1:
+        return prefix[0]
+    hits = [p for name, p in apps.items() if alias in name or name in alias]
+    if len(hits) == 1:
+        return hits[0]
+    needle = alias[:4] if len(alias) >= 4 else alias
+    suggestions = sorted(n for n in apps if needle in n)[:5]
+    if suggestions:
+        raise ValueError(
+            f"App '{app_name}' not found. Did you mean: {', '.join(suggestions)}?"
+        )
+    raise ValueError(f"App '{app_name}' not found. Check the spelling.")
 
 
-def _collect_lnk(dir_path: Path, apps: dict[str, str], depth: int) -> None:
-    if depth > _MAX_START_MENU_DEPTH or len(apps) >= _MAX_START_MENU_ENTRIES:
+def _collect_lnk(dir_path, apps: dict[str, str], depth: int) -> None:
+    from pathlib import Path
+
+    if depth > 8 or len(apps) >= 2_000:
         return
     try:
-        entries = list(dir_path.iterdir())
+        entries = list(Path(dir_path).iterdir())
     except OSError:
         return
     for entry in entries:
-        if len(apps) >= _MAX_START_MENU_ENTRIES:
+        if len(apps) >= 2_000:
             return
         try:
             if entry.is_symlink():

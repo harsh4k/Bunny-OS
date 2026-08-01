@@ -1,10 +1,10 @@
 //! Action broker — executes AssistantActions safely.
 //!
 //! Security properties:
-//!   - open_app: Start Menu .lnk allowlist only; `open::that` (ShellExecuteW)
+//!   - open_app: installed-app allowlist only; `open::that` (no shell)
 //!   - open_url / youtube_*: HTTPS URL helpers in `url_tools`
 //!   - spotify_*: `spotify:` URI or open.spotify.com HTTPS only
-//!   - media_*: Win32 multimedia keys (play/pause, next, prev) — no shell
+//!   - media_*: platform multimedia keys (play/pause, next, prev) — no shell
 //!   - show_system_summary: read-only, deterministic
 //!   - Audit event emitted on every call
 
@@ -13,7 +13,8 @@ use std::path::PathBuf;
 use crate::{
     audit::{self, AuditLog},
     ipc::{AssistantAction, AuditOutcome},
-    start_menu::discover_start_menu_apps,
+    media_keys::{self, MediaKind},
+    start_menu::discover_installed_apps,
     url_tools::{
         build_spotify_search_uri, build_youtube_play_url, build_youtube_url, extract_domain,
         is_open_spotify_url, validate_spotify_uri, validate_url,
@@ -24,18 +25,7 @@ use tauri::Emitter;
 const MAX_APP_NAME_LEN: usize = 200;
 const MAX_QUERY_LEN: usize = 500;
 
-const VK_MEDIA_NEXT_TRACK: u8 = 0xB0;
-const VK_MEDIA_PREV_TRACK: u8 = 0xB1;
-const VK_MEDIA_PLAY_PAUSE: u8 = 0xB3;
-const KEYEVENTF_EXTENDEDKEY: u32 = 0x0001;
-const KEYEVENTF_KEYUP: u32 = 0x0002;
-
-#[link(name = "user32")]
-extern "system" {
-    fn keybd_event(b_vk: u8, b_scan: u8, dw_flags: u32, dw_extra_info: usize);
-}
-
-/// Casual spoken names → Start Menu .lnk stems (lowercase).
+/// Casual spoken names → catalog keys (lowercase).
 fn app_alias(key: &str) -> &str {
     match key {
         "chrome" | "google chrome" => "google chrome",
@@ -43,6 +33,10 @@ fn app_alias(key: &str) -> &str {
         "vscode" | "vs code" | "visual studio code" => "visual studio code",
         "calc" | "calculator" => "calculator",
         "explorer" | "file explorer" => "file explorer",
+        // macOS
+        "safari" => "safari",
+        "finder" => "finder",
+        "textedit" | "text edit" => "textedit",
         other => other,
     }
 }
@@ -96,17 +90,17 @@ fn dispatch(action: AssistantAction) -> (&'static str, String, Result<String, St
         AssistantAction::MediaPlay => (
             "media_play",
             "play_pause".to_string(),
-            execute_media_key(VK_MEDIA_PLAY_PAUSE, "Toggling play."),
+            media_keys::execute_media_key(MediaKind::PlayPause, "Toggling play."),
         ),
         AssistantAction::MediaNext => (
             "media_next",
             "next".to_string(),
-            execute_media_key(VK_MEDIA_NEXT_TRACK, "Skipping to the next track."),
+            media_keys::execute_media_key(MediaKind::Next, "Skipping to the next track."),
         ),
         AssistantAction::MediaPrev => (
             "media_prev",
             "previous".to_string(),
-            execute_media_key(VK_MEDIA_PREV_TRACK, "Going to the previous track."),
+            media_keys::execute_media_key(MediaKind::Prev, "Going to the previous track."),
         ),
         AssistantAction::ShowSystemSummary => (
             "show_system_summary",
@@ -114,17 +108,6 @@ fn dispatch(action: AssistantAction) -> (&'static str, String, Result<String, St
             Ok(system_summary()),
         ),
     }
-}
-
-#[allow(unsafe_code)] // Win32 keybd_event — only path for multimedia keys without a new crate
-fn execute_media_key(vk: u8, spoken: &str) -> Result<String, String> {
-    // SAFETY: keybd_event is the documented Win32 multimedia-key path; vk is
-    // one of three hard-coded constants above.
-    unsafe {
-        keybd_event(vk, 0, KEYEVENTF_EXTENDEDKEY, 0);
-        keybd_event(vk, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
-    }
-    Ok(spoken.to_string())
 }
 
 fn execute_open_app(app_name: &str) -> Result<String, String> {
@@ -137,13 +120,13 @@ fn execute_open_app(app_name: &str) -> Result<String, String> {
     if app_name.chars().any(|c| bad.contains(&c)) {
         return Err("app_name contains invalid characters".to_string());
     }
-    let path = resolve_start_menu_app(app_name)?;
+    let path = resolve_installed_app(app_name)?;
     open::that(&path).map_err(|e| format!("Failed to open '{app_name}': {e}"))?;
     Ok(format!("Opened {app_name}"))
 }
 
-fn resolve_start_menu_app(app_name: &str) -> Result<PathBuf, String> {
-    let apps = discover_start_menu_apps();
+fn resolve_installed_app(app_name: &str) -> Result<PathBuf, String> {
+    let apps = discover_installed_apps();
     let key = app_name.to_lowercase();
     let alias = app_alias(&key);
 
@@ -176,9 +159,14 @@ fn resolve_start_menu_app(app_name: &str) -> Result<PathBuf, String> {
         .take(5)
         .cloned()
         .collect();
+    let catalog = if cfg!(target_os = "macos") {
+        "Applications"
+    } else {
+        "Start Menu"
+    };
     if suggestions.is_empty() {
         Err(format!(
-            "App '{app_name}' not found in Start Menu. Check the spelling."
+            "App '{app_name}' not found in {catalog}. Check the spelling."
         ))
     } else {
         Err(format!(
@@ -225,7 +213,7 @@ fn execute_spotify_open() -> Result<String, String> {
     match open::that("spotify:") {
         Ok(()) => Ok("Opening Spotify.".to_string()),
         Err(_) => {
-            let path = resolve_start_menu_app("Spotify")?;
+            let path = resolve_installed_app("Spotify")?;
             open::that(&path).map_err(|e| format!("Failed to open Spotify: {e}"))?;
             Ok("Opening Spotify.".to_string())
         }
@@ -268,9 +256,18 @@ fn execute_spotify_play(query: &str) -> Result<String, String> {
 
 fn system_summary() -> String {
     let arch = std::env::consts::ARCH;
-    let computer = std::env::var("COMPUTERNAME").unwrap_or_else(|_| "Unknown".to_string());
-    let username = std::env::var("USERNAME").unwrap_or_else(|_| "Unknown".to_string());
-    format!("OS: Windows ({arch}) | Computer: {computer} | User: {username}")
+    let os_name = match std::env::consts::OS {
+        "macos" => "macOS",
+        "windows" => "Windows",
+        other => other,
+    };
+    let computer = std::env::var("COMPUTERNAME")
+        .or_else(|_| std::env::var("HOSTNAME"))
+        .unwrap_or_else(|_| "Unknown".to_string());
+    let username = std::env::var("USERNAME")
+        .or_else(|_| std::env::var("USER"))
+        .unwrap_or_else(|_| "Unknown".to_string());
+    format!("OS: {os_name} ({arch}) | Computer: {computer} | User: {username}")
 }
 
 fn truncate_label(s: &str, max: usize) -> String {
@@ -310,7 +307,7 @@ mod tests {
     fn system_summary_non_empty() {
         let s = system_summary();
         assert!(!s.is_empty());
-        assert!(s.contains("OS:") || s.contains("Windows"));
+        assert!(s.contains("OS:"));
     }
 
     #[test]

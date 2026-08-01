@@ -134,9 +134,9 @@ export function OverviewPane({
         <button
           className={`${styles.btn} ${styles.btnGhost}`}
           onClick={onOpenMicPrivacy}
-          title="Desktop apps use Windows Privacy settings instead of an in-app prompt"
+          title="Desktop apps use system privacy settings instead of an in-app prompt"
         >
-          Windows mic permission…
+          Mic permission…
         </button>
         <div className={styles.quickGrid}>
           <Tile

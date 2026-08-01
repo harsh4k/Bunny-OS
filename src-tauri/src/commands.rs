@@ -39,32 +39,41 @@ pub async fn start_ollama() -> Result<String, String> {
         .map_err(|e| format!("start_ollama task failed: {e}"))?
 }
 
-/// Open Windows Settings → Privacy → Microphone.
+/// Open OS privacy settings for the microphone.
 ///
 /// Desktop apps don't get a Chrome-style prompt. Access is controlled in
 /// system privacy settings; this just jumps the user there.
 #[tauri::command]
 pub async fn open_mic_privacy_settings() -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(|| {
-        open::that("ms-settings:privacy-microphone")
-            .map_err(|e| format!("Could not open microphone settings: {e}"))
+        let url = if cfg!(target_os = "macos") {
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
+        } else {
+            "ms-settings:privacy-microphone"
+        };
+        open::that(url).map_err(|e| format!("Could not open microphone settings: {e}"))
     })
     .await
     .map_err(|e| format!("open_mic_privacy_settings task failed: {e}"))?
 }
 
-/// Open Windows Settings → System → Sound.
+/// Open OS sound / output settings.
 #[tauri::command]
 pub async fn open_sound_settings() -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(|| {
-        open::that("ms-settings:sound")
-            .map_err(|e| format!("Could not open sound settings: {e}"))
+        let url = if cfg!(target_os = "macos") {
+            // Ventura+ Sound pane; falls through to legacy preference id on older macOS.
+            "x-apple.systempreferences:com.apple.Sound-Settings.extension"
+        } else {
+            "ms-settings:sound"
+        };
+        open::that(url).map_err(|e| format!("Could not open sound settings: {e}"))
     })
     .await
     .map_err(|e| format!("open_sound_settings task failed: {e}"))?
 }
 
-/// First-run onboarding: count Start Menu apps (read-only, no shell).
+/// First-run onboarding: count installed apps (read-only, no shell).
 #[derive(serde::Serialize)]
 pub struct OnboardingScan {
     pub os: String,
@@ -76,12 +85,17 @@ pub struct OnboardingScan {
 #[tauri::command]
 pub async fn onboarding_scan() -> Result<OnboardingScan, String> {
     let scan = tauri::async_runtime::spawn_blocking(|| {
-        let apps = crate::start_menu::discover_start_menu_apps();
+        let apps = crate::start_menu::discover_installed_apps();
         let mut names: Vec<String> = apps.keys().cloned().collect();
         names.sort();
         let sample_apps = names.into_iter().take(8).collect();
+        let os = match std::env::consts::OS {
+            "macos" => "macOS".to_string(),
+            "windows" => "Windows".to_string(),
+            other => other.to_string(),
+        };
         OnboardingScan {
-            os: "Windows".to_string(),
+            os,
             arch: std::env::consts::ARCH.to_string(),
             app_count: apps.len(),
             sample_apps,

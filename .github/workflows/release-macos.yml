@@ -1,6 +1,6 @@
-name: release-windows
+name: release-macos
 
-# P0.1 / P0.3 / P0.4 — MSVC installer + frozen sidecar on GitHub Actions.
+# macOS DMG + frozen sidecar on GitHub Actions.
 # Triggers: version tags (v*) or manual dispatch.
 
 on:
@@ -13,8 +13,8 @@ permissions:
   contents: write
 
 jobs:
-  windows:
-    runs-on: windows-latest
+  macos:
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,26 +30,24 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Setup Rust (MSVC)
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-msvc
 
       - name: Install frontend deps
         run: npm install
 
       - name: Generate icons
         run: |
-          python -m pip install pillow
-          python scripts/gen-icons.py
+          python3 -m pip install pillow
+          python3 scripts/gen-icons.py
 
       - name: Package frozen sidecar
-        shell: pwsh
         run: |
-          $env:BUNNY_PYTHON = (Get-Command python).Source
-          pwsh -File scripts/package-sidecar.ps1
+          chmod +x scripts/package-sidecar.sh
+          export BUNNY_PYTHON="$(command -v python3)"
+          ./scripts/package-sidecar.sh
 
-      - name: Build Tauri installer
+      - name: Build Tauri DMG
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -59,19 +57,20 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: Bunny OS ${{ github.ref_name }}
           releaseBody: |
-            Windows installer with frozen Python sidecar (no system pip required).
+            macOS app with frozen Python sidecar (no system pip required).
 
             ## Install
-            - Windows: `irm https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.ps1 | iex`
             - macOS: `curl -fsSL https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.sh | bash`
+            - Windows: `irm https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.ps1 | iex`
 
             ## Verify
             Compare SHA256 with the checksums artifact before installing.
 
             ## Notes
             - Ollama is still external (`ollama serve`)
-            - Microphone starts muted; grant access in Windows Privacy settings
+            - Grant Microphone access when macOS prompts (System Settings → Privacy)
             - Default wake phrase: **Hey Bunny** (customizable)
+            - Install: open the `.dmg` or use `install.sh`
           releaseDraft: true
           prerelease: true
           includeUpdaterJson: false
@@ -80,7 +79,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-bundle-checksums
+          name: macos-bundle-checksums
           path: |
             src-tauri/target/release/bundle/**
             src-tauri/binaries/*.sha256

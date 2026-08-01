@@ -19,7 +19,7 @@ from chat_worker import handle_chat_streaming
 from ipc_types import error_msg, stream_msg
 from local_actions import execute as execute_local
 from stt import SttEngine, create_stt
-from tts import TtsEngine, WindowsSapiTts
+from tts import TtsEngine, create_tts
 from voice_intents import match_intent
 from voice_state import VoiceMachine, VoiceState
 
@@ -61,7 +61,7 @@ class VoiceWorker:
     ) -> None:
         self._write = write_fn
         self._stt = stt
-        self._tts = tts or WindowsSapiTts()
+        self._tts = tts or create_tts()
         self._audio = audio or AudioPipeline()
         self._memory = memory
         self._on_busy_change = on_busy_change

@@ -11,6 +11,7 @@ pub mod command;
 pub mod commands;
 pub mod hotkey;
 pub mod ipc;
+pub mod media_keys;
 pub mod ollama;
 pub mod protocol;
 pub mod sidecar;

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Bunny OS uses the microphone for optional push-to-talk speech recognition. Audio is transcribed on this Mac and is never uploaded.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Bunny OS transcribes your voice locally with faster-whisper. Recognition stays on this Mac.</string>
+</dict>
+</plist>

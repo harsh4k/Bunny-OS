@@ -18,14 +18,15 @@ pwsh -File scripts/check-p0.ps1
 
 | Tool | Notes |
 |---|---|
-| Windows 10/11 | Target platform |
+| Windows 10/11 **or** macOS 12+ | Target platforms |
 | Node.js + npm | Frontend / Tauri CLI |
-| Rust (MSVC toolchain) | Release builds — `stable-x86_64-pc-windows-msvc` |
-| VS Build Tools (Desktop C++) | Provides `link.exe` — required for local `npm run build` |
+| Rust (stable) | Host toolchain — MSVC or MinGW on Windows; Apple clang on macOS |
+| VS Build Tools (Desktop C++) | **Windows release** — provides `link.exe` |
+| Xcode Command Line Tools | **macOS release** |
 | Python 3.11+ | Sidecar freeze (`BUNNY_PYTHON` optional override) |
 | Ollama | External; `http://127.0.0.1:11434` |
 
-Local daily-drive may use the GNU toolchain (`rust-toolchain.toml`) when MinGW is installed and MSVC is not. **Release builds always use MSVC** (CI overrides the toolchain file).
+Local daily-drive on Windows may use MinGW by copying `src-tauri/.cargo/config.toml.windows` → `config.toml` (see that folder’s README). Repo `rust-toolchain.toml` pins `stable` so macOS CI/hosts work. **Release builds use the host’s default linker** (MSVC on `release-windows.yml`, Apple clang on `release-macos.yml`).
 
 ## Release build order (local, MSVC present)
 
@@ -42,7 +43,7 @@ pwsh -File scripts/export-diagnostics.ps1
 
 Or one shot: `pwsh -File scripts/prepare-release.ps1`
 
-`package-sidecar.ps1` installs `sidecar/requirements-bundle.txt` into the chosen Python, freezes a onefile exe (STT/TTS/wake included), smokes the ready handshake, and copies into `src-tauri/binaries/` for Tauri `externalBin`.
+`package-sidecar.ps1` / `package-sidecar.sh` installs `sidecar/requirements-bundle.txt` into the chosen Python, freezes a onefile binary (STT/TTS/wake included), smokes the ready handshake, and copies into `src-tauri/binaries/` for Tauri `externalBin`.
 
 ## CI release
 
@@ -51,8 +52,8 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-Workflow: `.github/workflows/release-windows.yml`  
-Produces a **draft prerelease** with the Windows installer. Signing remains a human step.
+Workflows: `.github/workflows/release-windows.yml` and `release-macos.yml`  
+Produces **draft prereleases** with the Windows installer and macOS DMG. Signing remains a human step.
 
 ## End-user install (P1)
 
@@ -60,12 +61,17 @@ Produces a **draft prerelease** with the Windows installer. Signing remains a hu
 irm https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.ps1 | iex
 ```
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.sh | bash
+```
+
 Or: `pwsh -File install.ps1 -WhatIf` / `-LocalMsi .\path\to.msi`  
+macOS: `./install.sh --what-if` / `--local-dmg ./path/to.dmg`  
 Test gate: `pwsh -File scripts/test-install.ps1`
 
 ## Structured logs
 
-- Location: `%LOCALAPPDATA%\BunnyOS\logs\bunny-YYYY-MM-DD.log`
+- Location: `%LOCALAPPDATA%\BunnyOS\logs\` (Windows) or `~/Library/Application Support/BunnyOS/logs/` (macOS)
 - Contents: lifecycle / crash / packaging events only
 - Retention: 7 days (pruned on write)
 - Never logged: transcripts, raw audio, memory fact text, full chat payloads

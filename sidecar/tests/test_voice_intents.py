@@ -204,7 +204,7 @@ class TestLocalActions(unittest.TestCase):
     def test_youtube_play_opens_filtered_results(self):
         with mock.patch(
             "youtube_resolve.first_video_id", return_value=None
-        ), mock.patch("local_actions.os.startfile") as start:
+        ), mock.patch("local_actions.open_url_or_file") as start:
             spoken = execute({"action": "youtube_play", "query": "lofi"})
         start.assert_called_once()
         url = start.call_args[0][0]
@@ -215,7 +215,7 @@ class TestLocalActions(unittest.TestCase):
     def test_youtube_play_opens_watch_when_id_found(self):
         with mock.patch(
             "youtube_resolve.first_video_id", return_value="n61ULEU7CO0"
-        ), mock.patch("local_actions.os.startfile") as start:
+        ), mock.patch("local_actions.open_url_or_file") as start:
             spoken = execute({"action": "youtube_play", "query": "lofi"})
         start.assert_called_once()
         url = start.call_args[0][0]
@@ -224,7 +224,7 @@ class TestLocalActions(unittest.TestCase):
         self.assertIn("Playing", spoken)
 
     def test_spotify_playlist_searches_without_bogus_filter(self):
-        with mock.patch("local_actions.os.startfile") as start:
+        with mock.patch("local_actions.open_url_or_file") as start:
             spoken = execute({"action": "spotify_play", "query": "chill playlist"})
         start.assert_called_once()
         uri = start.call_args[0][0]
@@ -236,14 +236,14 @@ class TestLocalActions(unittest.TestCase):
         self.assertIn("Showing", spoken)
 
     def test_spotify_play_does_not_claim_playback(self):
-        with mock.patch("local_actions.os.startfile"):
+        with mock.patch("local_actions.open_url_or_file"):
             spoken = execute({"action": "spotify_play", "query": "weeknd"})
         # Search URIs only open results — saying "Playing" would be a lie.
         self.assertNotIn("Playing", spoken)
         self.assertIn("Showing", spoken)
 
     def test_spotify_search_uri(self):
-        with mock.patch("local_actions.os.startfile") as start:
+        with mock.patch("local_actions.open_url_or_file") as start:
             spoken = execute({"action": "spotify_search", "query": "chill hits"})
         start.assert_called_once()
         uri = start.call_args[0][0]
@@ -252,10 +252,10 @@ class TestLocalActions(unittest.TestCase):
 
     def test_open_app_launches_resolved_lnk(self):
         with mock.patch(
-            "local_actions._resolve_start_menu_app", return_value=r"C:\fake\Notepad.lnk"
-        ), mock.patch("local_actions.os.startfile") as start:
+            "local_actions._resolve_app", return_value=r"C:\fake\Notepad.lnk"
+        ), mock.patch("local_actions.open_application") as start:
             spoken = execute({"action": "open_app", "app_name": "Notepad"})
-        start.assert_called_once_with(r"C:\fake\Notepad.lnk")
+        start.assert_called_once_with("Notepad", r"C:\fake\Notepad.lnk")
         self.assertEqual(spoken, "Opening Notepad.")
 
 

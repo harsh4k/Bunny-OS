@@ -1,6 +1,6 @@
 # Bunny OS
 
-Local-only, privacy-first desktop automation suite for Windows 10/11. No telemetry, no cloud.
+Local-only, privacy-first desktop automation suite for Windows 10/11 and macOS. No telemetry, no cloud.
 
 ## Install (Windows)
 
@@ -10,22 +10,30 @@ irm https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.ps1 | iex
 
 Needs a GitHub Release with an MSI (tag `v*` after CI). Until then use `-LocalMsi` or run from source below.
 
+## Install (macOS)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.sh | bash
+```
+
+Needs a GitHub Release with a `.dmg` (tag `v*` after macOS CI). Until then use `--local-dmg` or run from source below.
+
 ## Quick start
 
 ### Prerequisites
 
 | Tool | Version | Notes |
 |---|---|---|
-| Windows | 10 / 11 | Target platform |
+| Windows 10/11 or macOS | current | Target platforms |
 | Node.js | 24.18.0 | Tested version |
 | npm | 11.16.0 | Tested version |
-| Rust / Cargo | 1.97.1 | Required for Tauri backend |
-| Visual Studio Build Tools 2019+ | latest | **Required** — provides `link.exe` for MSVC target |
+| Rust / Cargo | stable | Required for Tauri backend |
+| Visual Studio Build Tools 2019+ | latest | **Windows** — provides `link.exe` for MSVC (or use MinGW; see note) |
+| Xcode CLT | latest | **macOS** — required for Tauri |
 | Python | 3.11+ | For sidecar subprocess |
 | Ollama | user-installed | Run `ollama serve` before using Respond action |
 
-> **Rust / Windows build note:** The default Rust target is `x86_64-pc-windows-msvc`.  
-> [Install Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with the "C++ Build Tools" workload before running `cargo` or `npm run build`.
+> **Rust toolchain:** Repo pins `stable`. Windows MinGW users: copy `src-tauri/.cargo/config.toml.windows` to `config.toml` (see that folder’s README). MSVC and macOS hosts need no override.
 
 ### Setup
 
@@ -45,13 +53,14 @@ npm run dev
 | Command | Description |
 |---|---|
 | `npm run dev` | Tauri dev window with Vite hot reload |
-| `npm run build` | Production `.exe` bundle |
+| `npm run build` | Production bundle (`.exe` / `.dmg`) |
 | `npm run lint` | TypeScript type-check (`tsc --noEmit`) |
 | `npm test` | Vitest unit tests |
-| `cargo check` | Rust type-check (from `src-tauri/`) — needs MSVC `link.exe` |
-| `cargo test` | Rust unit tests (from `src-tauri/`) — needs MSVC `link.exe` |
+| `cargo check` | Rust type-check (from `src-tauri/`) |
+| `cargo test` | Rust unit tests (from `src-tauri/`) |
 | `python -m unittest discover -s sidecar/tests` | Python sidecar tests |
-| `pwsh -File scripts/package-sidecar.ps1` | Bundle sidecar with PyInstaller |
+| `pwsh -File scripts/package-sidecar.ps1` | Bundle sidecar (Windows) |
+| `bash scripts/package-sidecar.sh` | Bundle sidecar (macOS) |
 | `pwsh -File scripts/export-diagnostics.ps1` | Local diagnostics dump |
 
 ## Features (MVP)
@@ -59,8 +68,8 @@ npm run dev
 - **Allowlisted actions** — `open_app`, `open_url`, `youtube_search`, `show_system_summary` (Rust broker; no free-form shell)
 - **Typed Ollama chat** — streaming assistant with Cancel; action proposals need click-to-confirm
 - **Model Advisor** — hardware inventory + Fast/Balanced/Quality recommendations; pull only after confirm
-- **Voice** — push-to-talk, mute, cancel; optional faster-whisper + Windows SAPI TTS
-- **Wake word** — openWakeWord scaffold + Talk/hotkey fallback; never authorizes actions
+- **Voice** — push-to-talk, mute, cancel; optional faster-whisper + system TTS
+- **Wake word** — custom phrase (default **Hey Bunny**), optional openWakeWord models; Talk/hotkey fallback; never authorizes actions
 - **Memory** — local SQLite facts with Off / Forget / Delete all / Export; treated as untrusted data
 
 ## System tray
@@ -77,9 +86,9 @@ Left-click shows / hides the compact panel. Closing the window hides to tray.
 | IPC contracts | `contracts/ipc.ts` | TypeScript (canonical) |
 | Sidecar | Python subprocess | Python 3.11+ |
 | STT | faster-whisper | Python _(optional)_ |
-| TTS | Windows SAPI | PowerShell argv (no `shell=True`) |
+| TTS | Windows SAPI / macOS system voice | Python |
 | Chat | Ollama | External (`ollama serve`) |
-| DB | SQLite | `%LOCALAPPDATA%\BunnyOS\memory.db` |
+| DB | SQLite | `%LOCALAPPDATA%\BunnyOS\` (Win) / `~/Library/Application Support/BunnyOS/` (mac) |
 
 ## IPC Protocol
 

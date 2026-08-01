@@ -74,7 +74,13 @@ export function shortErrorLabel(error: string): string {
     return "Mic permission needed";
   }
   if (text.includes("faster-whisper")) return "Speech engine missing";
-  if (text.includes("pywin32")) return "Speech output missing";
+  if (
+    text.includes("pywin32") ||
+    text.includes("pyobjc") ||
+    text.includes("nsspeech")
+  ) {
+    return "Speech output missing";
+  }
   if (text.includes("muted")) return "Mic is muted";
   if (text.includes("still finishing") || text.includes("already running")) {
     return "Still finishing up";

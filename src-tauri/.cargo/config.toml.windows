@@ -1,0 +1,11 @@
+# Use MinGW (GNU) instead of MSVC link.exe for this crate.
+# Requires WinLibs/MinGW gcc on PATH.
+# Target dir avoids the space in "Bunny OS" which breaks MinGW cc1 paths.
+
+[build]
+target = "x86_64-pc-windows-gnu"
+target-dir = "C:\\Users\\harsh\\.cargo\\bunny-os-target"
+
+[target.x86_64-pc-windows-gnu]
+linker = "gcc"
+ar = "ar"

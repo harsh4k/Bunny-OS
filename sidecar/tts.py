@@ -1,31 +1,40 @@
 """
-Local TTS adapters. Default: Windows SAPI through the COM API.
+Local TTS adapters.
 
-SAPI is driven directly rather than through PowerShell: spawning a shell is
-forbidden by the project rules, and it also made every reply pay a process
-launch. COM calls stay on the calling thread — SpVoice is apartment-threaded,
-so `stop()` only raises a flag that the speaking loop observes.
+Windows: SAPI via pywin32 COM.
+macOS: NSSpeechSynthesizer via PyObjC AppKit.
 """
 from __future__ import annotations
 
+import sys
 import threading
+import time
 from typing import Protocol
 
-# SpeechVoiceSpeakFlags
 SVSF_ASYNC = 1
 SVSF_PURGE_BEFORE_SPEAK = 2
 
 MAX_SPOKEN_CHARS = 2000
 _POLL_MS = 100
 
-_INSTALL_HINT = (
-    "pywin32 is required for speech output. Install with: pip install pywin32"
+_WIN_HINT = "pywin32 is required for speech output. Install with: pip install pywin32"
+_MAC_HINT = (
+    "PyObjC is required for speech on macOS. "
+    "pip install pyobjc-framework-Cocoa"
 )
 
 
 class TtsEngine(Protocol):
     def speak(self, text: str, cancel_event: threading.Event | None = None) -> None: ...
     def stop(self) -> None: ...
+
+
+def create_tts() -> TtsEngine:
+    if sys.platform == "darwin":
+        return MacNsSpeechTts()
+    if sys.platform.startswith("win"):
+        return WindowsSapiTts()
+    raise NotImplementedError(f"TTS not supported on {sys.platform}")
 
 
 class WindowsSapiTts:
@@ -35,21 +44,16 @@ class WindowsSapiTts:
         self._stop = threading.Event()
 
     def speak(self, text: str, cancel_event: threading.Event | None = None) -> None:
-        cleaned = (text or "").strip()
+        cleaned = _clean(text)
         if not cleaned:
             return
-        if len(cleaned) > MAX_SPOKEN_CHARS:
-            cleaned = cleaned[:MAX_SPOKEN_CHARS]
-
         self._stop.clear()
-
         try:
             import pythoncom  # type: ignore
             import win32com.client  # type: ignore
         except ImportError as exc:
-            raise RuntimeError(_INSTALL_HINT) from exc
+            raise RuntimeError(_WIN_HINT) from exc
 
-        # Each speaking thread needs its own COM apartment.
         pythoncom.CoInitialize()
         try:
             voice = win32com.client.Dispatch("SAPI.SpVoice")
@@ -67,3 +71,40 @@ class WindowsSapiTts:
 
     def stop(self) -> None:
         self._stop.set()
+
+
+class MacNsSpeechTts:
+    """Speak via AppKit NSSpeechSynthesizer (system default voice)."""
+
+    def __init__(self) -> None:
+        self._stop = threading.Event()
+
+    def speak(self, text: str, cancel_event: threading.Event | None = None) -> None:
+        cleaned = _clean(text)
+        if not cleaned:
+            return
+        self._stop.clear()
+        try:
+            from AppKit import NSSpeechSynthesizer  # type: ignore
+        except ImportError as exc:
+            raise RuntimeError(_MAC_HINT) from exc
+
+        voice = NSSpeechSynthesizer.alloc().initWithVoice_(None)
+        voice.startSpeakingString_(cleaned)
+        while voice.isSpeaking():
+            if self._stop.is_set() or (
+                cancel_event is not None and cancel_event.is_set()
+            ):
+                voice.stopSpeaking()
+                return
+            time.sleep(_POLL_MS / 1000.0)
+
+    def stop(self) -> None:
+        self._stop.set()
+
+
+def _clean(text: str) -> str:
+    cleaned = (text or "").strip()
+    if len(cleaned) > MAX_SPOKEN_CHARS:
+        cleaned = cleaned[:MAX_SPOKEN_CHARS]
+    return cleaned

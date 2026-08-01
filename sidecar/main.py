@@ -39,12 +39,11 @@ def _locked_send(msg: dict) -> None:
         send_message(msg)
 
 
+from paths import memory_db_path
+
+
 def _memory_path() -> Path:
-    override = os.environ.get("BUNNY_MEMORY_DB")
-    if override:
-        return Path(override)
-    base = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or "."
-    return Path(base) / "BunnyOS" / "memory.db"
+    return memory_db_path()
 
 
 def main() -> int:

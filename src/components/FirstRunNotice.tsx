@@ -62,7 +62,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
       setScanError(e instanceof Error ? e.message : String(e));
       // Browser/Vitest: fake a scan so the wizard is still testable.
       setScan({
-        os: "Windows",
+        os: navigator.platform.toLowerCase().includes("mac") ? "macOS" : "Windows",
         arch: "x86_64",
         app_count: 0,
         sample_apps: [],
@@ -120,8 +120,8 @@ export function FirstRunNotice({ onDismiss }: Props) {
         {step === "scan" && (
           <>
             <p className={styles.idleHint}>
-              Scan installed Start Menu apps so Bunny can open them by name.
-              Read-only — no shell, no cloud.
+              Scan installed apps so Bunny can open them by name. Read-only — no
+              shell, no cloud.
             </p>
             {scanError && (
               <p className={styles.idleHint} role="alert">
@@ -134,7 +134,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
               disabled={busy}
               aria-label="Run system scan"
             >
-              {busy ? "Scanning…" : "Scan this PC"}
+              {busy ? "Scanning…" : "Scan this machine"}
             </button>
           </>
         )}
@@ -152,8 +152,9 @@ export function FirstRunNotice({ onDismiss }: Props) {
               </p>
             )}
             <p className={styles.idleHint}>
-              Windows controls mic and speakers in Settings. Bunny will open the
-              right pages — enable access for desktop apps, then continue.
+              {(scan?.os ?? "Your OS") === "macOS"
+                ? "macOS controls mic and speakers in System Settings. Bunny will open the right panes — enable access, then continue."
+                : "Windows controls mic and speakers in Settings. Bunny will open the right pages — enable access for desktop apps, then continue."}
             </p>
             <div className={styles.modelRow}>
               <button

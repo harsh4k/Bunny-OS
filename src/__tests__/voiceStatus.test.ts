@@ -57,6 +57,8 @@ describe("shortErrorLabel", () => {
     ["STT error: faster-whisper not installed", "Speech engine missing"],
     ["Microphone is muted", "Mic is muted"],
     ["Access is denied (microphone privacy)", "Mic permission needed"],
+    ["pywin32 is required for speech output", "Speech output missing"],
+    ["PyObjC is required for speech on macOS", "Speech output missing"],
     ["Chat error: Reply too long", "Reply too long"],
     ["Response exceeds 200 NDJSON lines", "Reply too long"],
     ["something nobody predicted", "Voice error"],
