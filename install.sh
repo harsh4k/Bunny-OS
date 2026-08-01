@@ -104,6 +104,21 @@ sys.exit(1)
 PY
 }
 
+# GitHub rewrites spaces in asset names to dots ("Bunny OS_x.dmg" is served as
+# "Bunny.OS_x.dmg"), so a checksum file written from on-disk names disagrees by
+# exactly that character. Compare on a normalized key.
+expected_hash_for() {
+  local sums="$1" want="${2// /.}" line hash name
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^[[:space:]]*([0-9a-fA-F]{64})[[:space:]]+\*?(.+)$ ]] || continue
+    hash="${BASH_REMATCH[1]}"
+    name="${BASH_REMATCH[2]%$'\r'}"
+    name="${name// /.}"
+    if [[ "$name" == "$want" ]]; then printf '%s' "$hash"; return 0; fi
+  done < "$sums"
+  return 1
+}
+
 verify_sha256() {
   local path="$1" expected="$2"
   local actual
@@ -184,9 +199,8 @@ else
     curl -fL --retry 3 --retry-delay 2 -o "$INSTALLER_PATH" "$DMG_URL"
     step "Downloading checksums $SUM_NAME"
     curl -fsSL --retry 3 -o "$SUM_PATH" "$SUM_URL"
-    HASH_LINE="$(grep -F "$DMG_NAME" "$SUM_PATH" | head -n1 || true)"
-    [[ -n "$HASH_LINE" ]] || fail "Checksum file has no line for $DMG_NAME"
-    HASH="$(printf '%s' "$HASH_LINE" | awk '{print $1}')"
+    HASH="$(expected_hash_for "$SUM_PATH" "$DMG_NAME" || true)"
+    [[ -n "$HASH" ]] || fail "Checksum file has no line for $DMG_NAME"
     verify_sha256 "$INSTALLER_PATH" "$HASH"
   fi
 fi

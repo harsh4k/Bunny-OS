@@ -145,6 +145,20 @@ function Find-ChecksumAsset($release) {
   } | Select-Object -First 1
 }
 
+# GitHub rewrites spaces in asset names to dots ("Bunny OS_x.msi" is served as
+# "Bunny.OS_x.msi"), so a checksum file written from on-disk names disagrees by
+# exactly that character. Compare on a normalized key.
+function ConvertTo-AssetKey([string]$Name) { return ($Name -replace ' ', '.').Trim() }
+
+function Get-ExpectedHash([string]$SumPath, [string]$AssetName) {
+  $want = ConvertTo-AssetKey $AssetName
+  foreach ($line in Get-Content -LiteralPath $SumPath) {
+    if ($line -notmatch '^\s*([0-9a-fA-F]{64})\s+\*?(.+?)\s*$') { continue }
+    if ((ConvertTo-AssetKey $Matches[2]) -eq $want) { return $Matches[1] }
+  }
+  return $null
+}
+
 function Test-Sha256([string]$Path, [string]$Expected) {
   $actual = (Get-FileHash -Algorithm SHA256 -Path $Path).Hash.ToLowerInvariant()
   $want = $Expected.Trim().ToLowerInvariant() -replace '\s.*$', ''
@@ -218,11 +232,10 @@ if ($LocalMsi) {
     $sumPath = Join-Path $tmp $sumAsset.name
     Write-Step "Downloading checksums $($sumAsset.name)"
     Save-Url -Url $sumAsset.browser_download_url -OutFile $sumPath
-    $line = Get-Content $sumPath | Where-Object { $_ -match [regex]::Escape($asset.name) } | Select-Object -First 1
-    if (-not $line) {
+    $hash = Get-ExpectedHash -SumPath $sumPath -AssetName $asset.name
+    if (-not $hash) {
       Write-Fail "Checksum file has no line for $($asset.name)"
     }
-    $hash = ($line -split '\s+')[0]
     Test-Sha256 -Path $installerPath -Expected $hash
   }
 }

@@ -154,8 +154,10 @@ jobs:
           fi
 
           for f in "${files[@]}"; do
+            # GitHub serves spaces in asset names as dots, so publish the dotted
+            # name here or SHA256SUMS.txt will not match what installers download.
             base="$(basename "$f")"
-            # Flatten into dist/ with arch-aware names when possible
+            base="${base// /.}"
             cp -f "$f" "dist/$base"
             hash="$(sha256sum "dist/$base" | awk '{print $1}')"
             echo "$hash  $base" | tee -a dist/SHA256SUMS.txt
