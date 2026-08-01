@@ -53,12 +53,22 @@ $prefetch = $env:BUNNY_PREFETCH_WHISPER -eq "1"
 if ($prefetch) {
   Write-Host "==> Prefetching Whisper 'base' weights into $whisperDir (no first-run download)"
   New-Item -ItemType Directory -Force -Path $whisperDir | Out-Null
+  # Windows HF caches use symlinks by default; those break inside PyInstaller onefile.
+  $env:HF_HUB_DISABLE_SYMLINKS = "1"
   & $python -c @"
+from pathlib import Path
 from faster_whisper import WhisperModel
-WhisperModel('base', device='cpu', compute_type='int8', download_root=r'$whisperDir')
-print('whisper prefetch ok')
+root = Path(r'$whisperDir')
+WhisperModel('base', device='cpu', compute_type='int8', download_root=str(root))
+bins = [p for p in root.rglob('model.bin') if p.is_file() and not p.is_symlink() and p.stat().st_size > 0]
+if not bins:
+    raise SystemExit('prefetch produced no real model.bin (symlink-only cache?)')
+print(f'whisper prefetch ok ({bins[0]} {bins[0].stat().st_size} bytes)')
 "@
   if ($LASTEXITCODE -ne 0) { throw "Whisper prefetch failed" }
+  $bins = Get-ChildItem -Path $whisperDir -Recurse -Filter model.bin -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Length -gt 0 -and -not $_.LinkType }
+  if (-not $bins) { throw "Whisper prefetch left no real model.bin under $whisperDir" }
 }
 
 Write-Host "==> Building onefile sidecar"

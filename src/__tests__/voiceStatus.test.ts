@@ -55,6 +55,15 @@ describe("shortErrorLabel", () => {
     ["No speech detected", "Didn't catch that"],
     ["sounddevice not installed. pip install sounddevice", "No microphone"],
     ["STT error: faster-whisper not installed", "Speech engine missing"],
+    [
+      "Speech engine missing from this Bunny OS install. Reinstall from releases",
+      "Speech engine missing",
+    ],
+    [
+      "STT error: Unable to open file 'model.bin' in model 'C:\\Users\\x\\BunnyOS\\models\\whisper\\models--Systran--faster-whisper-base\\snapshots\\abc'",
+      "Speech model missing",
+    ],
+    ["Could not load the speech model. Check disk space and retry.", "Speech model missing"],
     ["Microphone is muted", "Mic is muted"],
     ["Access is denied (microphone privacy)", "Mic permission needed"],
     ["pywin32 is required for speech output", "Speech output missing"],

@@ -73,7 +73,20 @@ export function shortErrorLabel(error: string): string {
   if (text.includes("access is denied") || text.includes("privacy")) {
     return "Mic permission needed";
   }
-  if (text.includes("faster-whisper")) return "Speech engine missing";
+  // Package missing — do NOT match HF cache paths like "...faster-whisper-base..."
+  if (
+    text.includes("faster-whisper not installed") ||
+    text.includes("no module named 'faster_whisper'") ||
+    text.includes("speech engine missing from this")
+  ) {
+    return "Speech engine missing";
+  }
+  if (
+    text.includes("model.bin") ||
+    text.includes("could not load the speech model")
+  ) {
+    return "Speech model missing";
+  }
   if (
     text.includes("pywin32") ||
     text.includes("pyobjc") ||

@@ -55,7 +55,22 @@ WHISPER_DIR="$WORK_DIR/whisper_models"
 if [[ "${BUNNY_PREFETCH_WHISPER:-}" == "1" ]]; then
   echo "==> Prefetching Whisper 'base' weights into $WHISPER_DIR (no first-run download)"
   mkdir -p "$WHISPER_DIR"
-  "$PYTHON" -c "from faster_whisper import WhisperModel; WhisperModel('base', device='cpu', compute_type='int8', download_root=r'$WHISPER_DIR'); print('whisper prefetch ok')"
+  # Avoid HF symlink caches — they break inside PyInstaller onefile extracts.
+  export HF_HUB_DISABLE_SYMLINKS=1
+  "$PYTHON" -c "
+from pathlib import Path
+from faster_whisper import WhisperModel
+root = Path(r'$WHISPER_DIR')
+WhisperModel('base', device='cpu', compute_type='int8', download_root=str(root))
+bins = [p for p in root.rglob('model.bin') if p.is_file() and not p.is_symlink() and p.stat().st_size > 0]
+if not bins:
+    raise SystemExit('prefetch produced no real model.bin (symlink-only cache?)')
+print(f'whisper prefetch ok ({bins[0]} {bins[0].stat().st_size} bytes)')
+"
+  if ! find "$WHISPER_DIR" -type f -name model.bin -size +0c | grep -q .; then
+    echo "Whisper prefetch left no real model.bin under $WHISPER_DIR" >&2
+    exit 1
+  fi
 fi
 
 echo "==> Building onefile sidecar ($TARGET_TRIPLE)"
