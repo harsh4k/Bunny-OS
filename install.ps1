@@ -4,9 +4,7 @@
 #   pwsh -File install.ps1 -WhatIf
 #   pwsh -File install.ps1 -LocalMsi .\BunnyOS_0.1.0_x64_en-US.msi
 #
-# Downloads the latest GitHub Release installer, verifies SHA256 when a
-# checksums asset is present, then runs it. Does not pip-install anything —
-# the release MSI already embeds the frozen sidecar (P0).
+# Downloads the GitHub Release installer, REQUIRES SHA256SUMS.txt verify, installs, launches.
 
 [CmdletBinding()]
 param(
@@ -35,15 +33,25 @@ function Get-Release {
 
   if ($Version -eq "latest") {
     $url = "https://api.github.com/repos/$Repo/releases/latest"
+    try {
+      return Invoke-RestMethod -Uri $url -Headers $headers -Method Get
+    } catch {
+      $listUrl = "https://api.github.com/repos/$Repo/releases?per_page=10"
+      $list = Invoke-RestMethod -Uri $listUrl -Headers $headers -Method Get
+      $pick = @($list) | Where-Object { -not $_.draft } | Select-Object -First 1
+      if (-not $pick) {
+        Write-Fail "Could not fetch release from $url — $($_.Exception.Message). Publish v0.1.0 after CI, or pass -LocalMsi."
+      }
+      return $pick
+    }
   } else {
     $tag = if ($Version.StartsWith("v")) { $Version } else { "v$Version" }
     $url = "https://api.github.com/repos/$Repo/releases/tags/$tag"
-  }
-
-  try {
-    return Invoke-RestMethod -Uri $url -Headers $headers -Method Get
-  } catch {
-    Write-Fail "Could not fetch release from $url — $($_.Exception.Message). Tag a release (v0.1.0) after CI builds, or pass -LocalMsi."
+    try {
+      return Invoke-RestMethod -Uri $url -Headers $headers -Method Get
+    } catch {
+      Write-Fail "Could not fetch release from $url — $($_.Exception.Message)."
+    }
   }
 }
 
@@ -58,6 +66,8 @@ function Find-InstallerAsset($release) {
 
 function Find-ChecksumAsset($release) {
   $assets = @($release.assets)
+  $exact = $assets | Where-Object { $_.name -eq "SHA256SUMS.txt" } | Select-Object -First 1
+  if ($exact) { return $exact }
   return $assets | Where-Object {
     $_.name -match '(?i)(sha256|checksums)'
   } | Select-Object -First 1
@@ -75,13 +85,13 @@ function Test-Sha256([string]$Path, [string]$Expected) {
 function Install-Msi([string]$Path) {
   Write-Step "Running installer: $Path"
   if ($WhatIf) {
-    Write-Host "[WhatIf] msiexec /i `"$Path`" /qn"
+    Write-Host "[WhatIf] msiexec /i `"$Path`""
     return
   }
-  $p = Start-Process -FilePath "msiexec.exe" -ArgumentList @("/i", "`"$Path`"", "/qn") -Wait -PassThru
+  # Prefer interactive so UAC / SmartScreen prompts are visible on first install.
+  $p = Start-Process -FilePath "msiexec.exe" -ArgumentList @("/i", "`"$Path`"") -Wait -PassThru
   if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) {
-    # Non-quiet retry so the user can see the UI if silent fails.
-    Write-Warn "Silent install exited $($p.ExitCode); launching interactive installer."
+    Write-Warn "msiexec exited $($p.ExitCode); launching installer UI directly."
     Start-Process -FilePath $Path -Wait | Out-Null
   }
 }
@@ -95,7 +105,7 @@ function Test-Ollama {
   }
 }
 
-Write-Host "Bunny OS installer"
+Write-Host "Bunny OS installer (Windows)"
 Write-Host "Repo: $Repo  Version: $Version"
 if ($WhatIf) { Write-Host "(WhatIf — no download / install)" }
 
@@ -112,11 +122,12 @@ if ($LocalMsi) {
 
   $asset = Find-InstallerAsset $release
   if (-not $asset) {
-    Write-Fail @"
-No .msi/.exe installer asset on release $($release.tag_name).
-Push a tag (v0.1.0) so .github/workflows/release-windows.yml can publish one,
-or run:  pwsh -File install.ps1 -LocalMsi <path-to-msi>
-"@
+    Write-Fail "No .msi/.exe installer asset on release $($release.tag_name)."
+  }
+
+  $sumAsset = Find-ChecksumAsset $release
+  if (-not $sumAsset) {
+    Write-Fail "Release $($release.tag_name) has no SHA256SUMS.txt — refusing to install unverified software."
   }
 
   $tmp = Join-Path $env:TEMP "bunny-os-install"
@@ -125,25 +136,19 @@ or run:  pwsh -File install.ps1 -LocalMsi <path-to-msi>
 
   if ($WhatIf) {
     Write-Host "[WhatIf] would download $($asset.browser_download_url) → $installerPath"
+    Write-Host "[WhatIf] would verify against $($sumAsset.browser_download_url)"
   } else {
     Write-Step "Downloading $($asset.name)"
     Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $installerPath -UseBasicParsing
-  }
-
-  $sumAsset = Find-ChecksumAsset $release
-  if ($sumAsset -and -not $WhatIf) {
     $sumPath = Join-Path $tmp $sumAsset.name
     Write-Step "Downloading checksums $($sumAsset.name)"
     Invoke-WebRequest -Uri $sumAsset.browser_download_url -OutFile $sumPath -UseBasicParsing
     $line = Get-Content $sumPath | Where-Object { $_ -match [regex]::Escape($asset.name) } | Select-Object -First 1
-    if ($line) {
-      $hash = ($line -split '\s+')[0]
-      Test-Sha256 -Path $installerPath -Expected $hash
-    } else {
-      Write-Warn "Checksum file has no line for $($asset.name); skipping verify."
+    if (-not $line) {
+      Write-Fail "Checksum file has no line for $($asset.name)"
     }
-  } elseif (-not $WhatIf) {
-    Write-Warn "No checksum asset on this release; install continues unverified."
+    $hash = ($line -split '\s+')[0]
+    Test-Sha256 -Path $installerPath -Expected $hash
   }
 }
 
@@ -171,3 +176,5 @@ if (-not $SkipLaunch -and -not $WhatIf) {
 }
 
 Write-Host "DONE — complete onboarding in the app (mic permission + system scan)."
+Write-Host "Uninstall help: https://github.com/harsh4k/Bunny-OS/blob/main/docs/uninstall.md"
+Write-Host "If Windows SmartScreen blocks the installer, choose More info → Run anyway until Authenticode signing is configured."

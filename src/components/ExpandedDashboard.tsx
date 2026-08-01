@@ -18,6 +18,7 @@ interface Props {
   onClose?: () => void;
   micMuted: boolean;
   onMicMutedChange: (muted: boolean) => void;
+  onOnboardingDone?: () => void;
 }
 
 const NAV_ITEMS: Array<{
@@ -39,6 +40,7 @@ export function ExpandedDashboard({
   onClose,
   micMuted,
   onMicMutedChange,
+  onOnboardingDone,
 }: Props) {
   return (
     <main className={styles.shell} aria-label="Bunny OS dashboard">
@@ -73,7 +75,7 @@ export function ExpandedDashboard({
           <IconShield size={16} className={styles.privacyIcon} />
           <div>
             <strong>Local & private</strong>
-            <span>No cloud connection</span>
+            <span>No telemetry — models stay on this machine</span>
           </div>
         </div>
       </aside>
@@ -103,6 +105,7 @@ export function ExpandedDashboard({
             onClose={onClose}
             micMuted={micMuted}
             onMicMutedChange={onMicMutedChange}
+            onOnboardingDone={onOnboardingDone}
           />
         </div>
       </section>

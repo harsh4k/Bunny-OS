@@ -28,7 +28,7 @@ use tauri::Emitter;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const READY_TIMEOUT_SECS: u64 = 10;
+const READY_TIMEOUT_SECS: u64 = 60;
 const SHUTDOWN_TIMEOUT_SECS: u64 = 3;
 const RECOVERY_BACKOFF_MS: u64 = 1_000;
 pub const MAX_AUTO_RECOVERY: u32 = 3;

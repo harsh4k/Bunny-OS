@@ -13,16 +13,25 @@ If `link.exe` is present, `cargo test` also runs.
 
 ## B. Packaging
 
-- [ ] `pwsh -File scripts/package-sidecar.ps1` produces `src-tauri/binaries/bunny-sidecar-x86_64-pc-windows-msvc.exe`
-- [ ] `npm run build` produces a Windows installer (requires VS Build Tools / MSVC)
-- [ ] Installer is code-signed (cert not in repo)
-- [ ] `pwsh -File scripts/checksum-release.ps1 -Path <artifact>` written and published
+- [ ] `pwsh -File scripts/package-sidecar.ps1` (Windows) / `bash scripts/package-sidecar.sh` (macOS)
+- [ ] Tag `v*` → `.github/workflows/release.yml` publishes MSI + arm64/x64 DMGs + `SHA256SUMS.txt`
+- [ ] Installer is code-signed / notarized (see [`SHIPPING.md`](SHIPPING.md) — certs not in repo)
+- [ ] `install.ps1 -WhatIf` / `install.sh --what-if` resolve assets and checksums
 
 ## C. Fresh install / first run
 
+### Windows
 - [ ] Fresh Windows 10/11 VM or clean profile install
 - [ ] Install via the one-liner in [README](../README.md#install-windows) (or `-LocalMsi`)
-- [ ] Onboarding: privacy → system scan → mic/sound settings links → Ollama check → Finish
+- [ ] Onboarding opens automatically (privacy → scan → mic/sound → Ollama → Finish)
+
+### macOS
+- [ ] Fresh Intel + Apple Silicon Macs (or both CI DMGs)
+- [ ] Install via `install.sh` (copies to `/Applications`, clears quarantine)
+- [ ] Grant Microphone + Accessibility when prompted
+- [ ] Onboarding opens automatically; media keys work after Accessibility
+- [ ] Gatekeeper: unsigned beta may need “Open anyway” until notarization secrets are set
+
 - [ ] Mic starts muted; Ollama is external; Memory Off available
 - [ ] Ollama stopped → chat/advisor shows actionable “unreachable” guidance (no crash loop)
 - [ ] Ollama started → model advisor shows Fast / Balanced / Quality and requires click before pull

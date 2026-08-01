@@ -13,8 +13,8 @@ FRAME_SAMPLES = 1280
 PRETRAINED_PHRASES = ("hey_jarvis", "hey_mycroft", "alexa", "hey_rhasspy")
 
 _OWW_HINT = (
-    "openWakeWord not installed for model-mode phrases. "
-    "Use a custom text phrase (default: hey bunny) or: pip install openwakeword"
+    "Model-mode wake phrases need openWakeWord in this install. "
+    "Use the default text phrase “hey bunny”, or reinstall Bunny OS from GitHub Releases."
 )
 
 

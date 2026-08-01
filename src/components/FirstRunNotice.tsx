@@ -100,7 +100,8 @@ export function FirstRunNotice({ onDismiss }: Props) {
         {step === "welcome" && (
           <>
             <p className={styles.idleHint}>
-              Local-only assistant. Nothing is sent to a cloud service.
+              Local-only assistant. No telemetry. Speech models and Ollama run on
+              this machine. YouTube play may do one HTTPS lookup you trigger.
             </p>
             <ul className={styles.idleHint}>
               <li>Mic starts muted — F9 temporarily unmutes while you talk.</li>
@@ -153,7 +154,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
             )}
             <p className={styles.idleHint}>
               {(scan?.os ?? "Your OS") === "macOS"
-                ? "macOS controls mic and speakers in System Settings. Bunny will open the right panes — enable access, then continue."
+                ? "macOS controls mic, speakers, and Accessibility (for media keys). Bunny opens the right panes — enable access, then continue."
                 : "Windows controls mic and speakers in Settings. Bunny will open the right pages — enable access for desktop apps, then continue."}
             </p>
             <div className={styles.modelRow}>
@@ -171,6 +172,15 @@ export function FirstRunNotice({ onDismiss }: Props) {
               >
                 Speakers…
               </button>
+              {(scan?.os ?? "") === "macOS" ? (
+                <button
+                  className={`${styles.btn} ${styles.btnGhost}`}
+                  onClick={() => void invoke("open_accessibility_settings")}
+                  aria-label="Open Accessibility privacy settings"
+                >
+                  Accessibility…
+                </button>
+              ) : null}
             </div>
             <button
               className={`${styles.btn} ${styles.btnPrimary}`}

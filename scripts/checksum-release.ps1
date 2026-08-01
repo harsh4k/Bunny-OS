@@ -1,7 +1,7 @@
-# Compute SHA256 checksums for release artifacts.
+# Compute SHA256 checksums for release artifacts (Windows + macOS).
 # Usage:
-#   pwsh -File scripts/checksum-release.ps1 -Path path\to\BunnyOS_0.1.0_x64.msi
-#   pwsh -File scripts/checksum-release.ps1 -Path src-tauri\binaries
+#   pwsh -File scripts/checksum-release.ps1 -Path path\to\bundle
+#   pwsh -File scripts/checksum-release.ps1 -Path .\BunnyOS_0.1.0_x64.msi
 
 param(
   [Parameter(Mandatory = $true)]
@@ -10,9 +10,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$ext = @(".exe", ".msi", ".msix", ".dmg", ".app")
 $items = @()
 if (Test-Path $Path -PathType Container) {
-  $items = Get-ChildItem $Path -File | Where-Object { $_.Extension -in ".exe", ".msi", ".msix" }
+  $items = Get-ChildItem $Path -File -Recurse | Where-Object { $_.Extension.ToLowerInvariant() -in $ext }
 } elseif (Test-Path $Path -PathType Leaf) {
   $items = @(Get-Item $Path)
 } else {
@@ -23,7 +24,8 @@ if ($items.Count -eq 0) {
   throw "No release artifacts found under $Path"
 }
 
-$out = Join-Path (Split-Path -Parent $items[0].FullName) "SHA256SUMS.txt"
+$outDir = if (Test-Path $Path -PathType Container) { (Resolve-Path $Path).Path } else { Split-Path -Parent (Resolve-Path $Path).Path }
+$out = Join-Path $outDir "SHA256SUMS.txt"
 $lines = @()
 foreach ($item in $items) {
   $hash = (Get-FileHash -Algorithm SHA256 $item.FullName).Hash.ToLowerInvariant()

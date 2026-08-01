@@ -55,7 +55,7 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
       const timer = setTimeout(() => {
         unlisten?.();
         reject(new Error("wake request timed out"));
-      }, 10_000);
+      }, 60_000);
       void listen<AppEvent>("app-event", (e) => {
         const ev = e.payload;
         if (ev.event !== "sidecar-message") return;

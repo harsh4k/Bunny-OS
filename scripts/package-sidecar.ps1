@@ -48,6 +48,19 @@ Write-Host "==> Installing bundle dependencies (PyInstaller + voice runtime)"
 & $python -m pip install -r $bundleReqs | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "pip install of requirements-bundle.txt failed" }
 
+$whisperDir = Join-Path $workDir "whisper_models"
+$prefetch = $env:BUNNY_PREFETCH_WHISPER -eq "1"
+if ($prefetch) {
+  Write-Host "==> Prefetching Whisper 'base' weights into $whisperDir (no first-run download)"
+  New-Item -ItemType Directory -Force -Path $whisperDir | Out-Null
+  & $python -c @"
+from faster_whisper import WhisperModel
+WhisperModel('base', device='cpu', compute_type='int8', download_root=r'$whisperDir')
+print('whisper prefetch ok')
+"@
+  if ($LASTEXITCODE -ne 0) { throw "Whisper prefetch failed" }
+}
+
 Write-Host "==> Building onefile sidecar"
 $pyArgs = @(
   "-m", "PyInstaller",
@@ -76,8 +89,15 @@ $pyArgs = @(
   "--hidden-import", "tts",
   "--hidden-import", "stt",
   "--hidden-import", "wake_word",
-  "sidecar/main.py"
+  "--hidden-import", "wake_phrase",
+  "--hidden-import", "wake_oww",
+  "--hidden-import", "paths",
+  "--hidden-import", "platform_open"
 )
+if ($prefetch -and (Test-Path $whisperDir)) {
+  $pyArgs += @("--add-data", "${whisperDir};whisper_models")
+}
+$pyArgs += "sidecar/main.py"
 & $python @pyArgs
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed (exit $LASTEXITCODE)" }
 

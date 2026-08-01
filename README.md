@@ -8,7 +8,7 @@ Local-only, privacy-first desktop automation suite for Windows 10/11 and macOS. 
 irm https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.ps1 | iex
 ```
 
-Needs a GitHub Release with an MSI (tag `v*` after CI). Until then use `-LocalMsi` or run from source below.
+Verifies `SHA256SUMS.txt` from the GitHub Release (fails closed if missing). Needs a published `v*` release.
 
 ## Install (macOS)
 
@@ -16,7 +16,9 @@ Needs a GitHub Release with an MSI (tag `v*` after CI). Until then use `-LocalMs
 curl -fsSL https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.sh | bash
 ```
 
-Needs a GitHub Release with a `.dmg` (tag `v*` after macOS CI). Until then use `--local-dmg` or run from source below.
+Picks the DMG for your CPU (Apple Silicon or Intel), verifies SHA256, copies into `/Applications`, and launches. Needs a published `v*` release.
+
+See [docs/SHIPPING.md](docs/SHIPPING.md) for signing / notarization before wide public traffic.
 
 ## Quick start
 

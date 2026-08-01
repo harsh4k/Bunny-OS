@@ -31,6 +31,7 @@ interface Props {
   onViewChange?: (view: PanelView) => void;
   micMuted?: boolean;
   onMicMutedChange?: (muted: boolean) => void;
+  onOnboardingDone?: () => void;
 }
 
 export function CompactPanel({
@@ -40,6 +41,7 @@ export function CompactPanel({
   onViewChange,
   micMuted: micMutedProp,
   onMicMutedChange,
+  onOnboardingDone,
 }: Props) {
   const [lifecycle, setLifecycle] = useState<LifecycleState>(INITIAL_STATE);
   const [micMutedLocal, setMicMutedLocal] = useState(true);
@@ -203,7 +205,7 @@ export function CompactPanel({
 
   return (
     <div className={styles.panel} data-embedded={embedded}>
-      <FirstRunNotice />
+      <FirstRunNotice onDismiss={onOnboardingDone} />
       {view === "chat" && (
         <ChatPanel onClose={() => setView("overview")} sidecarReady={ready} />
       )}

@@ -77,5 +77,7 @@ pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSV
 - Done: P1 — `install.ps1` one-liner bootstrap (`-WhatIf` / `-LocalMsi`)
 - Done: P2 — onboarding wizard (scan + mic/sound settings + Ollama)
 - Done: P3 — uninstall docs + beta checklist install path
-- Done: P4 — macOS app catalog, media keys, `install.sh`, `package-sidecar.sh`, release-macos CI
-- Human gates: MSVC/macOS installer or `v*` CI tag, code-signing, soak (`docs/beta-checklist.md`)
+- Done: P4 — macOS app catalog, media keys, `install.sh`, `package-sidecar.sh`, unified `release.yml`
+- Done: Custom wake phrase (default **hey bunny**) + production install harden (checksum fail-closed, Whisper prefetch, first-run UI)
+- Human gates: Apple Developer ID + Windows Authenticode secrets (see `docs/SHIPPING.md`), soak (`docs/beta-checklist.md`)
+- Tag release: `git tag v0.1.0 && git push origin v0.1.0` → builds Win MSI + Mac arm64/x64 DMGs + `SHA256SUMS.txt`

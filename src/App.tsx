@@ -18,9 +18,23 @@ import { ACTIVE_VOICE_STATES } from "./lib/voiceStatus";
 const DASHBOARD = { width: 820, height: 560 } as const;
 /** Idle pill lingers this long before tucking itself away. */
 const AUTO_HIDE_MS = 6_000;
+const ONBOARDING_KEY = "bunnyos.onboarding.v1";
+const ONBOARDING_LEGACY = "bunnyos.firstRunAck.v1";
+
+function needsOnboarding(): boolean {
+  try {
+    return (
+      localStorage.getItem(ONBOARDING_KEY) !== "1" &&
+      localStorage.getItem(ONBOARDING_LEGACY) !== "1"
+    );
+  } catch {
+    return true;
+  }
+}
 
 function App() {
-  const [expanded, setExpanded] = useState(false);
+  const [onboardingPending, setOnboardingPending] = useState(needsOnboarding);
+  const [expanded, setExpanded] = useState(needsOnboarding);
   const [activeView, setActiveView] = useState<PanelView>("overview");
   const [micMuted, setMicMuted] = useState(true);
   const [pillHovered, setPillHovered] = useState(false);
@@ -55,12 +69,12 @@ function App() {
         )
       );
     } catch {
-      // Browser/Vitest preview has no Tauri window.
       applyIslandCssVars();
     }
   }, []);
 
   const handleClose = () => {
+    if (onboardingPending) return;
     setExpanded(false);
     void placeWindow(false).finally(() => {
       invoke("hide_window").catch(console.error);
@@ -68,13 +82,24 @@ function App() {
   };
 
   const handleCollapse = () => {
+    if (onboardingPending) return;
     setExpanded(false);
     setActiveView("overview");
   };
 
+  const handleOnboardingDone = useCallback(() => {
+    setOnboardingPending(false);
+  }, []);
+
   useEffect(() => {
     applyIslandCssVars();
   }, []);
+
+  useEffect(() => {
+    if (!onboardingPending) return;
+    setExpanded(true);
+    void invoke("show_window").catch(() => {});
+  }, [onboardingPending]);
 
   useEffect(() => {
     const surface = expanded ? "dashboard" : "island";
@@ -84,16 +109,14 @@ function App() {
     void placeWindow(expanded);
   }, [expanded, placeWindow]);
 
-  // Auto-hide: the pill is an overlay, so it gets out of the way once there is
-  // nothing to report. The hotkey, tray, and wake word all bring it back.
   useEffect(() => {
-    if (expanded || pillHovered) return;
+    if (onboardingPending || expanded || pillHovered) return;
     if (voiceError !== null || ACTIVE_VOICE_STATES.has(voiceState)) return;
     const timer = setTimeout(() => {
       invoke("hide_window").catch(() => {});
     }, AUTO_HIDE_MS);
     return () => clearTimeout(timer);
-  }, [expanded, pillHovered, voiceState, voiceError]);
+  }, [onboardingPending, expanded, pillHovered, voiceState, voiceError]);
 
   useEffect(() => {
     invoke<boolean>("get_mic_muted")
@@ -143,6 +166,7 @@ function App() {
       onClose={handleClose}
       micMuted={micMuted}
       onMicMutedChange={setMicMuted}
+      onOnboardingDone={handleOnboardingDone}
     />
   );
 }

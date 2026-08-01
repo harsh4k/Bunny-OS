@@ -36,8 +36,8 @@ STATE_LISTENING = "listening"
 STATE_ERROR = "error"
 
 _INSTALL_HINT = (
-    "Wake word needs faster-whisper (and sounddevice). "
-    "Talk / push-to-talk still work. pip install faster-whisper sounddevice"
+    "Wake word needs the speech engine bundled with Bunny OS. "
+    "Talk / push-to-talk still work. Reinstall from GitHub Releases if this persists."
 )
 
 _RMS_LO = 0.008

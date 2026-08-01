@@ -73,6 +73,28 @@ pub async fn open_sound_settings() -> Result<(), String> {
     .map_err(|e| format!("open_sound_settings task failed: {e}"))?
 }
 
+/// Open macOS Accessibility privacy (needed for media-key injection). No-op URL on Windows.
+#[tauri::command]
+pub async fn open_accessibility_settings() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        if cfg!(target_os = "macos") {
+            let url =
+                "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility";
+            open::that(url).map_err(|e| format!("Could not open Accessibility settings: {e}"))
+        } else {
+            Ok(())
+        }
+    })
+    .await
+    .map_err(|e| format!("open_accessibility_settings task failed: {e}"))?
+}
+
+#[tauri::command]
+pub async fn show_window(app: AppHandle) -> Result<(), String> {
+    crate::tray::show_main(&app);
+    Ok(())
+}
+
 /// First-run onboarding: count installed apps (read-only, no shell).
 #[derive(serde::Serialize)]
 pub struct OnboardingScan {

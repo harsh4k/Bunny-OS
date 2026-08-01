@@ -51,32 +51,48 @@ echo "==> Installing bundle dependencies (PyInstaller + voice runtime + PyObjC)"
 "$PYTHON" -m pip install --upgrade pip
 "$PYTHON" -m pip install -r "$BUNDLE_REQS"
 
+WHISPER_DIR="$WORK_DIR/whisper_models"
+if [[ "${BUNNY_PREFETCH_WHISPER:-}" == "1" ]]; then
+  echo "==> Prefetching Whisper 'base' weights into $WHISPER_DIR (no first-run download)"
+  mkdir -p "$WHISPER_DIR"
+  "$PYTHON" -c "from faster_whisper import WhisperModel; WhisperModel('base', device='cpu', compute_type='int8', download_root=r'$WHISPER_DIR'); print('whisper prefetch ok')"
+fi
+
 echo "==> Building onefile sidecar ($TARGET_TRIPLE)"
-"$PYTHON" -m PyInstaller \
-  --noconfirm \
-  --clean \
-  --onefile \
-  --name bunny-sidecar \
-  --paths sidecar \
-  --distpath "$DIST_DIR" \
-  --workpath "$WORK_DIR" \
-  --specpath "$WORK_DIR" \
-  --collect-all faster_whisper \
-  --collect-all ctranslate2 \
-  --collect-all sounddevice \
-  --collect-all openwakeword \
-  --collect-all onnxruntime \
-  --hidden-import local_actions \
-  --hidden-import voice_intents \
-  --hidden-import voice_worker \
-  --hidden-import media_keys \
-  --hidden-import youtube_resolve \
-  --hidden-import tts \
-  --hidden-import stt \
-  --hidden-import wake_word \
-  --hidden-import AppKit \
-  --hidden-import Quartz \
-  sidecar/main.py
+PYI_ARGS=(
+  --noconfirm
+  --clean
+  --onefile
+  --name bunny-sidecar
+  --paths sidecar
+  --distpath "$DIST_DIR"
+  --workpath "$WORK_DIR"
+  --specpath "$WORK_DIR"
+  --collect-all faster_whisper
+  --collect-all ctranslate2
+  --collect-all sounddevice
+  --collect-all openwakeword
+  --collect-all onnxruntime
+  --hidden-import local_actions
+  --hidden-import voice_intents
+  --hidden-import voice_worker
+  --hidden-import media_keys
+  --hidden-import youtube_resolve
+  --hidden-import tts
+  --hidden-import stt
+  --hidden-import wake_word
+  --hidden-import wake_phrase
+  --hidden-import wake_oww
+  --hidden-import paths
+  --hidden-import platform_open
+  --hidden-import AppKit
+  --hidden-import Quartz
+)
+if [[ "${BUNNY_PREFETCH_WHISPER:-}" == "1" && -d "$WHISPER_DIR" ]]; then
+  PYI_ARGS+=(--add-data "$WHISPER_DIR:whisper_models")
+fi
+
+"$PYTHON" -m PyInstaller "${PYI_ARGS[@]}" sidecar/main.py
 
 BUILT="$DIST_DIR/bunny-sidecar"
 if [[ ! -f "$BUILT" ]]; then
