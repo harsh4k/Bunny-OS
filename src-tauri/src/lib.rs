@@ -14,6 +14,7 @@ pub mod ipc;
 pub mod media_keys;
 pub mod ollama;
 pub mod ollama_bootstrap;
+pub mod proc;
 pub mod protocol;
 pub mod sidecar;
 pub mod start_menu;

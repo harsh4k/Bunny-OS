@@ -152,12 +152,19 @@ async fn spawn_and_watch(
 ) -> anyhow::Result<()> {
     use std::process::Stdio;
 
-    let mut child = Command::new(&cmd.program)
+    let mut builder = Command::new(&cmd.program);
+    builder
         .args(&cmd.args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
-        .kill_on_drop(true)
+        .kill_on_drop(true);
+    // The frozen sidecar is a console program; without this Windows opens a
+    // terminal window over the desktop every time it starts.
+    #[cfg(windows)]
+    builder.creation_flags(crate::proc::CREATE_NO_WINDOW);
+
+    let mut child = builder
         .spawn()
         .with_context(|| format!("failed to spawn sidecar: {:?}", cmd.program))?;
 

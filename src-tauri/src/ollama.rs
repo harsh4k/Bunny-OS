@@ -5,7 +5,6 @@
 
 use std::net::{Ipv4Addr, SocketAddr, TcpStream};
 use std::path::PathBuf;
-use std::process::Command;
 use std::time::Duration;
 
 use crate::ollama_bootstrap::{self, curl_bin};
@@ -158,7 +157,7 @@ fn ensure_default_model() -> Result<String, String> {
 
 fn installed_chat_models() -> Result<Vec<String>, String> {
     let url = format!("http://127.0.0.1:{OLLAMA_PORT}/api/tags");
-    let out = Command::new(curl_bin())
+    let out = crate::proc::command(curl_bin())
         .args(["-fsS", "--max-time", "10", &url])
         .output()
         .map_err(|e| format!("Could not list Ollama models: {e}"))?;
@@ -188,7 +187,7 @@ fn chat_models_from_tags(tags: &serde_json::Value) -> Vec<String> {
 fn pull_model(name: &str) -> Result<(), String> {
     let url = format!("http://127.0.0.1:{OLLAMA_PORT}/api/pull");
     let payload = format!(r#"{{"name":"{name}","stream":false}}"#);
-    let status = Command::new(curl_bin())
+    let status = crate::proc::command(curl_bin())
         .args([
             "-fsS",
             "--max-time",

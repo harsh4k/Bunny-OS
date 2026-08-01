@@ -3,8 +3,9 @@
 //! Uses argv-only tools (curl, hdiutil, cp, xattr) — never cmd.exe / powershell / shell=True.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::time::Duration;
+
+use crate::proc::command;
 
 #[cfg(target_os = "macos")]
 pub const DOWNLOAD_URL: &str = "https://ollama.com/download/Ollama.dmg";
@@ -53,7 +54,7 @@ fn download_file(url: &str, dest: &Path) -> Result<(), String> {
     let dest_s = dest
         .to_str()
         .ok_or_else(|| "download path is not valid UTF-8".to_string())?;
-    let status = Command::new(curl_bin())
+    let status = command(curl_bin())
         .args([
             "-fL",
             "--connect-timeout",
@@ -96,7 +97,7 @@ fn wait_until(secs: u64, installed_path: &impl Fn() -> Option<PathBuf>) -> Resul
 
 #[cfg(not(target_os = "macos"))]
 fn install_windows_setup(setup: &Path) -> Result<(), String> {
-    let status = Command::new(setup)
+    let status = command(setup)
         .arg("/S")
         .status()
         .map_err(|e| format!("Could not launch OllamaSetup.exe: {e}"))?;
@@ -110,7 +111,7 @@ fn install_windows_setup(setup: &Path) -> Result<(), String> {
 
 #[cfg(target_os = "macos")]
 fn install_macos_dmg(dmg: &Path) -> Result<(), String> {
-    let attach = Command::new("/usr/bin/hdiutil")
+    let attach = command("/usr/bin/hdiutil")
         .args([
             "attach",
             "-nobrowse",
@@ -150,7 +151,7 @@ fn install_macos_dmg(dmg: &Path) -> Result<(), String> {
         if dest.exists() {
             let _ = std::fs::remove_dir_all(&dest);
         }
-        let status = Command::new("/bin/cp")
+        let status = command("/bin/cp")
             .args([
                 "-R",
                 app.to_str().ok_or("app path")?,
@@ -161,13 +162,13 @@ fn install_macos_dmg(dmg: &Path) -> Result<(), String> {
         if !status.success() {
             return Err(format!("cp -R into /Applications failed ({status})"));
         }
-        let _ = Command::new("/usr/bin/xattr")
+        let _ = command("/usr/bin/xattr")
             .args(["-dr", "com.apple.quarantine", dest.to_str().unwrap_or("")])
             .status();
         Ok(())
     })();
 
-    let _ = Command::new("/usr/bin/hdiutil")
+    let _ = command("/usr/bin/hdiutil")
         .args(["detach", &mount, "-quiet"])
         .status();
     result
