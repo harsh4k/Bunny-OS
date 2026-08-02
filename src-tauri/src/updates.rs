@@ -1,14 +1,15 @@
-//! User-triggered GitHub release check (Updates panel).
+//! User-triggered update checks (Updates panel).
 //!
-//! One HTTPS GET via curl argv — never silent, never shell. Same class as
-//! youtube_play / Ollama bootstrap network use.
+//! GitHub compare + local Ollama/model status. No silent polling.
 
 use serde::{Deserialize, Serialize};
 
+use crate::ollama::{self, DEFAULT_MODEL};
 use crate::ollama_bootstrap::curl_bin;
 use crate::proc::command;
 
 pub const RELEASES_PAGE: &str = "https://github.com/harsh4k/Bunny-OS/releases";
+pub const OLLAMA_DOWNLOAD_PAGE: &str = "https://ollama.com/download";
 pub const LATEST_API: &str =
     "https://api.github.com/repos/harsh4k/Bunny-OS/releases/latest";
 
@@ -23,11 +24,150 @@ pub struct UpdateCheck {
     pub message: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub struct DependencyBoard {
+    pub bunny_version: String,
+    pub ollama: ComponentRow,
+    pub models: ModelsRow,
+    pub voice: ComponentRow,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub struct ComponentRow {
+    pub title: String,
+    pub state: String,
+    pub detail: String,
+    pub needs_attention: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub struct ModelsRow {
+    pub title: String,
+    pub state: String,
+    pub detail: String,
+    pub needs_attention: bool,
+    pub recommended: String,
+    pub recommended_present: bool,
+    pub installed: Vec<String>,
+}
+
 #[derive(Deserialize)]
 struct GhLatest {
     tag_name: String,
     #[serde(default)]
     html_url: Option<String>,
+}
+
+/// Snapshot for the Updates status board (local probes only — no GitHub).
+pub fn dependency_board(bunny_version: &str) -> DependencyBoard {
+    let installed = ollama::is_installed();
+    let running = ollama::is_running();
+    let version = ollama::version_string();
+
+    let (ollama_state, ollama_detail, ollama_attn) = if !installed {
+        (
+            "Missing".to_string(),
+            "Ollama is not installed. Use Install & start, or open the Ollama download page."
+                .to_string(),
+            true,
+        )
+    } else if !running {
+        (
+            "Installed · stopped".to_string(),
+            match &version {
+                Some(v) => format!("{v}. Start Ollama so chat and model checks work."),
+                None => "Start Ollama so chat and model checks work.".to_string(),
+            },
+            true,
+        )
+    } else {
+        (
+            "Running".to_string(),
+            match &version {
+                Some(v) => format!(
+                    "{v}. Ollama app updates come from their installer — open Download for a newer build."
+                ),
+                None => {
+                    "Ollama is running. Open Download if you need a newer Ollama app build."
+                        .to_string()
+                }
+            },
+            false,
+        )
+    };
+
+    let (models, models_state, models_detail, models_attn, recommended_present) =
+        if !running {
+            (
+                Vec::new(),
+                "Unknown".to_string(),
+                "Start Ollama to see installed chat models.".to_string(),
+                true,
+                false,
+            )
+        } else {
+            match ollama::list_chat_models() {
+                Ok(list) => {
+                    let present = list
+                        .iter()
+                        .any(|m| m == DEFAULT_MODEL || m.starts_with("llama3.2:1b"));
+                    let detail = if list.is_empty() {
+                        format!(
+                            "No chat models installed. Pull recommended ({DEFAULT_MODEL})."
+                        )
+                    } else if present {
+                        format!(
+                            "{} model(s) installed. Recommended {DEFAULT_MODEL} is present.",
+                            list.len()
+                        )
+                    } else {
+                        format!(
+                            "{} model(s) installed, but recommended {DEFAULT_MODEL} is missing.",
+                            list.len()
+                        )
+                    };
+                    let attn = list.is_empty() || !present;
+                    let state = if list.is_empty() {
+                        "None installed".to_string()
+                    } else if present {
+                        "Ready".to_string()
+                    } else {
+                        "Recommended missing".to_string()
+                    };
+                    (list, state, detail, attn, present)
+                }
+                Err(e) => (Vec::new(), "Error".to_string(), e, true, false),
+            }
+        };
+
+    DependencyBoard {
+        bunny_version: bunny_version.to_string(),
+        ollama: ComponentRow {
+            title: "Ollama".to_string(),
+            state: ollama_state,
+            detail: ollama_detail,
+            needs_attention: ollama_attn,
+        },
+        models: ModelsRow {
+            title: "Chat models".to_string(),
+            state: models_state,
+            detail: models_detail,
+            needs_attention: models_attn,
+            recommended: DEFAULT_MODEL.to_string(),
+            recommended_present,
+            installed: models,
+        },
+        voice: ComponentRow {
+            title: "Voice (sidecar + Whisper)".to_string(),
+            state: "Bundled".to_string(),
+            detail: "Speech engines ship inside Bunny OS. They update when you install a newer Bunny release."
+                .to_string(),
+            needs_attention: false,
+        },
+    }
 }
 
 /// Fetch latest GitHub release tag and compare to `current` (e.g. "0.1.0").
@@ -133,5 +273,14 @@ mod tests {
         assert!(!is_newer("0.1.0", "0.1.0"));
         assert!(!is_newer("v0.1.0", "0.1.0"));
         assert!(!is_newer("0.0.9", "0.1.0"));
+    }
+
+    #[test]
+    fn board_voice_never_needs_attention() {
+        let board = dependency_board("0.1.0");
+        assert!(!board.voice.needs_attention);
+        assert_eq!(board.voice.state, "Bundled");
+        assert_eq!(board.bunny_version, "0.1.0");
+        assert_eq!(board.models.recommended, DEFAULT_MODEL);
     }
 }

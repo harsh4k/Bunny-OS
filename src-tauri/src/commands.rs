@@ -230,6 +230,17 @@ pub async fn check_github_release(app: AppHandle) -> Result<crate::updates::Upda
         .map_err(|e| format!("check_github_release task failed: {e}"))?
 }
 
+/// Local dependency status for the Updates board (Ollama, models, voice).
+#[tauri::command]
+pub async fn get_dependency_board(
+    app: AppHandle,
+) -> Result<crate::updates::DependencyBoard, String> {
+    let current = app.package_info().version.to_string();
+    tauri::async_runtime::spawn_blocking(move || crate::updates::dependency_board(&current))
+        .await
+        .map_err(|e| format!("get_dependency_board task failed: {e}"))
+}
+
 /// Open the public GitHub Releases page in the default browser (HTTPS).
 #[tauri::command]
 pub async fn open_releases_page() -> Result<(), String> {
@@ -239,4 +250,15 @@ pub async fn open_releases_page() -> Result<(), String> {
     })
     .await
     .map_err(|e| format!("open_releases_page task failed: {e}"))?
+}
+
+/// Open the official Ollama download page (HTTPS).
+#[tauri::command]
+pub async fn open_ollama_download() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        open::that(crate::updates::OLLAMA_DOWNLOAD_PAGE)
+            .map_err(|e| format!("Could not open Ollama download page: {e}"))
+    })
+    .await
+    .map_err(|e| format!("open_ollama_download task failed: {e}"))?
 }

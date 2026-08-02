@@ -14,6 +14,8 @@ Bunny OS private beta uses **manual updates**, with an in-app **Updates** panel:
 5. Install over the previous version (Windows installer upgrade / replace `.app` on Mac).
 6. Keep Ollama and models as **external** prerequisites — they are not replaced by the app installer.
 
+The Updates panel also shows a **status board**: Ollama installed/running/version, chat models (recommended present?), and voice (bundled with Bunny). Actions: Install/start Ollama, open Ollama download, pull recommended model via `ensure_ollama`. Refresh is user-triggered only.
+
 There is **no silent auto-update** and **no in-app download/install** in MVP. Tauri updater + code signing is planned post-beta and must never embed private signing keys in the repo.
 
 ## Signing

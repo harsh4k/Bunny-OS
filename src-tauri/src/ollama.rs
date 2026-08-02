@@ -83,6 +83,51 @@ pub fn is_installed() -> bool {
     installed_path().is_some()
 }
 
+/// Best-effort `ollama -v` / `--version` via the installed binary (argv only).
+pub fn version_string() -> Option<String> {
+    let exe = installed_path()?;
+    // Prefer the CLI binary when we only found the .app bundle.
+    let cli = cli_binary_for(&exe);
+    for args in [["-v"], ["--version"]] {
+        let Ok(out) = crate::proc::command(&cli).args(args).output() else {
+            continue;
+        };
+        if !out.status.success() {
+            continue;
+        }
+        let text = String::from_utf8_lossy(&out.stdout);
+        let err = String::from_utf8_lossy(&out.stderr);
+        let combined = format!("{text}{err}");
+        if let Some(line) = combined.lines().map(str::trim).find(|l| !l.is_empty()) {
+            return Some(line.to_string());
+        }
+    }
+    None
+}
+
+fn cli_binary_for(path: &std::path::Path) -> PathBuf {
+    #[cfg(target_os = "macos")]
+    {
+        if path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.eq_ignore_ascii_case("app"))
+            .unwrap_or(false)
+        {
+            let nested = path.join("Contents").join("Resources").join("ollama");
+            if nested.exists() {
+                return nested;
+            }
+        }
+    }
+    path.to_path_buf()
+}
+
+/// Chat model names from a running Ollama (`/api/tags`). Empty if unreachable.
+pub fn list_chat_models() -> Result<Vec<String>, String> {
+    installed_chat_models()
+}
+
 /// Launch Ollama and block until the port answers or we give up.
 pub fn launch_and_wait() -> Result<String, String> {
     if is_running() {
