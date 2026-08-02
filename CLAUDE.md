@@ -88,4 +88,4 @@ pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSV
 - Done: Updates panel — version + Open Releases + optional GitHub compare (manual install)
 - Next: soak / tag as needed (`docs/beta-checklist.md`)
 - Human gates: soak on Win + Mac after CI artifacts (`docs/beta-checklist.md`); unsigned beta OK (no paid certs)
-- Tag release: `git tag v0.1.1 && git push origin v0.1.1` → MSI + Mac DMGs + `SHA256SUMS.txt`
+- Tag release: `git tag v0.2.0 && git push origin v0.2.0` → MSI + Mac DMGs + `SHA256SUMS.txt`
