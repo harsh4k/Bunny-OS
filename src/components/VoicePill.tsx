@@ -12,13 +12,15 @@ import styles from "./VoicePill.module.css";
 
 interface Props {
   onExpand: () => void;
-  /** Kept in sync with App so the auto-hide timer pauses while pointed at. */
+  /** Kept in sync with App so hover wakes the dormant line. */
   onHoverChange?: (hovered: boolean) => void;
+  /** Thin top strip when idle — morphs open on hover / voice. */
+  dormant?: boolean;
 }
 
 const BAR_COUNT = 7;
 
-export function VoicePill({ onExpand, onHoverChange }: Props) {
+export function VoicePill({ onExpand, onHoverChange, dormant = false }: Props) {
   const { state: voiceState, error, level, hearing } = useVoiceStatus();
   const [pttKey, setPttKey] = useState("F9");
 
@@ -42,7 +44,7 @@ export function VoicePill({ onExpand, onHoverChange }: Props) {
       case "thinking":
         return "Thinking";
       case "speaking":
-        return "Speaking";
+        return "Speaking — tap to stop";
       default:
         return `Hold ${pttKey} to talk`;
     }
@@ -57,8 +59,18 @@ export function VoicePill({ onExpand, onHoverChange }: Props) {
 
   const active = ACTIVE_VOICE_STATES.has(voiceState);
   const listening = voiceState === "listening";
+  const speaking = voiceState === "speaking";
   const tone = error ? "error" : listening && hearing ? "hearing" : active ? "active" : "idle";
   const bars = listening ? levelBars(level, BAR_COUNT) : null;
+
+  const onPrimaryClick = () => {
+    // Tap-to-cut while Bunny is talking; otherwise open the dashboard.
+    if (speaking) {
+      void stop();
+      return;
+    }
+    onExpand();
+  };
 
   return (
     <section
@@ -69,14 +81,17 @@ export function VoicePill({ onExpand, onHoverChange }: Props) {
         className={styles.pill}
         data-active={active}
         data-tone={tone}
+        data-dormant={dormant}
         onMouseEnter={() => onHoverChange?.(true)}
         onMouseLeave={() => onHoverChange?.(false)}
       >
         <button
           type="button"
           className={styles.expand}
-          onClick={onExpand}
-          aria-label={`${label}. Open Bunny OS`}
+          onClick={onPrimaryClick}
+          aria-label={
+            speaking ? `${label}. Stop` : `${label}. Open Bunny OS`
+          }
           title={error ? label : undefined}
           aria-expanded="false"
         >

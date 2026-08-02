@@ -47,7 +47,7 @@ export type Action =
   | { action: "start_listen"; model?: string }
   | { action: "stop_listen" }
   | { action: "cancel_voice"; request_id?: string }
-  | { action: "set_mute"; muted: boolean }
+  | { action: "set_mute"; muted: boolean; interrupt_speech?: boolean }
   // Wake word
   | { action: "wake_status" }
   | { action: "wake_start" }

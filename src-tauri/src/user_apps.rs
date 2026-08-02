@@ -227,12 +227,29 @@ pub fn rescan_and_store() -> Result<UserAppsFile, String> {
 }
 
 /// List for the Apps panel: custom first, then last scan (rescans if empty).
+/// Rescan failures fall back to the last good catalog instead of blanking the UI.
 pub fn list_apps(force_rescan: bool) -> Result<Vec<AppListEntry>, String> {
     let mut file = load();
     if force_rescan || file.scanned.is_empty() {
-        file = rescan_and_store()?;
+        match rescan_and_store() {
+            Ok(next) => file = next,
+            Err(err) => {
+                if file.scanned.is_empty() && file.custom.is_empty() {
+                    return Err(err);
+                }
+                // Keep prior scan; caller can still show apps.
+                crate::applog::info(
+                    "user_apps",
+                    &format!("rescan failed, using cache: {err}"),
+                );
+            }
+        }
     }
 
+    Ok(entries_from_file(&file))
+}
+
+fn entries_from_file(file: &UserAppsFile) -> Vec<AppListEntry> {
     let mut out: Vec<AppListEntry> = Vec::new();
 
     for c in &file.custom {
@@ -275,7 +292,7 @@ pub fn list_apps(force_rescan: bool) -> Result<Vec<AppListEntry>, String> {
         });
     }
 
-    Ok(out)
+    out
 }
 
 pub fn add_alias(alias: &str, target: &str) -> Result<UserAppsFile, String> {

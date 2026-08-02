@@ -20,17 +20,17 @@ pub fn discover_installed_apps() -> HashMap<String, PathBuf> {
     }
 }
 
-/// Discover `.lnk` files from known Start Menu directories.
-/// User Start Menu takes precedence over Common Start Menu.
+/// Discover `.lnk` files from known Start Menu + Desktop directories.
+/// User locations take precedence over common / public ones.
 pub fn discover_start_menu_apps() -> HashMap<String, PathBuf> {
     let mut apps: HashMap<String, PathBuf> = HashMap::new();
 
     if let Ok(appdata) = std::env::var("APPDATA") {
+        // Walk Start Menu root (covers Programs/ and pinned items).
         let p = PathBuf::from(appdata)
             .join("Microsoft")
             .join("Windows")
-            .join("Start Menu")
-            .join("Programs");
+            .join("Start Menu");
         collect_lnk_files(&p, &mut apps);
     }
 
@@ -38,9 +38,16 @@ pub fn discover_start_menu_apps() -> HashMap<String, PathBuf> {
         let p = PathBuf::from(programdata)
             .join("Microsoft")
             .join("Windows")
-            .join("Start Menu")
-            .join("Programs");
+            .join("Start Menu");
         collect_lnk_files(&p, &mut apps);
+    }
+
+    // Desktop shortcuts people actually launch.
+    if let Ok(userprofile) = std::env::var("USERPROFILE") {
+        collect_lnk_files(&PathBuf::from(userprofile).join("Desktop"), &mut apps);
+    }
+    if let Ok(public) = std::env::var("PUBLIC") {
+        collect_lnk_files(&PathBuf::from(public).join("Desktop"), &mut apps);
     }
 
     apps

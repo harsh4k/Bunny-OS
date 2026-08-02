@@ -43,7 +43,7 @@ describe("FirstRunNotice onboarding", () => {
     await act(async () => {
       screen.getByLabelText(/run system scan/i).click();
     });
-    expect(await screen.findByText(/Found 12 apps/i)).toBeTruthy();
+    expect(await screen.findByText(/Saved 12 apps/i)).toBeTruthy();
 
     await act(async () => {
       screen.getByLabelText(/continue to ollama check/i).click();

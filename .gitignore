@@ -41,6 +41,9 @@ dist/
 build/
 .next/
 out/
+*.msi
+*.msi.sig
+src-tauri/binaries/*.sha256
 
 # OS
 Thumbs.db

@@ -48,6 +48,8 @@ pub struct AppState {
     pub ptt_id: Arc<std::sync::Mutex<Option<String>>>,
     /// Mic was muted when this PTT hold began — restore mute on release.
     pub ptt_restore_mute: Arc<AtomicBool>,
+    /// Serializes F9 press/release IPC so remute cannot land between unmute and start_listen.
+    pub ptt_ipc: Arc<Mutex<()>>,
 }
 
 // ── App entry point ───────────────────────────────────────────────────────────
@@ -66,6 +68,7 @@ pub fn run() {
             ptt_active: Arc::new(AtomicBool::new(false)),
             ptt_id: Arc::new(std::sync::Mutex::new(None)),
             ptt_restore_mute: Arc::new(AtomicBool::new(false)),
+            ptt_ipc: Arc::new(Mutex::new(())),
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_lifecycle,

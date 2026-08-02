@@ -18,6 +18,7 @@ from chat_handler import SYSTEM_PROMPT
 from chat_worker import handle_chat_streaming
 from ipc_types import error_msg, stream_msg
 from local_actions import execute as execute_local
+from memory import VOICE_STYLE
 from stt import SttEngine, create_stt
 from tts import TtsEngine, create_tts
 from voice_intents import match_intent
@@ -99,18 +100,21 @@ class VoiceWorker:
         """True while this turn still has the microphone open."""
         return self._audio.is_recording and not self._stop_event.is_set()
 
-    def set_mute(self, muted: bool) -> dict:
+    def set_mute(self, muted: bool, *, interrupt_speech: bool = False) -> dict:
         if not muted:
             self._machine.set_mute(False)
             return {"muted": self._machine.muted, "state": self._machine.state.value}
 
-        if self._capturing():
-            # Mic is live: muting mid-sentence abandons the turn.
+        if self._capturing() or interrupt_speech:
+            # Live mic, or an intentional mute (tray / UI) while Bunny is talking:
+            # abandon the turn and stop speech. PTT remute leaves interrupt_speech
+            # false so the answer to what was just said can still play.
             self._machine.set_mute(True)
             self._cancel.set()
             self._stop_event.set()
             self._tts.stop()
-            self._audio.stop()
+            if self._audio.is_recording:
+                self._audio.stop()
         else:
             # Capture already finished. Push-to-talk remutes the moment the key
             # comes up, and the answer to what was just said is still owed, so
@@ -480,14 +484,17 @@ class VoiceWorker:
     def _build_prompt(self, spoken: str) -> tuple[str, str | None]:
         """Memory + optional screen block. Returns (prompt, spoken_error)."""
         if self._memory is None:
-            return SYSTEM_PROMPT, None
+            return f"{SYSTEM_PROMPT}\n\n{VOICE_STYLE}", None
         try:
             from screen_context import enrich_prompt_with_screen
 
             base = self._memory.build_prompt_prefix()
-            return enrich_prompt_with_screen(self._memory, base, spoken)
+            prompt, err = enrich_prompt_with_screen(self._memory, base, spoken)
+            if err:
+                return prompt, err
+            return f"{prompt}\n\n{VOICE_STYLE}", None
         except Exception:  # noqa: BLE001
-            return SYSTEM_PROMPT, None
+            return f"{SYSTEM_PROMPT}\n\n{VOICE_STYLE}", None
 
 
 def _spoken_error(error: str) -> str:

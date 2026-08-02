@@ -189,7 +189,8 @@ def dispatch(action: str, payload: dict, msg_id: str, ctx: dict) -> object:
 
     if action == "set_mute":
         muted = bool(payload.get("muted", True))
-        return json.dumps(voice_worker.set_mute(muted))
+        interrupt = bool(payload.get("interrupt_speech", False))
+        return json.dumps(voice_worker.set_mute(muted, interrupt_speech=interrupt))
 
     if action == "wake_status":
         return json.dumps(wake.status())

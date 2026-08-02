@@ -16,19 +16,20 @@ import {
 import { AdvisorPanel } from "./AdvisorPanel";
 import { AppsPanel } from "./AppsPanel";
 import { ChatPanel } from "./ChatPanel";
-import { FirstRunNotice } from "./FirstRunNotice";
 import { IconClose } from "./icons";
-import { MemoryPanel } from "./MemoryPanel";
+import { LearningPanel } from "./LearningPanel";
 import { OverviewPane } from "./OverviewPane";
+import type { ServiceSnapshot, ServiceTone } from "./OverviewPane";
 import { UpdatesPanel } from "./UpdatesPanel";
 import { WakePanel } from "./WakePanel";
+import bunnyMark from "../assets/bunny-mark.png";
 import styles from "./CompactPanel.module.css";
 
 export type PanelView =
   | "overview"
+  | "learning"
   | "chat"
   | "advisor"
-  | "memory"
   | "wake"
   | "updates"
   | "apps";
@@ -40,7 +41,6 @@ interface Props {
   onViewChange?: (view: PanelView) => void;
   micMuted?: boolean;
   onMicMutedChange?: (muted: boolean) => void;
-  onOnboardingDone?: () => void;
 }
 
 export function CompactPanel({
@@ -50,7 +50,6 @@ export function CompactPanel({
   onViewChange,
   micMuted: micMutedProp,
   onMicMutedChange,
-  onOnboardingDone,
 }: Props) {
   const [lifecycle, setLifecycle] = useState<LifecycleState>(INITIAL_STATE);
   const [micMutedLocal, setMicMutedLocal] = useState(true);
@@ -58,6 +57,8 @@ export function CompactPanel({
   const [localView, setLocalView] = useState<PanelView>("overview");
   const [listenId, setListenId] = useState<string | null>(null);
   const [pttKey, setPttKey] = useState("F9");
+  const [ollamaOk, setOllamaOk] = useState<boolean | null>(null);
+  const [appCount, setAppCount] = useState<number | null>(null);
   const listenIdRef = useRef<string | null>(null);
   const talkRestoreMuteRef = useRef(false);
 
@@ -67,6 +68,21 @@ export function CompactPanel({
   const ready = lifecycle.status === "ready" || lifecycle.status === "degraded";
   const view = activeView ?? localView;
   const setView = onViewChange ?? setLocalView;
+
+  const helperTone: ServiceTone =
+    lifecycle.status === "ready"
+      ? "ok"
+      : lifecycle.status === "starting"
+        ? "unknown"
+        : lifecycle.status === "degraded"
+          ? "warn"
+          : "off";
+  const services: ServiceSnapshot = {
+    helper: helperTone,
+    ollama:
+      ollamaOk === null ? "unknown" : ollamaOk ? "ok" : "off",
+    apps: appCount,
+  };
 
   useEffect(() => {
     listenIdRef.current = listenId;
@@ -124,7 +140,21 @@ export function CompactPanel({
       })
       .catch(() => {});
 
+    const refreshServices = () => {
+      invoke<boolean>("ollama_running")
+        .then(setOllamaOk)
+        .catch(() => setOllamaOk(false));
+      invoke<Array<{ name: string }>>("list_apps")
+        .then((rows) => setAppCount(rows.length))
+        .catch(() => {
+          /* keep prior count — don't flash errors */
+        });
+    };
+    refreshServices();
+    const servicesTimer = window.setInterval(refreshServices, 20_000);
+
     return () => {
+      window.clearInterval(servicesTimer);
       unlistenP.then((fn) => fn()).catch(console.error);
       // Collapse/unmount while Talk is held — stop sidecar listen.
       const id = listenIdRef.current;
@@ -143,7 +173,12 @@ export function CompactPanel({
     try {
       await invoke("send_action", {
         id: crypto.randomUUID(),
-        payload: { action: "set_mute", muted: next },
+        payload: {
+          action: "set_mute",
+          muted: next,
+          // Intentional mute cuts speech; unmute never interrupts.
+          interrupt_speech: next,
+        },
       });
     } catch (err) {
       console.error(err);
@@ -198,7 +233,7 @@ export function CompactPanel({
         setMicMuted(true);
         void invoke("send_action", {
           id: crypto.randomUUID(),
-          payload: { action: "set_mute", muted: true },
+          payload: { action: "set_mute", muted: true, interrupt_speech: false },
         }).catch(() => {});
       }
     }
@@ -214,12 +249,15 @@ export function CompactPanel({
 
   return (
     <div className={styles.panel} data-embedded={embedded}>
-      <FirstRunNotice onDismiss={onOnboardingDone} />
       {view === "chat" && (
-        <ChatPanel onClose={() => setView("overview")} sidecarReady={ready} />
+        <ChatPanel onClose={() => setView("learning")} sidecarReady={ready} />
       )}
-      {view === "memory" && (
-        <MemoryPanel onClose={() => setView("overview")} sidecarReady={ready} />
+      {view === "learning" && (
+        <LearningPanel
+          onClose={() => setView("overview")}
+          sidecarReady={ready}
+          onTypeInstead={() => setView("chat")}
+        />
       )}
       {view === "wake" && (
         <WakePanel onClose={() => setView("overview")} sidecarReady={ready} />
@@ -235,7 +273,13 @@ export function CompactPanel({
         <>
           <div className={styles.titleBar} data-tauri-drag-region="">
             <div className={styles.titleBarLeft}>
-              <div className={styles.logo} aria-hidden="true">B</div>
+              <img
+                className={styles.logo}
+                src={bunnyMark}
+                alt=""
+                width={22}
+                height={22}
+              />
               <span className={styles.appName}>Bunny OS</span>
             </div>
             <button
@@ -258,6 +302,7 @@ export function CompactPanel({
             pttKey={pttKey}
             ready={ready}
             canRecover={canRecover}
+            services={services}
             onRecover={() => {
               setLifecycle((prev) => lifecycleReducer(prev, { type: "RECOVER" }));
               invoke("restart_sidecar").catch(console.error);

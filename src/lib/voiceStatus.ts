@@ -59,6 +59,79 @@ export function isCancellation(error: string): boolean {
   return error.trim().toLowerCase() === "cancelled";
 }
 
+/** Stable key for deduping the same failure so it doesn't re-flash the pill. */
+export function errorFingerprint(error: string): string {
+  return shortErrorLabel(error).toLowerCase();
+}
+
+/**
+ * Soft / expected voice misses — show once briefly, don't keep re-popping.
+ * Hard failures (mic permission, helper down) still surface normally.
+ */
+export function isSoftVoiceError(error: string): boolean {
+  const text = error.toLowerCase();
+  return (
+    text.includes("no speech detected") ||
+    text.includes("didn't catch") ||
+    text.includes("empty answer") ||
+    text.includes("interrupted before") ||
+    text.includes("still finishing") ||
+    text.includes("already running")
+  );
+}
+
+/**
+ * Island pill should only show voice-session failures — not chat/memory/scan
+ * IPC errors that happen to share the same sidecar channel.
+ */
+export function isPillWorthyError(
+  error: string,
+  requestId: string,
+  recentVoiceActivity: boolean
+): boolean {
+  if (isCancellation(error)) return false;
+  const id = requestId.trim().toLowerCase();
+  if (
+    id.startsWith("hotkey-") ||
+    id.startsWith("wake-") ||
+    id.startsWith("voice-") ||
+    id.startsWith("ptt-")
+  ) {
+    return true;
+  }
+  if (recentVoiceActivity) return true;
+  return looksLikeVoiceFailure(error);
+}
+
+function looksLikeVoiceFailure(error: string): boolean {
+  const text = error.toLowerCase();
+  return (
+    text.includes("speech") ||
+    text.includes("microphone") ||
+    text.includes("mic ") ||
+    text.includes("muted") ||
+    text.includes("sounddevice") ||
+    text.includes("no input device") ||
+    text.includes("faster-whisper") ||
+    text.includes("whisper") ||
+    text.includes("model.bin") ||
+    text.includes("pywin32") ||
+    text.includes("nsspeech") ||
+    text.includes("no speech") ||
+    text.includes("push-to-talk") ||
+    text.includes("listening")
+  );
+}
+
+/** Strip Tauri `invoke` wrappers for panel alerts. */
+export function invokeErrorMessage(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  return raw
+    .replace(/^error invoking \w+:\s*/i, "")
+    .replace(/^invoke\([^)]+\):\s*/i, "")
+    .trim();
+}
+
 /**
  * Plain-language error for any UI surface. Never forwards file paths,
  * `pip install` hints, curl exit codes, or Rust Debug output to the user.
@@ -131,6 +204,22 @@ export function friendlyError(error: string): string {
   }
   if (text.includes("timed out")) return "That took too long. Try again.";
   if (text.includes("cancelled")) return "Cancelled.";
+  if (
+    text.includes("rescan") ||
+    text.includes("user_apps") ||
+    text.includes("onboarding_scan") ||
+    text.includes("list_apps")
+  ) {
+    return "App scan hit a snag. Your last saved list is still here — try Rescan.";
+  }
+  if (text.includes("alias limit") || text.includes("custom app limit")) {
+    return "You’ve hit the apps limit. Remove one and try again.";
+  }
+  if (text.includes("only .lnk") || text.includes("only .app") || text.includes("only .exe")) {
+    return "Pick a shortcut or app file Bunny can open.";
+  }
+  if (text.includes("file not found")) return "That app path is missing.";
+  if (text.includes("already exists")) return "That name is already in your apps list.";
   return "Something went wrong. Try again.";
 }
 

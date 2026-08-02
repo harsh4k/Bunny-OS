@@ -1,18 +1,14 @@
 /**
- * ChatPanel — typed developer chat interface for Bunny OS assistant.
- *
- * Security: no dangerouslySetInnerHTML; text nodes only.
- * Correlation: crypto.randomUUID per request; mismatched IDs ignored.
- * Cancel: sends cancel_chat to sidecar so network work actually stops.
+ * ChatPanel — typed fallback when voice isn’t practical.
+ * Learning stays the main “what Bunny knows” surface; this is opt-in from there.
  */
 import { useState, useEffect, useCallback, useRef, useId } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import type { AppEvent, AssistantAction, AuditEvent } from "~contracts/ipc";
+import type { AppEvent, AssistantAction } from "~contracts/ipc";
 import { parseAssistantResult } from "../lib/assistantResult";
-import { useVoiceTurns } from "../lib/voiceTurns";
+import { friendlyError, invokeErrorMessage } from "../lib/voiceStatus";
 import { ChatPhaseDisplay } from "./chat/ChatPhaseDisplay";
-import { ChatAuditList } from "./chat/ChatAuditList";
 import { OllamaGate } from "./OllamaGate";
 import {
   CHAT_TIMEOUT_MS,
@@ -30,12 +26,8 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
   const [phase, setPhase] = useState<ChatPhase>({ phase: "idle" });
   const [input, setInput] = useState("");
   const [model, setModel] = useState(DEFAULT_MODEL);
-  const [audits, setAudits] = useState<AuditEvent[]>([]);
-  const voiceTurns = useVoiceTurns();
 
   const unlistenSidecarRef = useRef<UnlistenFn | null>(null);
-  const unlistenAuditRef = useRef<UnlistenFn | null>(null);
-  const auditAbortedRef = useRef(false);
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeRequestRef = useRef<string | null>(null);
   const modelInputId = useId();
@@ -95,25 +87,9 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
   }, [sidecarReady]);
 
   useEffect(() => {
-    auditAbortedRef.current = false;
-    listen<AuditEvent>("audit-event", (e) => {
-      setAudits((prev) => [e.payload, ...prev].slice(0, 50));
-    })
-      .then((fn) => {
-        if (auditAbortedRef.current) {
-          fn();
-          return;
-        }
-        unlistenAuditRef.current = fn;
-      })
-      .catch(console.error);
-
     return () => {
-      auditAbortedRef.current = true;
       clearWatchdog();
       clearSidecarListener();
-      unlistenAuditRef.current?.();
-      unlistenAuditRef.current = null;
     };
   }, [clearWatchdog, clearSidecarListener]);
 
@@ -170,7 +146,7 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
       if (msg.type === "error" && msg.id === requestId) {
         clearWatchdog();
         clearSidecarListener();
-        setPhase({ phase: "error", message: msg.error });
+        setPhase({ phase: "error", message: friendlyError(msg.error) });
       }
     });
 
@@ -183,7 +159,7 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
     } catch (err) {
       clearWatchdog();
       clearSidecarListener();
-      setPhase({ phase: "error", message: String(err) });
+      setPhase({ phase: "error", message: friendlyError(invokeErrorMessage(err)) });
     }
   }, [input, model, sidecarReady, phase.phase, armWatchdog, clearWatchdog, clearSidecarListener]);
 
@@ -209,7 +185,7 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
       const result = await invoke<string>("execute_assistant_action", { action });
       setPhase({ phase: "done", outcome: result });
     } catch (err) {
-      setPhase({ phase: "error", message: String(err) });
+      setPhase({ phase: "error", message: friendlyError(invokeErrorMessage(err)) });
     }
   }, []);
 
@@ -230,15 +206,19 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
     phase.phase !== "executing";
 
   return (
-    <div className={styles.overlay} role="dialog" aria-label="Assistant Chat">
+    <div className={styles.overlay} role="dialog" aria-label="Type to Bunny">
       <div className={styles.header}>
-        <span className={styles.title}>Assistant</span>
-        <button className={styles.closeBtn} onClick={onClose} aria-label="Close chat">
+        <span className={styles.title}>Type to Bunny</span>
+        <button className={styles.closeBtn} onClick={onClose} aria-label="Back to learning">
           ×
         </button>
       </div>
 
       <div className={styles.body}>
+        <p className={styles.idleHint}>
+          Same local Bunny as voice — useful when you can’t talk out loud. What you
+          share here can still feed Learning when that’s on.
+        </p>
         <OllamaGate onReady={() => setPhase({ phase: "idle" })} />
         <div className={styles.modelRow}>
           <label htmlFor={modelInputId} className={styles.fieldLabel}>
@@ -256,41 +236,13 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
           />
         </div>
 
-        <div className={styles.outputArea} role="log" aria-live="polite" aria-label="Chat output">
-          {voiceTurns.length > 0 && (
-            <ol className={styles.voiceLog} aria-label="Voice conversation">
-              {voiceTurns.map((turn) => (
-                <li key={turn.id} className={styles.voiceTurn}>
-                  <span className={styles.voiceTag}>Voice</span>
-                  {turn.transcript && (
-                    <p className={styles.voiceUser}>
-                      <span className={styles.voiceRole}>You</span>
-                      {turn.transcript}
-                    </p>
-                  )}
-                  {turn.reply && (
-                    <p className={styles.voiceAssistant}>
-                      <span className={styles.voiceRole}>Bunny</span>
-                      {turn.reply}
-                    </p>
-                  )}
-                  {turn.error && (
-                    <p className={styles.voiceError} role="alert">
-                      {turn.error}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ol>
-          )}
+        <div className={styles.outputArea} role="log" aria-live="polite" aria-label="Reply">
           <ChatPhaseDisplay
             phase={phase}
             onExecuteAction={(a) => void executeAction(a)}
             onRetry={() => setPhase({ phase: "idle" })}
           />
         </div>
-
-        <ChatAuditList audits={audits} />
       </div>
 
       <div className={styles.inputArea}>

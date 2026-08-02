@@ -31,6 +31,7 @@ describe("islandGeometry", () => {
     const style = document.documentElement.style;
     expect(style.getPropertyValue("--island-pill-w")).toBe("288px");
     expect(style.getPropertyValue("--island-pill-h")).toBe("40px");
+    expect(style.getPropertyValue("--island-line-h")).toBe("6px");
     expect(style.getPropertyValue("--island-pad-x")).toBe("14px");
     expect(style.getPropertyValue("--island-pad-top")).toBe("0px");
     expect(style.getPropertyValue("--island-pad-bottom")).toBe("18px");

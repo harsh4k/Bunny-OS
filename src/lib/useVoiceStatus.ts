@@ -4,14 +4,29 @@
  * Voice sessions can be started from the hotkey while React shows nothing but
  * the collapsed pill, so this listens to the raw sidecar stream rather than
  * relying on whoever initiated the request.
+ *
+ * Non-voice sidecar errors (chat, memory, scans) share the same channel — they
+ * must not flash the island. Soft repeats (no speech) are deduped.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import type { AppEvent } from "~contracts/ipc";
-import { isCancellation, parseVoiceChunk } from "./voiceStatus";
+import {
+  errorFingerprint,
+  isCancellation,
+  isPillWorthyError,
+  isSoftVoiceError,
+  parseVoiceChunk,
+} from "./voiceStatus";
 
-/** How long a failure stays on the pill before it returns to idle. */
-export const ERROR_LINGER_MS = 6_000;
+/** How long a hard failure stays on the pill. */
+export const ERROR_LINGER_MS = 5_000;
+/** Soft misses (didn't catch that) clear faster. */
+export const SOFT_ERROR_LINGER_MS = 2_200;
+/** Same fingerprint won't re-flash within this window. */
+export const ERROR_DEDUP_MS = 28_000;
+/** Treat voice as "recent" this long after the last active state / PTT. */
+const RECENT_VOICE_MS = 12_000;
 
 interface HotkeyPtt {
   phase: "down" | "up" | "blocked";
@@ -37,6 +52,12 @@ export function useVoiceStatus(): VoiceStatus {
   const [level, setLevel] = useState(0);
   const [hearing, setHearing] = useState(false);
   const errorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastVoiceAt = useRef(0);
+  const lastShown = useRef<{ key: string; at: number } | null>(null);
+
+  const markVoiceActivity = useCallback(() => {
+    lastVoiceAt.current = Date.now();
+  }, []);
 
   const clearError = useCallback(() => {
     if (errorTimer.current !== null) clearTimeout(errorTimer.current);
@@ -45,12 +66,23 @@ export function useVoiceStatus(): VoiceStatus {
   }, []);
 
   const raise = useCallback((message: string) => {
+    const key = errorFingerprint(message);
+    const now = Date.now();
+    const prev = lastShown.current;
+    if (prev && prev.key === key && now - prev.at < ERROR_DEDUP_MS) {
+      // Same old error — keep quiet; optionally refresh soft linger only.
+      return;
+    }
+    lastShown.current = { key, at: now };
     if (errorTimer.current !== null) clearTimeout(errorTimer.current);
     setError(message);
     setState("idle");
     setLevel(0);
     setHearing(false);
-    errorTimer.current = setTimeout(() => setError(null), ERROR_LINGER_MS);
+    const linger = isSoftVoiceError(message)
+      ? SOFT_ERROR_LINGER_MS
+      : ERROR_LINGER_MS;
+    errorTimer.current = setTimeout(() => setError(null), linger);
   }, []);
 
   useEffect(() => {
@@ -65,6 +97,11 @@ export function useVoiceStatus(): VoiceStatus {
           setHearing(false);
           return;
         }
+        const recent =
+          Date.now() - lastVoiceAt.current < RECENT_VOICE_MS;
+        if (!isPillWorthyError(message.error, message.id, recent)) {
+          return;
+        }
         raise(message.error);
         return;
       }
@@ -77,6 +114,7 @@ export function useVoiceStatus(): VoiceStatus {
       if (typeof chunk.hearing === "boolean") setHearing(chunk.hearing);
       if (!chunk.voice_state) return;
       setState(chunk.voice_state);
+      if (chunk.voice_state !== "idle") markVoiceActivity();
       if (chunk.voice_state === "listening") {
         setTranscript(null);
         clearError();
@@ -90,11 +128,13 @@ export function useVoiceStatus(): VoiceStatus {
       if (payload.phase === "blocked") {
         raise(payload.reason ?? "Push-to-talk unavailable");
       } else if (payload.phase === "down") {
+        markVoiceActivity();
         clearError();
         setState("listening");
         setLevel(0);
         setHearing(false);
       } else if (payload.phase === "up") {
+        markVoiceActivity();
         setLevel(0);
         setHearing(false);
       }
@@ -105,7 +145,7 @@ export function useVoiceStatus(): VoiceStatus {
       void unlistenPtt.then((dispose) => dispose());
       if (errorTimer.current !== null) clearTimeout(errorTimer.current);
     };
-  }, [clearError, raise]);
+  }, [clearError, raise, markVoiceActivity]);
 
   return { state, error, transcript, level, hearing, clearError };
 }

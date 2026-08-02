@@ -114,6 +114,14 @@ class TestWindowsSapiTts(unittest.TestCase):
             WindowsSapiTts().speak("   ")
         self.assertEqual(voice.spoken, [])
 
+    def test_long_text_is_trimmed_to_spoken_budget(self):
+        from tts import MAX_SPOKEN_CHARS, _clean
+
+        long = ("This is a full sentence. " * 40).strip()
+        cleaned = _clean(long)
+        self.assertLessEqual(len(cleaned), MAX_SPOKEN_CHARS)
+        self.assertTrue(cleaned.endswith(".") or " " not in cleaned[-8:])
+
     def test_missing_pywin32_reports_how_to_fix_it(self):
         engine = WindowsSapiTts()
         with mock.patch.dict(sys.modules, {"pythoncom": None, "win32com": None}):

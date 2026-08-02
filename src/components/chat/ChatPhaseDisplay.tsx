@@ -2,6 +2,7 @@
  * Phase-specific rendering for the ChatPanel output area.
  */
 import type { AssistantAction } from "~contracts/ipc";
+import { friendlyError } from "../../lib/voiceStatus";
 import type { ChatPhase } from "./chatTypes";
 import styles from "../ChatPanel.module.css";
 
@@ -16,7 +17,7 @@ export function ChatPhaseDisplay({ phase, onExecuteAction, onRetry }: Props) {
     case "idle":
       return (
         <p className={styles.idleHint}>
-          Type a message to chat with the local Ollama model.
+          Type when you can’t use voice. Bunny stays on this machine.
         </p>
       );
 
@@ -63,7 +64,7 @@ export function ChatPhaseDisplay({ phase, onExecuteAction, onRetry }: Props) {
     case "error":
       return (
         <div className={styles.errorState} role="alert">
-          <p className={styles.errorMsg}>{phase.message}</p>
+          <p className={styles.errorMsg}>{friendlyError(phase.message)}</p>
           <button className={styles.btnSecondary} onClick={onRetry}>
             Try again
           </button>

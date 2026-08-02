@@ -101,6 +101,10 @@ pub enum Action {
     },
     SetMute {
         muted: bool,
+        /// When true, mute also stops TTS / abandons an in-flight turn.
+        /// Push-to-talk remute leaves this false so the answer can still play.
+        #[serde(default)]
+        interrupt_speech: bool,
     },
     // Wake word
     WakeStatus,

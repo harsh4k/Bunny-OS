@@ -1,69 +1,78 @@
-/* Bunny OS — design tokens
- * All colors and spacing MUST reference these variables.
- * Never use raw hex values outside this file.
- */
+/* Bunny OS — design tokens (VoiceOS-inspired light product) */
 
 :root {
-  /* Dashboard — cool graphite / smoke (not muddy brown, not purple) */
-  --color-bg:               #0e0f12;
-  --color-surface:          #15171c;
-  --color-surface-elevated: #1d2027;
-  --color-border:           #2c3038;
-  --color-border-soft:      rgba(255, 255, 255, 0.06);
-  --color-sidebar:          #111318;
-  --color-selection:        rgba(212, 188, 148, 0.12);
-  --color-selection-strong: rgba(212, 188, 148, 0.2);
-  --color-shell-glow:       rgba(212, 188, 148, 0.07);
-  --color-window-neutral:   #5c616c;
-  --color-window-rim:       rgba(255, 255, 255, 0.09);
+  /* Surfaces — airy light, cool sky undertone */
+  --color-bg:               #eef3f8;
+  --color-surface:          rgba(255, 255, 255, 0.78);
+  --color-surface-solid:    #ffffff;
+  --color-surface-elevated: #ffffff;
+  --color-border:           rgba(15, 23, 42, 0.1);
+  --color-border-soft:      rgba(15, 23, 42, 0.06);
+  --color-sidebar:          rgba(255, 255, 255, 0.45);
+  --color-selection:        rgba(37, 99, 235, 0.1);
+  --color-selection-strong: rgba(37, 99, 235, 0.16);
+  --color-shell-glow:       rgba(125, 185, 232, 0.35);
+  --color-window-neutral:   #c4c9d1;
+  --color-window-rim:       rgba(15, 23, 42, 0.08);
 
-  /* Island — kept separate from dashboard surfaces */
-  --color-island:           rgba(12, 12, 16, 0.92);
-  --color-island-hover:     rgba(18, 18, 24, 0.95);
+  /* Island — always black (Dynamic Island) */
+  --color-island:           rgba(12, 12, 16, 0.94);
+  --color-island-hover:     rgba(18, 18, 24, 0.96);
   --color-island-rim:       rgba(255, 255, 255, 0.14);
   --color-island-rim-hover: rgba(255, 255, 255, 0.28);
   --color-island-sheen:     rgba(255, 255, 255, 0.08);
   --color-island-glow:      rgba(255, 255, 255, 0.06);
-  --color-inner-highlight:  rgba(255, 255, 255, 0.12);
+  --color-inner-highlight:  rgba(255, 255, 255, 0.55);
 
   /* Text */
-  --color-text-primary:     #eef0f4;
-  --color-text-secondary:   #9aa1ad;
-  --color-text-muted:       #6b7280;
+  --color-text-primary:     #0f172a;
+  --color-text-secondary:   #475569;
+  --color-text-muted:       #94a3b8;
 
-  /* Brand — sand / champagne accent (lilac reserved off dashboard) */
-  --color-brand:            #d4bc94;
-  --color-brand-dim:        #9a7f56;
-  --color-brand-soft:       #e4d2b0;
-  --color-brand-glow:       rgba(212, 188, 148, 0.4);
-  --color-accent-warm:      #e8b07a;
-  --color-accent-warm-glow: rgba(232, 176, 122, 0.4);
-  --color-wave-muted:       #7a7870;
+  /* Brand / accent — clear action blue + warm sand for Talk */
+  --color-brand:            #2563eb;
+  --color-brand-dim:        #1d4ed8;
+  --color-brand-soft:       #3b82f6;
+  --color-brand-glow:       rgba(37, 99, 235, 0.28);
+  --color-accent-warm:      #c4a574;
+  --color-accent-warm-glow: rgba(196, 165, 116, 0.35);
+  --color-wave-muted:       #94a3b8;
+  --color-sky-top:          #f7fbff;
+  --color-sky-mid:          #dcebff;
+  --color-sky-deep:         #7eb8e8;
 
-  /* Elevation — inset-only on island; outer drop shadows clip into a squared window frame. */
+  /* Elevation — soft, wide, low opacity (no ghost-card + huge blur) */
   --shadow-island-inset: inset 0 1px 0 rgba(255, 255, 255, 0.12);
   --shadow-island: var(--shadow-island-inset);
-  --shadow-island-focus: inset 0 0 0 1px var(--color-brand-soft);
+  --shadow-island-focus: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
   --shadow-window:
-    0 2px 8px rgba(0, 0, 0, 0.22),
-    0 26px 72px rgba(0, 0, 0, 0.38);
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 18px 50px rgba(15, 23, 42, 0.14),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-card:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-btn:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 4px 12px rgba(15, 23, 42, 0.08);
   --ease-island: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: var(--ease-out);
 
-  /* Lifecycle state colors — muted, same family as dashboard */
-  --state-starting-bg:      #1a2433;
-  --state-starting-fg:      #7eb0d8;
-  --state-ready-bg:         #1a2e24;
-  --state-ready-fg:         #6dcc9a;
-  --state-ready-ring:       rgba(109, 204, 154, 0.18);
-  --state-degraded-bg:      #2e2618;
-  --state-degraded-fg:      #d4b06a;
-  --state-error-bg:         #331c1c;
-  --state-error-fg:         #e07a7a;
-  --state-stopped-bg:       #1e1e22;
-  --state-stopped-fg:       #7a7870;
+  /* Lifecycle */
+  --state-starting-bg:      #eff6ff;
+  --state-starting-fg:      #2563eb;
+  --state-ready-bg:         #ecfdf5;
+  --state-ready-fg:         #059669;
+  --state-ready-ring:       rgba(5, 150, 105, 0.16);
+  --state-degraded-bg:      #fffbeb;
+  --state-degraded-fg:      #b45309;
+  --state-error-bg:         #fef2f2;
+  --state-error-fg:         #dc2626;
+  --state-stopped-bg:       #f1f5f9;
+  --state-stopped-fg:       #64748b;
 
-  /* Spacing scale */
+  /* Spacing */
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -72,26 +81,28 @@
   --sp-6: 24px;
   --sp-8: 32px;
 
-  /* Radii — soft system: tiles 14–16, shell 22, pills 999 */
-  --radius-sm:  6px;
-  --radius-md:  10px;
-  --radius-lg:  14px;
-  --radius-xl:  18px;
+  /* Radii — soft product (not sharp form, not 40px balloons) */
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  22px;
+  --radius-pill: 999px;
   --radius-shell: 22px;
 
-  /* Typography — geometric display on Windows, not default UI chrome */
-  --font-display: "Bahnschrift", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
-  --font-sans:  "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  /* Typography */
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-sans:  "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono:  "Cascadia Code", "Consolas", monospace;
-  --text-xs:    11px;
+  --text-xs:    12px;
   --text-sm:    13px;
-  --text-base:  14px;
-  --text-lg:    17px;
-  --text-xl:    22px;
+  --text-base:  15px;
+  --text-lg:    20px;
+  --text-xl:    28px;
 
   /* Island geometry — MUST match src/lib/islandGeometry.ts + tauri.conf.json */
   --island-pill-w: 288px;
   --island-pill-h: 40px;
+  --island-line-h: 6px;
   --island-pad-x: 14px;
   --island-pad-top: 0px;
   --island-pad-bottom: 18px;
@@ -120,7 +131,6 @@ body,
   overflow: hidden;
 }
 
-/* Island: hide overflow — never show scrollbars in the island window. */
 html[data-surface="island"],
 html[data-surface="island"] body,
 html[data-surface="island"] #root {
@@ -145,7 +155,6 @@ body {
   user-select: none;
 }
 
-/* Tauri island: hang from top — no vertical centering (that clipped the pill). */
 html[data-surface="island"] body,
 body[data-surface="island"] {
   display: flex;
@@ -162,7 +171,6 @@ body[data-surface="island"] #root {
   flex: 1 1 auto;
 }
 
-/* Browser/Vitest preview only (viewport taller than the island window). */
 html[data-surface="island"]:not([data-tauri]) body,
 body[data-surface="island"]:not([data-tauri]) {
   align-items: flex-start;
@@ -182,4 +190,21 @@ body[data-surface="dashboard"] #root {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+}
+
+/* Browser preview stage — soft sky behind the glass window */
+html[data-surface="dashboard"]:not([data-tauri]),
+html[data-surface="dashboard"]:not([data-tauri]) body {
+  background:
+    radial-gradient(120% 80% at 50% 110%, var(--color-sky-deep) 0%, transparent 55%),
+    linear-gradient(180deg, var(--color-sky-top) 0%, var(--color-sky-mid) 100%);
+}
+
+html[data-surface="dashboard"]:not([data-tauri]) #root {
+  width: min(920px, calc(100vw - 48px));
+  height: min(620px, calc(100vh - 48px));
+  margin: 24px auto;
+  flex: 0 0 auto;
+  border-radius: var(--radius-shell);
+  overflow: hidden;
 }

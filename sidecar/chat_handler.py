@@ -21,6 +21,7 @@ from typing import Any
 
 import ollama_config
 from ipc_types import error_msg
+from memory import PERSONA
 
 OLLAMA_HOST = ollama_config.host()
 OLLAMA_PORT = ollama_config.port()
@@ -83,8 +84,8 @@ ALLOWED_TOOLS: frozenset[str] = frozenset(
 )
 
 SYSTEM_PROMPT = (
-    "You are Bunny, a composed local desktop assistant with dry wit. "
-    "Be concise — one or two short sentences for voice. "
+    f"{PERSONA} "
+    "In typed chat, a short plan or two options is fine when useful — still tight. "
     "For the clock or calendar, call get_local_time or get_local_date. "
     "For YouTube: youtube_search to browse results, youtube_play when they want "
     "to watch/play something. For Spotify: spotify_open, spotify_search, or "

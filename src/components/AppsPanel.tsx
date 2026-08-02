@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { friendlyError, invokeErrorMessage } from "../lib/voiceStatus";
 import styles from "./ChatPanel.module.css";
 
 interface AppRow {
@@ -61,7 +62,7 @@ export function AppsPanel({ onClose }: Props) {
         );
       }
     } catch (err) {
-      setError(String(err));
+      setError(friendlyError(invokeErrorMessage(err)));
     } finally {
       setBusy(false);
     }
@@ -94,7 +95,7 @@ export function AppsPanel({ onClose }: Props) {
       setNote("Nickname saved.");
       await load(false);
     } catch (err) {
-      setError(String(err));
+      setError(friendlyError(invokeErrorMessage(err)));
     } finally {
       setBusy(false);
     }
@@ -110,8 +111,8 @@ export function AppsPanel({ onClose }: Props) {
       setNote("App saved. Say “open …” with that name.");
       await load(false);
     } catch (err) {
-      const msg = String(err);
-      if (!/no file selected/i.test(msg)) setError(msg);
+      const msg = invokeErrorMessage(err);
+      if (!/no file selected/i.test(msg)) setError(friendlyError(msg));
     } finally {
       setBusy(false);
     }
@@ -124,7 +125,7 @@ export function AppsPanel({ onClose }: Props) {
       await invoke("remove_user_app", { id });
       await load(false);
     } catch (err) {
-      setError(String(err));
+      setError(friendlyError(invokeErrorMessage(err)));
     } finally {
       setBusy(false);
     }

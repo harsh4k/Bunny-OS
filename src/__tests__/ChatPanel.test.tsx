@@ -14,10 +14,6 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { render, screen, act, fireEvent } from "@testing-library/react";
 import { ChatPanel } from "../components/ChatPanel";
-import {
-  __handleVoiceTurnEventForTests,
-  __resetVoiceTurnsForTests,
-} from "../lib/voiceTurns";
 
 // ── Shared state for listener simulation ──────────────────────────────────────
 
@@ -62,7 +58,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.clearAllMocks();
   _listeners.clear();
-  __resetVoiceTurnsForTests();
 });
 
 // ── Helper ────────────────────────────────────────────────────────────────────
@@ -82,7 +77,7 @@ function renderChat(ready = true) {
 describe("ChatPanel — rendering", () => {
   it("renders without crashing", async () => {
     await act(async () => { renderChat(); });
-    expect(screen.getByRole("dialog", { name: /assistant chat/i })).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: /type to bunny/i })).toBeTruthy();
   });
 
   it("shows model input with default value", async () => {
@@ -112,46 +107,8 @@ describe("ChatPanel — rendering", () => {
 
   it("closes when close button clicked", async () => {
     const { onClose } = await act(async () => renderChat());
-    screen.getByLabelText("Close chat").click();
+    screen.getByLabelText("Back to learning").click();
     expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it("renders a completed voice turn in the conversation log", async () => {
-    __handleVoiceTurnEventForTests({
-      event: "sidecar-message",
-      message: { type: "stream", id: "v1", chunk: '{"voice_state":"listening"}', finished: false },
-    });
-    __handleVoiceTurnEventForTests({
-      event: "sidecar-message",
-      message: {
-        type: "stream",
-        id: "v1",
-        chunk: '{"transcript":"what can you do for me?"}',
-        finished: false,
-      },
-    });
-    __handleVoiceTurnEventForTests({
-      event: "sidecar-message",
-      message: {
-        type: "stream",
-        id: "v1",
-        chunk: "I can open apps and answer questions.",
-        finished: false,
-      },
-    });
-    __handleVoiceTurnEventForTests({
-      event: "sidecar-message",
-      message: { type: "stream", id: "v1", chunk: '{"voice_state":"idle"}', finished: false },
-    });
-
-    await act(async () => {
-      renderChat();
-    });
-
-    expect(screen.getByLabelText("Voice conversation")).toBeTruthy();
-    expect(screen.getByText("Voice")).toBeTruthy();
-    expect(screen.getByText("what can you do for me?")).toBeTruthy();
-    expect(screen.getByText("I can open apps and answer questions.")).toBeTruthy();
   });
 });
 
@@ -337,7 +294,7 @@ describe("ChatPanel — response handling", () => {
     });
 
     expect(screen.getByRole("alert")).toBeTruthy();
-    expect(screen.getByText(/model not found/i)).toBeTruthy();
+    expect(screen.getByText(/no chat model is installed/i)).toBeTruthy();
   });
 
   it("shows model error with actionable message", async () => {
@@ -358,6 +315,6 @@ describe("ChatPanel — response handling", () => {
       });
     });
 
-    expect(screen.getByText(/not found/i)).toBeTruthy();
+    expect(screen.getByText(/open models to add one/i)).toBeTruthy();
   });
 });

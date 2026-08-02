@@ -222,7 +222,10 @@ pub async fn send_action(
                 ));
             }
         }
-        ipc::Action::SetMute { muted } => {
+        ipc::Action::SetMute {
+            muted,
+            interrupt_speech: _,
+        } => {
             state.mic_muted.store(*muted, Ordering::SeqCst);
         }
         _ => {}

@@ -30,8 +30,8 @@
   align-items: center;
   padding: 0 4px 0 0;
   margin: 0;
-  color: var(--color-text-primary);
-  /* Dynamic Island: denser black, hangs from top — flat top, soft bottom. */
+  color: #f4f4f5;
+  /* Dynamic Island stays black even when the dashboard is light. */
   background: rgba(0, 0, 0, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-top-color: rgba(255, 255, 255, 0.06);
@@ -42,9 +42,34 @@
   overflow: hidden;
   pointer-events: auto;
   transition:
+    height 380ms var(--ease-island),
+    border-radius 380ms var(--ease-island),
     border-color 280ms var(--ease-island),
     background 280ms var(--ease-island),
-    box-shadow 280ms var(--ease-island);
+    box-shadow 280ms var(--ease-island),
+    padding 380ms var(--ease-island);
+}
+
+/* Always-on thin strip — grows into the pill on hover / voice. */
+.pill[data-dormant="true"] {
+  height: var(--island-line-h, 6px);
+  padding: 0;
+  border-radius: 0 0 3px 3px;
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.pill[data-dormant="true"] .expand,
+.pill[data-dormant="true"] .stop {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms var(--ease-island);
+}
+
+.pill:not([data-dormant="true"]) .expand,
+.pill:not([data-dormant="true"]) .stop {
+  opacity: 1;
+  transition: opacity 220ms 80ms var(--ease-island);
 }
 
 .pill::before {
@@ -123,8 +148,8 @@
   height: 6px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: var(--color-brand);
-  box-shadow: 0 0 0 0 var(--color-brand-glow);
+  background: #d4bc94;
+  box-shadow: none;
   animation: dot-breathe 2.4s var(--ease-island) infinite;
 }
 
@@ -221,7 +246,7 @@
   margin-right: 6px;
   border: 0;
   border-radius: 999px;
-  color: var(--color-bg);
+  color: #0a0a0c;
   background: var(--color-text-muted);
   opacity: 0.4;
   transition:
@@ -238,24 +263,22 @@
 @keyframes dot-breathe {
   0%, 100% {
     opacity: 0.55;
-    transform: scale(0.92);
-    box-shadow: 0 0 0 0 var(--color-brand-glow);
+    transform: scale(0.96);
   }
   50% {
     opacity: 1;
-    transform: scale(1.08);
-    box-shadow: 0 0 10px 1px var(--color-brand-glow);
+    transform: scale(1.04);
   }
 }
 
 @keyframes dot-pulse {
   0%, 100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 var(--color-accent-warm-glow);
+    transform: scale(0.97);
+    opacity: 0.85;
   }
   50% {
-    transform: scale(1.15);
-    box-shadow: 0 0 12px 2px var(--color-accent-warm-glow);
+    transform: scale(1.08);
+    opacity: 1;
   }
 }
 

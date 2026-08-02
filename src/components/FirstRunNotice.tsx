@@ -4,7 +4,9 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import styles from "./ChatPanel.module.css";
+import bunnyMark from "../assets/bunny-mark.png";
+import { friendlyError, invokeErrorMessage } from "../lib/voiceStatus";
+import styles from "./Onboarding.module.css";
 
 const KEY = "bunnyos.onboarding.v1";
 const LEGACY_KEY = "bunnyos.firstRunAck.v1";
@@ -27,6 +29,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
   const [step, setStep] = useState<Step>("welcome");
   const [scan, setScan] = useState<ScanResult | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [ollamaError, setOllamaError] = useState<string | null>(null);
   const [ollamaOk, setOllamaOk] = useState<boolean | null>(null);
   const [ollamaNote, setOllamaNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -61,22 +64,21 @@ export function FirstRunNotice({ onDismiss }: Props) {
       setScan(result);
       setStep("permissions");
     } catch (e) {
-      setScanError(e instanceof Error ? e.message : String(e));
-      // Browser/Vitest: fake a scan so the wizard is still testable.
-      setScan({
-        os: navigator.platform.toLowerCase().includes("mac") ? "macOS" : "Windows",
-        arch: "x86_64",
-        app_count: 0,
-        sample_apps: [],
-      });
-      setStep("permissions");
+      setScanError(friendlyError(invokeErrorMessage(e)));
     } finally {
       setBusy(false);
     }
   }, []);
 
+  const skipScan = useCallback(() => {
+    setScanError(null);
+    setScan(null);
+    setStep("permissions");
+  }, []);
+
   const checkOllama = useCallback(async () => {
     setBusy(true);
+    setOllamaError(null);
     setStep("ollama");
     try {
       const ok = await invoke<boolean>("ollama_running");
@@ -92,13 +94,13 @@ export function FirstRunNotice({ onDismiss }: Props) {
   const installOllama = useCallback(async () => {
     setBusy(true);
     setStep("ollama");
-    setScanError(null);
+    setOllamaError(null);
     try {
       setOllamaNote(await invoke<string>("ensure_ollama"));
       setOllamaOk(true);
     } catch (e) {
       setOllamaOk(false);
-      setScanError(e instanceof Error ? e.message : String(e));
+      setOllamaError(friendlyError(invokeErrorMessage(e)));
     } finally {
       setBusy(false);
       setStep("done");
@@ -107,207 +109,287 @@ export function FirstRunNotice({ onDismiss }: Props) {
 
   if (!visible) return null;
 
+  const tab = tabFor(step);
+
   return (
-    <div className={styles.overlay} role="dialog" aria-label="Bunny OS onboarding">
-      <div className={styles.header}>
-        <span className={styles.title}>Set up Bunny OS</span>
-        <span className={styles.idleHint} aria-live="polite">
-          {stepLabel(step)}
-        </span>
+    <div className={styles.stage} role="dialog" aria-label="Bunny OS onboarding">
+      <div className={styles.top}>
+        <span />
+        <div className={styles.tabs} aria-label="Setup progress">
+          <span className={styles.tab} data-active={tab === "setup"}>
+            Setup
+          </span>
+          <span className={styles.tab} data-active={tab === "voice"}>
+            Voice
+          </span>
+          <span className={styles.tab} data-active={tab === "ready"}>
+            Ready
+          </span>
+        </div>
+        <div className={styles.traffic} aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
       </div>
-      <div className={styles.body}>
-        {step === "welcome" && (
-          <>
-            <p className={styles.idleHint}>
-              Bunny is a helper that stays on <strong>this computer</strong>. It
-              does not need an account and does not send your voice to a Bunny
-              cloud.
-            </p>
-            <ul className={styles.idleHint}>
-              <li>Hold <strong>F9</strong> to talk. The mic starts muted.</li>
-              <li>Memory and screen reading stay off until you turn them on.</li>
-              <li>Bunny will ask you to confirm before typing or clicking in a browser.</li>
-            </ul>
-            <p className={styles.idleHint}>
-              Please read{" "}
-              <button
-                type="button"
-                className={styles.linkBtn}
-                onClick={() =>
-                  void invoke("open_trusted_https", {
-                    url: "https://harsh4k.github.io/Bunny-OS/privacy/",
-                  })
-                }
-              >
-                Privacy
-              </button>{" "}
-              and{" "}
-              <button
-                type="button"
-                className={styles.linkBtn}
-                onClick={() =>
-                  void invoke("open_trusted_https", {
-                    url: "https://harsh4k.github.io/Bunny-OS/terms/",
-                  })
-                }
-              >
-                Terms
-              </button>{" "}
-              (Indian law–oriented) before continuing.
-            </p>
-            <label className={styles.checkRow}>
-              <input
-                type="checkbox"
-                checked={acceptedLegal}
-                onChange={(e) => setAcceptedLegal(e.target.checked)}
-              />
-              <span>I am 18+ and I agree to the Privacy Policy and Terms of Use.</span>
-            </label>
-            <button
-              className={`${styles.btn} ${styles.btnPrimary}`}
-              disabled={!acceptedLegal}
-              onClick={() => setStep("scan")}
-              aria-label="Continue to system scan"
-            >
-              Continue
-            </button>
-          </>
-        )}
 
-        {step === "scan" && (
-          <>
-            <p className={styles.idleHint}>
-              Scan Start Menu / Applications and save the list on this PC so Bunny
-              can open apps by name. Read-only — no shell, no cloud. Manage the
-              full list later under Apps.
-            </p>
-            {scanError && (
-              <p className={styles.idleHint} role="alert">
-                Scan note: {scanError}
+      <div className={styles.split}>
+        <div className={styles.pane}>
+          {step === "welcome" && (
+            <>
+              <div className={styles.markRow}>
+                <img className={styles.mark} src={bunnyMark} alt="" width={28} height={28} />
+                <p className={styles.kicker}>Welcome to Bunny OS</p>
+              </div>
+              <h1 className={styles.title}>A helper that stays on this computer</h1>
+              <p className={styles.lead}>
+                No account. No Bunny cloud. Hold F9 to talk — the mic starts muted.
               </p>
-            )}
-            <button
-              className={`${styles.btn} ${styles.btnPrimary}`}
-              onClick={() => void runScan()}
-              disabled={busy}
-              aria-label="Run system scan"
-            >
-              {busy ? "Scanning…" : "Scan this machine"}
-            </button>
-          </>
-        )}
-
-        {step === "permissions" && (
-          <>
-            <p className={styles.idleHint}>
-              {scan
-                ? `Saved ${scan.app_count} apps on ${scan.os} (${scan.arch}). Open Apps anytime to review or add more.`
-                : "Permissions"}
-            </p>
-            {scan && scan.sample_apps.length > 0 && (
-              <p className={styles.idleHint}>
-                Examples: {scan.sample_apps.slice(0, 5).join(", ")}
-              </p>
-            )}
-            <p className={styles.idleHint}>
-              {(scan?.os ?? "Your OS") === "macOS"
-                ? "macOS controls mic, speakers, and Accessibility (for media keys). Bunny opens the right panes — enable access, then continue."
-                : "Windows controls mic and speakers in Settings. Bunny will open the right pages — enable access for desktop apps, then continue."}
-            </p>
-            <div className={styles.modelRow}>
-              <button
-                className={`${styles.btn} ${styles.btnGhost}`}
-                onClick={() => void invoke("open_mic_privacy_settings")}
-                aria-label="Open microphone privacy settings"
-              >
-                Microphone…
-              </button>
-              <button
-                className={`${styles.btn} ${styles.btnGhost}`}
-                onClick={() => void invoke("open_sound_settings")}
-                aria-label="Open sound settings"
-              >
-                Speakers…
-              </button>
-              {(scan?.os ?? "") === "macOS" ? (
+              <ul className={styles.list}>
+                <li>Learning and screen reading stay off until you turn them on.</li>
+                <li>Bunny asks before typing or clicking in a browser.</li>
+                <li>
+                  Read{" "}
+                  <button
+                    type="button"
+                    className={styles.link}
+                    onClick={() =>
+                      void invoke("open_trusted_https", {
+                        url: "https://harsh4k.github.io/Bunny-OS/privacy/",
+                      })
+                    }
+                  >
+                    Privacy
+                  </button>{" "}
+                  and{" "}
+                  <button
+                    type="button"
+                    className={styles.link}
+                    onClick={() =>
+                      void invoke("open_trusted_https", {
+                        url: "https://harsh4k.github.io/Bunny-OS/terms/",
+                      })
+                    }
+                  >
+                    Terms
+                  </button>{" "}
+                  before continuing.
+                </li>
+              </ul>
+              <label className={styles.checkRow}>
+                <input
+                  type="checkbox"
+                  checked={acceptedLegal}
+                  onChange={(e) => setAcceptedLegal(e.target.checked)}
+                />
+                <span>I am 18+ and I agree to the Privacy Policy and Terms of Use.</span>
+              </label>
+              <div className={styles.actions}>
                 <button
-                  className={`${styles.btn} ${styles.btnGhost}`}
-                  onClick={() => void invoke("open_accessibility_settings")}
-                  aria-label="Open Accessibility privacy settings"
+                  type="button"
+                  className={styles.continue}
+                  disabled={!acceptedLegal}
+                  onClick={() => setStep("scan")}
+                  aria-label="Continue to system scan"
                 >
-                  Accessibility…
+                  Continue
                 </button>
-              ) : null}
-            </div>
-            <button
-              className={`${styles.btn} ${styles.btnPrimary}`}
-              onClick={() => void checkOllama()}
-              disabled={busy}
-              aria-label="Continue to Ollama check"
-            >
-              Continue
-            </button>
-          </>
-        )}
+              </div>
+            </>
+          )}
 
-        {step === "ollama" && (
-          <p className={styles.idleHint}>
-            {busy
-              ? "Setting up Ollama. If you already have a chat model, Bunny keeps it. This can take a few minutes…"
-              : "Checking Ollama…"}
-          </p>
-        )}
-
-        {step === "done" && (
-          <>
-            <p className={styles.idleHint}>
-              {ollamaOk
-                ? (ollamaNote ?? "Ollama is ready with a chat model.")
-                : "Ollama isn’t ready yet. Bunny can install it for you — no separate download needed."}
-            </p>
-            {scanError ? (
-              <p className={styles.errorMsg} role="alert">
-                {scanError}
+          {step === "scan" && (
+            <>
+              <p className={styles.kicker}>Apps on this PC</p>
+              <h1 className={styles.title}>Find apps Bunny can open</h1>
+              <p className={styles.lead}>
+                Read-only scan of Start Menu / Applications. Saved locally — no shell, no cloud.
               </p>
-            ) : null}
-            {!ollamaOk ? (
-              <button
-                className={`${styles.btn} ${styles.btnPrimary}`}
-                onClick={() => void installOllama()}
-                disabled={busy}
-                aria-label="Install and start Ollama"
-              >
-                {busy ? "Installing…" : "Install & start Ollama"}
-              </button>
-            ) : null}
-            <p className={styles.idleHint}>
-              Hold F9 to talk. Expand the island from the tray for Chat, Memory, and Wake.
-            </p>
-            <button
-              className={`${styles.btn} ${ollamaOk ? styles.btnPrimary : styles.btnGhost}`}
-              onClick={finish}
-              disabled={busy}
-              aria-label="Finish onboarding"
-            >
-              {ollamaOk ? "Finish" : "Finish without chat for now"}
-            </button>
-          </>
-        )}
+              {scanError ? (
+                <p className={styles.error} role="alert">
+                  {scanError}
+                </p>
+              ) : null}
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={styles.continue}
+                  onClick={() => void runScan()}
+                  disabled={busy}
+                  aria-label="Run system scan"
+                >
+                  {busy ? "Scanning…" : "Scan this machine"}
+                </button>
+                {scanError ? (
+                  <button
+                    type="button"
+                    className={styles.ghost}
+                    onClick={skipScan}
+                    disabled={busy}
+                    aria-label="Skip scan for now"
+                  >
+                    Skip for now
+                  </button>
+                ) : null}
+              </div>
+            </>
+          )}
+
+          {step === "permissions" && (
+            <>
+              <p className={styles.kicker}>Core features</p>
+              <h1 className={styles.title}>Enable mic & sound</h1>
+              <p className={styles.lead}>
+                {scan
+                  ? `Saved ${scan.app_count} apps on ${scan.os}. Open system settings for Bunny, then continue.`
+                  : "You can scan apps later. First, give Bunny mic and speaker access."}
+              </p>
+              <div className={styles.permCards}>
+                <button
+                  type="button"
+                  className={styles.permCard}
+                  onClick={() => void invoke("open_mic_privacy_settings")}
+                  aria-label="Open microphone privacy settings"
+                >
+                  <span className={styles.permCopy}>
+                    <span className={styles.permTitle}>Microphone</span>
+                    <span className={styles.permHint}>Speech stays on this machine</span>
+                  </span>
+                  <span className={styles.permGo}>Open</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.permCard}
+                  onClick={() => void invoke("open_sound_settings")}
+                  aria-label="Open sound settings"
+                >
+                  <span className={styles.permCopy}>
+                    <span className={styles.permTitle}>Speakers</span>
+                    <span className={styles.permHint}>So Bunny can talk back</span>
+                  </span>
+                  <span className={styles.permGo}>Open</span>
+                </button>
+                {(scan?.os ?? "") === "macOS" ? (
+                  <button
+                    type="button"
+                    className={styles.permCard}
+                    onClick={() => void invoke("open_accessibility_settings")}
+                    aria-label="Open Accessibility privacy settings"
+                  >
+                    <span className={styles.permCopy}>
+                      <span className={styles.permTitle}>Accessibility</span>
+                      <span className={styles.permHint}>Needed for media keys</span>
+                    </span>
+                    <span className={styles.permGo}>Open</span>
+                  </button>
+                ) : null}
+              </div>
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={styles.continue}
+                  onClick={() => void checkOllama()}
+                  disabled={busy}
+                  aria-label="Continue to Ollama check"
+                >
+                  Continue
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === "ollama" && (
+            <>
+              <p className={styles.kicker}>Local chat</p>
+              <h1 className={styles.title}>
+                {busy ? "Setting up Ollama…" : "Checking Ollama…"}
+              </h1>
+              <p className={styles.lead}>
+                If you already have a chat model, Bunny keeps it. This can take a few minutes.
+              </p>
+            </>
+          )}
+
+          {step === "done" && (
+            <>
+              <p className={styles.kicker}>You&apos;re ready</p>
+              <h1 className={styles.title}>
+                {ollamaOk ? "Bunny is ready to talk" : "Almost there"}
+              </h1>
+              <p className={styles.lead}>
+                {ollamaOk
+                  ? (ollamaNote ?? "Ollama is ready with a chat model. Hold F9 to talk.")
+                  : "Ollama isn’t ready yet. Install it here, or finish and set chat up later."}
+              </p>
+              {ollamaError ? (
+                <p className={styles.error} role="alert">
+                  {ollamaError}
+                </p>
+              ) : null}
+              <div className={styles.actions}>
+                {!ollamaOk ? (
+                  <button
+                    type="button"
+                    className={styles.continue}
+                    onClick={() => void installOllama()}
+                    disabled={busy}
+                    aria-label="Install and start Ollama"
+                  >
+                    {busy ? "Installing…" : "Install & start Ollama"}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className={ollamaOk ? styles.continue : styles.ghost}
+                  onClick={finish}
+                  disabled={busy}
+                  aria-label="Finish onboarding"
+                >
+                  {ollamaOk ? "Finish" : "Finish without chat for now"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className={styles.hero} aria-hidden="true">
+          <div className={styles.orb}>
+            <div className={styles.floatCard}>
+              <div className={styles.floatDots}>
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className={styles.floatLine} />
+              <div className={styles.floatLine} />
+              <div className={styles.floatLine} />
+            </div>
+            <div className={styles.island}>
+              <span className={styles.islandLabel}>Hey Bunny</span>
+              <span className={styles.wave}>
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function stepLabel(step: Step): string {
+function tabFor(step: Step): "setup" | "voice" | "ready" {
   switch (step) {
     case "welcome":
-      return "1 / 4 Privacy";
     case "scan":
-      return "2 / 4 Scan";
+      return "setup";
     case "permissions":
-      return "3 / 4 Permissions";
+      return "voice";
     case "ollama":
     case "done":
-      return "4 / 4 Ready";
+      return "ready";
   }
 }

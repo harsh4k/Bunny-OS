@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  errorFingerprint,
   friendlyError,
+  invokeErrorMessage,
   isCancellation,
+  isPillWorthyError,
+  isSoftVoiceError,
   levelBars,
   parseVoiceChunk,
   shortErrorLabel,
@@ -122,5 +126,46 @@ describe("isCancellation", () => {
     expect(isCancellation("cancelled")).toBe(true);
     expect(isCancellation(" Cancelled ")).toBe(true);
     expect(isCancellation("Chat error: cancelled by peer")).toBe(false);
+  });
+});
+
+describe("pill error filtering", () => {
+  it("keeps hotkey / wake failures on the pill", () => {
+    expect(
+      isPillWorthyError("No speech detected", "hotkey-123", false)
+    ).toBe(true);
+    expect(isPillWorthyError("boom", "wake-abc", false)).toBe(true);
+  });
+
+  it("drops unrelated chat/memory errors when idle", () => {
+    expect(
+      isPillWorthyError("failed to list memories", "mem-1", false)
+    ).toBe(false);
+    expect(
+      isPillWorthyError("Chat error: network", "chat-uuid", false)
+    ).toBe(false);
+  });
+
+  it("surfaces voice-shaped failures even without a hotkey id", () => {
+    expect(
+      isPillWorthyError("No speech detected", "uuid-here", false)
+    ).toBe(true);
+  });
+
+  it("dedupes fingerprints by short label", () => {
+    expect(errorFingerprint("No speech detected")).toBe(
+      errorFingerprint("STT: no speech detected in buffer")
+    );
+  });
+
+  it("marks soft misses", () => {
+    expect(isSoftVoiceError("No speech detected")).toBe(true);
+    expect(isSoftVoiceError("sidecar handshake timed out")).toBe(false);
+  });
+
+  it("strips invoke wrappers", () => {
+    expect(invokeErrorMessage("Error invoking rescan_apps: disk full")).toBe(
+      "disk full"
+    );
   });
 });

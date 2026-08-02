@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { AppEvent } from "~contracts/ipc";
+import { friendlyError, invokeErrorMessage } from "../lib/voiceStatus";
 import styles from "./ChatPanel.module.css";
 
 interface WakeStatus {
@@ -79,19 +80,23 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
     });
   }, []);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (opts?: { quiet?: boolean }) => {
     if (!sidecarReady) return;
-    setBusy(true);
-    setError(null);
+    const quiet = Boolean(opts?.quiet);
+    if (!quiet) {
+      setBusy(true);
+      setError(null);
+    }
     try {
       const raw = await send({ action: "wake_status" });
       const next = JSON.parse(raw) as WakeStatus;
       setStatus(next);
-      setDraftPhrase(next.phrase);
+      if (!quiet) setDraftPhrase(next.phrase);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const msg = friendlyError(invokeErrorMessage(err));
+      setError((prev) => (prev === msg ? prev : msg));
     } finally {
-      setBusy(false);
+      if (!quiet) setBusy(false);
     }
   }, [send, sidecarReady]);
 
@@ -99,9 +104,10 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
     void refresh();
   }, [refresh]);
 
+  // Poll only while the model is loading — not on stable error (stops banner blink).
   useEffect(() => {
-    if (status?.state !== "loading" && status?.state !== "error") return;
-    const timer = setInterval(() => void refresh(), 1_500);
+    if (status?.state !== "loading") return;
+    const timer = setInterval(() => void refresh({ quiet: true }), 1_500);
     return () => clearInterval(timer);
   }, [status?.state, refresh]);
 
@@ -118,7 +124,7 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
       setStatus(next);
       setDraftPhrase(next.phrase);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(friendlyError(invokeErrorMessage(err)));
     } finally {
       setBusy(false);
     }
@@ -134,7 +140,7 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
       setStatus(next);
       setDraftPhrase(next.phrase);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(friendlyError(invokeErrorMessage(err)));
     } finally {
       setBusy(false);
     }
@@ -147,7 +153,7 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
       await send({ action: "wake_configure", ...patch });
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(friendlyError(invokeErrorMessage(err)));
     } finally {
       setBusy(false);
     }
@@ -189,7 +195,7 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
             </p>
             {status.error ? (
               <div className={styles.errorState} role="alert">
-                <p className={styles.errorMsg}>{status.error}</p>
+                <p className={styles.errorMsg}>{friendlyError(status.error)}</p>
               </div>
             ) : null}
             <button

@@ -86,7 +86,10 @@ fn on_press(app: &AppHandle) {
         [
             unmute.then(|| HostMessage::Action {
                 id: unmute_id,
-                payload: Action::SetMute { muted: false },
+                payload: Action::SetMute {
+                    muted: false,
+                    interrupt_speech: false,
+                },
             }),
             Some(HostMessage::Action {
                 id,
@@ -125,7 +128,10 @@ fn on_release(app: &AppHandle) {
             }),
             remute.then(|| HostMessage::Action {
                 id: remute_id,
-                payload: Action::SetMute { muted: true },
+                payload: Action::SetMute {
+                    muted: true,
+                    interrupt_speech: false,
+                },
             }),
         ]
         .into_iter()
@@ -157,9 +163,14 @@ fn emit_mic(app: &AppHandle, muted: bool) {
 }
 
 fn send_ordered(app: &AppHandle, messages: impl IntoIterator<Item = HostMessage>) {
-    let handle_slot = std::sync::Arc::clone(&app.state::<AppState>().sidecar_handle);
+    let state = app.state::<AppState>();
+    let handle_slot = std::sync::Arc::clone(&state.sidecar_handle);
+    let ptt_ipc = std::sync::Arc::clone(&state.ptt_ipc);
     let messages: Vec<HostMessage> = messages.into_iter().collect();
+    // One lock for the whole press or release batch so a remute task cannot
+    // slip between unmute and start_listen (first-hold miss).
     tauri::async_runtime::spawn(async move {
+        let _guard = ptt_ipc.lock().await;
         for msg in messages {
             let _ = crate::sidecar::send_to_sidecar(&handle_slot, &msg).await;
         }

@@ -15,6 +15,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn().mockImplementation(async (cmd: string) => {
     if (cmd === "get_lifecycle") return "stopped";
     if (cmd === "get_mic_muted") return true;
+    if (cmd === "ollama_running") return false;
+    if (cmd === "list_apps") return [];
     return undefined;
   }),
 }));
@@ -29,14 +31,14 @@ describe("CompactPanel", () => {
     await act(async () => {
       render(<CompactPanel />);
     });
-    expect(screen.getByText("Bunny OS")).toBeTruthy();
+    expect(screen.getAllByText("Bunny OS").length).toBeGreaterThan(0);
   });
 
   it("shows Quit button", async () => {
     await act(async () => {
       render(<CompactPanel />);
     });
-    expect(screen.getByText(/quit bunny os/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^quit$/i })).toBeTruthy();
   });
 
   it("shows microphone mute toggle button", async () => {
@@ -61,6 +63,8 @@ describe("CompactPanel", () => {
     vi.mocked(invoke).mockImplementation(async (cmd: string) => {
       if (cmd === "get_lifecycle") return "ready";
       if (cmd === "get_mic_muted") return false;
+      if (cmd === "ollama_running") return true;
+      if (cmd === "list_apps") return [{ name: "Notepad" }];
       return undefined;
     });
 

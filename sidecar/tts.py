@@ -6,6 +6,7 @@ macOS: NSSpeechSynthesizer via PyObjC AppKit.
 """
 from __future__ import annotations
 
+import re
 import sys
 import threading
 import time
@@ -14,7 +15,11 @@ from typing import Protocol
 SVSF_ASYNC = 1
 SVSF_PURGE_BEFORE_SPEAK = 2
 
-MAX_SPOKEN_CHARS = 2000
+# Hard spoken budget — long essays feel robotic; short turns feel human.
+MAX_SPOKEN_CHARS = 280
+# Mildly brisker than OS default (−10…+10 on SAPI; ~175 default on macOS).
+_SAPI_RATE = 2
+_MAC_RATE = 195
 _POLL_MS = 100
 
 _WIN_HINT = "pywin32 is required for speech output. Install with: pip install pywin32"
@@ -22,6 +27,8 @@ _MAC_HINT = (
     "PyObjC is required for speech on macOS. "
     "pip install pyobjc-framework-Cocoa"
 )
+
+_SENTENCE_END = re.compile(r"[.!?…](?=\s|$)")
 
 
 class TtsEngine(Protocol):
@@ -57,6 +64,10 @@ class WindowsSapiTts:
         pythoncom.CoInitialize()
         try:
             voice = win32com.client.Dispatch("SAPI.SpVoice")
+            try:
+                voice.Rate = _SAPI_RATE
+            except Exception:  # noqa: BLE001 — some voices reject Rate
+                pass
             voice.Speak(cleaned, SVSF_ASYNC)
             while True:
                 if self._stop.is_set() or (
@@ -90,6 +101,10 @@ class MacNsSpeechTts:
             raise RuntimeError(_MAC_HINT) from exc
 
         voice = NSSpeechSynthesizer.alloc().initWithVoice_(None)
+        try:
+            voice.setRate_(_MAC_RATE)
+        except Exception:  # noqa: BLE001
+            pass
         voice.startSpeakingString_(cleaned)
         while voice.isSpeaking():
             if self._stop.is_set() or (
@@ -105,6 +120,20 @@ class MacNsSpeechTts:
 
 def _clean(text: str) -> str:
     cleaned = (text or "").strip()
-    if len(cleaned) > MAX_SPOKEN_CHARS:
-        cleaned = cleaned[:MAX_SPOKEN_CHARS]
-    return cleaned
+    if len(cleaned) <= MAX_SPOKEN_CHARS:
+        return cleaned
+    return _trim_spoken(cleaned, MAX_SPOKEN_CHARS)
+
+
+def _trim_spoken(text: str, limit: int) -> str:
+    """Cut on a sentence boundary when possible; never mid-word if avoidable."""
+    window = text[:limit]
+    ends = [m.end() for m in _SENTENCE_END.finditer(window)]
+    if ends:
+        cut = ends[-1]
+        if cut >= limit // 3:
+            return text[:cut].rstrip()
+    space = window.rfind(" ")
+    if space >= limit // 3:
+        return text[:space].rstrip()
+    return window.rstrip()

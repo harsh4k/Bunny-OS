@@ -31,6 +31,7 @@ class _BlockingTts(FakeTts):
         super().__init__()
         self.speaking = threading.Event()
         self._release = threading.Event()
+        self.stopped_event = threading.Event()
 
     def speak(self, text, cancel_event=None):  # noqa: ANN001
         self.spoken.append(text)
@@ -42,6 +43,7 @@ class _BlockingTts(FakeTts):
 
     def stop(self) -> None:
         self.stopped += 1
+        self.stopped_event.set()
         self._release.set()
 
 
@@ -161,6 +163,28 @@ class TestVoiceWorker(unittest.TestCase):
             time.sleep(0.02)
         self.assertEqual(w.state, VoiceState.IDLE)
         self.assertFalse(tts.spoken, "a cancelled turn must not speak")
+
+    def test_interrupt_mute_stops_speech(self):
+        """Tray/UI mute while speaking must cut TTS (unlike PTT remute)."""
+        slow_tts = _BlockingTts()
+        w = VoiceWorker(
+            write_fn=lambda _m: None,
+            stt=FakeStt("hello"),
+            tts=slow_tts,
+            audio=SilentAudio(),
+        )
+        w.set_mute(False)
+        with _stub_chat("a long spoken answer"):
+            self.assertTrue(w.start_listen("turn-x", None))
+            w.stop_listen("turn-x")
+            self.assertTrue(
+                slow_tts.speaking.wait(timeout=5), "never reached TTS"
+            )
+            w.set_mute(True, interrupt_speech=True)
+            self.assertTrue(
+                slow_tts.stopped_event.wait(timeout=5),
+                "interrupt mute must stop TTS",
+            )
 
     def _run_turn(self, tts, chat_ctx, msg_id="turn-1", heard="tell me a joke"):
         """Drive one complete push-to-talk turn and return emitted messages."""

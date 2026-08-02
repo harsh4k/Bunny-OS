@@ -61,7 +61,11 @@ fn handle_tray_event(app: &AppHandle, id: &str) {
             state.mic_muted.store(next, Ordering::SeqCst);
             let msg = HostMessage::Action {
                 id: format!("tray-mute-{}", chrono_ms()),
-                payload: Action::SetMute { muted: next },
+                payload: Action::SetMute {
+                    muted: next,
+                    // Tray mute is an intentional cut — stop mid-sentence.
+                    interrupt_speech: next,
+                },
             };
             let handle_slot = Arc::clone(&state.sidecar_handle);
             let app = app.clone();
