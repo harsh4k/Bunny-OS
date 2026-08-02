@@ -31,6 +31,8 @@ Better false-trigger tuning, optional openWakeWord models, persist sensitivity p
 
 ## Explicitly deferred
 
+Planning-only feature list. **Execution program:** `2026-08-02-next-update-program-design.md` (phased W1–W4).
+
 - Unrestricted browser RPA / “do everything”
 - Cloud OCR / always-on screen recording
 - Telemetry or remote model APIs
