@@ -85,7 +85,7 @@ export function ExpandedDashboard({
                 className={styles.legalLink}
                 onClick={() =>
                   void invoke("open_trusted_https", {
-                    url: "https://harsh4k.github.io/Bunny-OS/privacy.html",
+                    url: "https://harsh4k.github.io/Bunny-OS/privacy/",
                   })
                 }
               >
@@ -97,7 +97,7 @@ export function ExpandedDashboard({
                 className={styles.legalLink}
                 onClick={() =>
                   void invoke("open_trusted_https", {
-                    url: "https://harsh4k.github.io/Bunny-OS/terms.html",
+                    url: "https://harsh4k.github.io/Bunny-OS/terms/",
                   })
                 }
               >

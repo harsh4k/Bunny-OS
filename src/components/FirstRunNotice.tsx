@@ -135,7 +135,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
                 className={styles.linkBtn}
                 onClick={() =>
                   void invoke("open_trusted_https", {
-                    url: "https://harsh4k.github.io/Bunny-OS/privacy.html",
+                    url: "https://harsh4k.github.io/Bunny-OS/privacy/",
                   })
                 }
               >
@@ -147,7 +147,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
                 className={styles.linkBtn}
                 onClick={() =>
                   void invoke("open_trusted_https", {
-                    url: "https://harsh4k.github.io/Bunny-OS/terms.html",
+                    url: "https://harsh4k.github.io/Bunny-OS/terms/",
                   })
                 }
               >
