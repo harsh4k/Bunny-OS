@@ -215,6 +215,7 @@ def dispatch(action: str, payload: dict, msg_id: str, ctx: dict) -> object:
     if action == "memory_list":
         return json.dumps({
             "enabled": memory.is_enabled(),
+            "screen_context": memory.is_screen_context_enabled(),
             "facts": memory.list_facts(),
             "session": memory.list_session(),
         })
@@ -240,6 +241,23 @@ def dispatch(action: str, payload: dict, msg_id: str, ctx: dict) -> object:
 
     if action == "memory_export":
         return memory.export_json()
+
+    if action == "screen_status":
+        return json.dumps({"enabled": memory.is_screen_context_enabled()})
+
+    if action == "screen_set_enabled":
+        memory.set_screen_context_enabled(bool(payload.get("enabled", False)))
+        return json.dumps({"enabled": memory.is_screen_context_enabled()})
+
+    if action == "get_focused_window_text":
+        if not memory.is_screen_context_enabled():
+            return json.dumps({
+                "ok": False,
+                "title": "",
+                "error": "Screen context is Off. Turn it on in Memory.",
+            })
+        from platform_screen import get_focused_window_text
+        return json.dumps(get_focused_window_text())
 
     _SIDECAR_LOCAL = frozenset({
         "open_app", "open_url", "youtube_search", "youtube_play",

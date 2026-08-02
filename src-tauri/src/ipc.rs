@@ -136,6 +136,12 @@ pub enum Action {
         enabled: bool,
     },
     MemoryExport,
+    // Screen context (opt-in focused-window text)
+    ScreenStatus,
+    ScreenSetEnabled {
+        enabled: bool,
+    },
+    GetFocusedWindowText,
     // Typed placeholders — not yet implemented
     VoiceTranscribe {
         _placeholder: bool,

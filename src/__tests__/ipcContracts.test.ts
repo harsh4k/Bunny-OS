@@ -178,6 +178,15 @@ describe("Action type — chat and cancel_chat variants exist", () => {
     }
   });
 
+  it("screen_set_enabled and get_focused_window_text actions are typed", () => {
+    const a: Action = { action: "screen_set_enabled", enabled: true };
+    const b: Action = { action: "get_focused_window_text" };
+    const c: Action = { action: "screen_status" };
+    expect(a.action).toBe("screen_set_enabled");
+    expect(b.action).toBe("get_focused_window_text");
+    expect(c.action).toBe("screen_status");
+  });
+
   it("memory_delete_session action has id field", () => {
     const a: Action = { action: "memory_delete_session", id: 7 };
     const rt = roundTrip(a);

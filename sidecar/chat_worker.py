@@ -317,8 +317,21 @@ class ChatWorker:
             prompt = SYSTEM_PROMPT
             if self._memory is not None:
                 try:
-                    prompt = self._memory.build_prompt_prefix()
+                    from screen_context import enrich_prompt_with_screen
+
+                    base = self._memory.build_prompt_prefix()
+                    prompt, screen_err = enrich_prompt_with_screen(
+                        self._memory, base, message
+                    )
                     self._memory.append_session_turn("user", "chat", message[:200])
+                    if screen_err:
+                        self._write(
+                            response_msg(
+                                msg_id,
+                                json.dumps({"kind": "respond", "text": screen_err}),
+                            )
+                        )
+                        return
                 except Exception:  # noqa: BLE001
                     prompt = SYSTEM_PROMPT
             handle_chat_streaming(

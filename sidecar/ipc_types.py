@@ -132,4 +132,8 @@ ALLOWED_ACTIONS: frozenset[str] = frozenset({
     "memory_delete_session",
     "memory_set_enabled",
     "memory_export",
+    # Screen context (opt-in focused-window text)
+    "screen_status",
+    "screen_set_enabled",
+    "get_focused_window_text",
 })

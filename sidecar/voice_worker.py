@@ -374,6 +374,11 @@ class VoiceWorker:
         if intent is not None:
             return self._fulfill(msg_id, intent)
 
+        prompt, screen_err = self._build_prompt(text)
+        if screen_err:
+            self._fail_spoken(msg_id, screen_err, screen_err)
+            return None
+
         terminal: dict[str, str] = {}
 
         def write_and_capture(msg: dict) -> None:
@@ -389,7 +394,7 @@ class VoiceWorker:
             write_and_capture,
             self._cancel,
             lambda _conn: None,
-            system_prompt=self._prompt(text),
+            system_prompt=prompt,
             think=False,
         )
 
@@ -465,14 +470,17 @@ class VoiceWorker:
             return None
         return spoken
 
-    def _prompt(self, spoken: str) -> str:
-        """Same memory-enriched prompt typed chat uses, so both behave alike."""
+    def _build_prompt(self, spoken: str) -> tuple[str, str | None]:
+        """Memory + optional screen block. Returns (prompt, spoken_error)."""
         if self._memory is None:
-            return SYSTEM_PROMPT
+            return SYSTEM_PROMPT, None
         try:
-            return self._memory.build_prompt_prefix()
+            from screen_context import enrich_prompt_with_screen
+
+            base = self._memory.build_prompt_prefix()
+            return enrich_prompt_with_screen(self._memory, base, spoken)
         except Exception:  # noqa: BLE001
-            return SYSTEM_PROMPT
+            return SYSTEM_PROMPT, None
 
 
 def _spoken_error(error: str) -> str:

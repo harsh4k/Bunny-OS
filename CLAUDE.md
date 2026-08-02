@@ -80,7 +80,9 @@ pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSV
 - Done: P4 — macOS app catalog, media keys, `install.sh`, `package-sidecar.sh`, unified `release.yml`
 - Done: Custom wake phrase (default **hey bunny**) + production install harden (checksum fail-closed, Whisper prefetch, first-run UI)
 - Done: v0.1.1 patch (wake persist, island click-through, memory auto-facts, voice domain)
-- Done: Next-update W1 — session log + app aliases (plan: `docs/superpowers/plans/2026-08-02-w1-session-log-aliases.md`)
-- Next: W2 voice follow-up v2 + wake pack (`docs/superpowers/specs/2026-08-02-next-update-program-design.md`)
+- Done: Next-update W1 — session log + app aliases
+- Done: Next-update W2 — voice follow-up v2 + wake profiles/VAD
+- Done: Next-update W3 — opt-in screen context (focused-window title; default Off)
+- Next: W4 — allowlisted browser tools + confirm (`docs/superpowers/specs/2026-08-02-next-update-program-design.md`)
 - Human gates: soak on Win + Mac after CI artifacts (`docs/beta-checklist.md`); unsigned beta OK (no paid certs)
 - Tag release: `git tag v0.1.1 && git push origin v0.1.1` → MSI + Mac DMGs + `SHA256SUMS.txt`

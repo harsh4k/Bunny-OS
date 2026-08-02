@@ -63,6 +63,10 @@ export type Action =
   | { action: "memory_delete_session"; id: number }
   | { action: "memory_set_enabled"; enabled: boolean }
   | { action: "memory_export" }
+  // Screen context (opt-in focused-window text)
+  | { action: "screen_status" }
+  | { action: "screen_set_enabled"; enabled: boolean }
+  | { action: "get_focused_window_text" }
   // Typed placeholders — not yet implemented
   | { action: "voice_transcribe";   _placeholder: true }
   | { action: "wake_word_detected"; _placeholder: true };

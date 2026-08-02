@@ -210,6 +210,7 @@ class TestIpcTypes(unittest.TestCase):
             "memory_status", "memory_list", "memory_add", "memory_delete",
             "memory_clear", "memory_clear_session", "memory_delete_session",
             "memory_set_enabled", "memory_export",
+            "screen_status", "screen_set_enabled", "get_focused_window_text",
         }
         self.assertTrue(required.issubset(ALLOWED_ACTIONS))
 

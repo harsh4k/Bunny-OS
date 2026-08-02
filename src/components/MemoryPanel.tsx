@@ -30,6 +30,7 @@ interface Props {
 
 export function MemoryPanel({ onClose, sidecarReady }: Props) {
   const [enabled, setEnabled] = useState(true);
+  const [screenOn, setScreenOn] = useState(false);
   const [facts, setFacts] = useState<Fact[]>([]);
   const [session, setSession] = useState<SessionTurn[]>([]);
   const [draft, setDraft] = useState("");
@@ -78,10 +79,12 @@ export function MemoryPanel({ onClose, sidecarReady }: Props) {
       const raw = await send({ action: "memory_list" });
       const parsed = JSON.parse(raw) as {
         enabled: boolean;
+        screen_context?: boolean;
         facts: Fact[];
         session?: SessionTurn[];
       };
       setEnabled(parsed.enabled);
+      setScreenOn(Boolean(parsed.screen_context));
       setFacts(parsed.facts ?? []);
       setSession(parsed.session ?? []);
     } catch (err) {
@@ -147,11 +150,27 @@ export function MemoryPanel({ onClose, sidecarReady }: Props) {
           <button
             className={`${styles.btn} ${styles.btnSecondary}`}
             disabled={!sidecarReady || busy}
+            onClick={() =>
+              void (async () => {
+                await send({ action: "screen_set_enabled", enabled: !screenOn });
+                await refresh();
+              })()
+            }
+          >
+            Screen: {screenOn ? "On" : "Off"}
+          </button>
+          <button
+            className={`${styles.btn} ${styles.btnSecondary}`}
+            disabled={!sidecarReady || busy}
             onClick={() => void refresh()}
           >
             Refresh
           </button>
         </div>
+        <p className={styles.idleHint}>
+          Screen context is Off by default. When On, questions about the focused
+          window use its title locally — never silent capture.
+        </p>
 
         <p className={styles.fieldLabel}>Recent session</p>
         <ul className={styles.auditList} aria-label="Session turns">
