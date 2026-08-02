@@ -20,6 +20,7 @@ import { IconClose } from "./icons";
 import { MemoryPanel } from "./MemoryPanel";
 import { OverviewPane } from "./OverviewPane";
 import { WakePanel } from "./WakePanel";
+import { BrowserConfirmBanner } from "./BrowserConfirmBanner";
 import styles from "./CompactPanel.module.css";
 
 export type PanelView = "overview" | "chat" | "advisor" | "memory" | "wake";
@@ -206,6 +207,7 @@ export function CompactPanel({
   return (
     <div className={styles.panel} data-embedded={embedded}>
       <FirstRunNotice onDismiss={onOnboardingDone} />
+      <BrowserConfirmBanner sidecarReady={ready} />
       {view === "chat" && (
         <ChatPanel onClose={() => setView("overview")} sidecarReady={ready} />
       )}

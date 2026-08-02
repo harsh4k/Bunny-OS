@@ -289,6 +289,27 @@ class TestVoiceIntents(unittest.TestCase):
         self.assertIsNotNone(match_intent("what time is it"))
         self.assertIsNone(match_intent("search sunflower"))
 
+    def test_browser_scroll_and_focus(self):
+        self.assertEqual(
+            match_intent("scroll down"),
+            {
+                "kind": "action",
+                "action": {"action": "browser_scroll", "direction": "down", "steps": 3},
+            },
+        )
+        self.assertEqual(
+            match_intent("focus the address bar")["action"]["action"],
+            "browser_focus_search",
+        )
+
+    def test_browser_type_and_click(self):
+        typed = match_intent('type "hello world"')
+        self.assertEqual(typed["action"]["action"], "browser_type")
+        self.assertEqual(typed["action"]["text"], "hello world")
+        clicked = match_intent("click the button Submit")
+        self.assertEqual(clicked["action"]["action"], "browser_click_role")
+        self.assertEqual(clicked["action"]["name"], "Submit")
+
 
 class TestLocalActions(unittest.TestCase):
     def test_time_and_date(self):

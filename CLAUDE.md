@@ -21,7 +21,7 @@ Bunny OS: local-only privacy-first desktop automation suite for Windows 10/11 an
 - Chat: Ollama (auto-installed on first run from official ollama.com build if missing; default model `llama3.2:1b`)
 - Local DB: SQLite under `%LOCALAPPDATA%\BunnyOS\` (Windows) or `~/Library/Application Support/BunnyOS/` (macOS)
 - No shell execution (cmd.exe/powershell/osascript forbidden); Win32 / LaunchServices / Tauri APIs allowed
-- Allowlisted MVP actions only: `open_app`, `open_url`, `youtube_search`, `youtube_play`, `spotify_open`, `spotify_search`, `spotify_play`, `media_play`, `media_next`, `media_prev`, `show_system_summary`, `get_local_time`, `get_local_date`, `respond`
+- Allowlisted MVP actions only: `open_app`, `open_url`, `youtube_search`, `youtube_play`, `spotify_open`, `spotify_search`, `spotify_play`, `media_play`, `media_next`, `media_prev`, `show_system_summary`, `get_local_time`, `get_local_date`, `respond`, `browser_scroll`, `browser_type`, `browser_click_role`, `browser_focus_search` (type/click need confirm)
 - Voice fast-path: time/date/open/youtube/spotify/media matched locally before Ollama; errors are spoken aloud
 - Wake word: custom text phrase (default **hey bunny**), persisted under app-data `wake/`; optional openWakeWord models; never authorizes actions
 - No LLM-invented tools — new capabilities must be added to the typed allowlist
@@ -83,6 +83,7 @@ pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSV
 - Done: Next-update W1 — session log + app aliases
 - Done: Next-update W2 — voice follow-up v2 + wake profiles/VAD
 - Done: Next-update W3 — opt-in screen context (focused-window title; default Off)
-- Next: W4 — allowlisted browser tools + confirm (`docs/superpowers/specs/2026-08-02-next-update-program-design.md`)
+- Done: Next-update W4 — allowlisted browser tools + confirm UX
+- Next: soak / tag as needed (`docs/beta-checklist.md`)
 - Human gates: soak on Win + Mac after CI artifacts (`docs/beta-checklist.md`); unsigned beta OK (no paid certs)
 - Tag release: `git tag v0.1.1 && git push origin v0.1.1` → MSI + Mac DMGs + `SHA256SUMS.txt`

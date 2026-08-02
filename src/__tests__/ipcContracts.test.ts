@@ -178,13 +178,13 @@ describe("Action type — chat and cancel_chat variants exist", () => {
     }
   });
 
-  it("screen_set_enabled and get_focused_window_text actions are typed", () => {
-    const a: Action = { action: "screen_set_enabled", enabled: true };
-    const b: Action = { action: "get_focused_window_text" };
-    const c: Action = { action: "screen_status" };
-    expect(a.action).toBe("screen_set_enabled");
-    expect(b.action).toBe("get_focused_window_text");
-    expect(c.action).toBe("screen_status");
+  it("browser confirm actions are typed", () => {
+    const a: Action = { action: "browser_confirm", pending_id: "p1" };
+    const b: Action = { action: "browser_type", text: "hi" };
+    const c: Action = { action: "browser_scroll", direction: "down", steps: 2 };
+    expect(a.action).toBe("browser_confirm");
+    expect(b.action).toBe("browser_type");
+    expect(c.action).toBe("browser_scroll");
   });
 
   it("memory_delete_session action has id field", () => {

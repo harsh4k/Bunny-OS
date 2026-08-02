@@ -225,7 +225,7 @@ def _stream_chat(
         write_fn(stream_msg(msg_id, "", True))
 
         if tool_call is not None:
-            return _resolve_tool_result(tool_call)
+            return _resolve_tool_result(tool_call, write_fn, msg_id)
         return {"kind": "respond", "text": accumulated_text}
 
     finally:
@@ -243,13 +243,28 @@ _LOCAL_RESOLVE = frozenset(
         "media_play",
         "media_next",
         "media_prev",
+        "browser_scroll",
+        "browser_type",
+        "browser_click_role",
+        "browser_focus_search",
     }
 )
 
 
-def _resolve_tool_result(tool_call: dict) -> dict:
+def _resolve_tool_result(
+    tool_call: dict,
+    write_fn: _WriteFn | None = None,
+    msg_id: str = "",
+) -> dict:
     name = tool_call.get("action")
     if name in _LOCAL_RESOLVE:
+        if isinstance(name, str) and name.startswith("browser_"):
+            from browser_actions import handle_browser_action
+
+            return {
+                "kind": "respond",
+                "text": handle_browser_action(tool_call, write_fn, msg_id or "browser"),
+            }
         from local_actions import execute
 
         return {"kind": "respond", "text": execute(tool_call)}

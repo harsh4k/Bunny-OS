@@ -259,6 +259,27 @@ def dispatch(action: str, payload: dict, msg_id: str, ctx: dict) -> object:
         from platform_screen import get_focused_window_text
         return json.dumps(get_focused_window_text())
 
+    if action in {
+        "browser_scroll",
+        "browser_type",
+        "browser_click_role",
+        "browser_focus_search",
+    }:
+        from browser_actions import handle_browser_action
+
+        body = payload if "action" in payload else {**payload, "action": action}
+        return handle_browser_action(body, _locked_send, msg_id)
+
+    if action == "browser_confirm":
+        from browser_actions import confirm as browser_confirm
+
+        return json.dumps(browser_confirm(str(payload.get("pending_id") or "")))
+
+    if action == "browser_cancel":
+        from browser_actions import cancel as browser_cancel
+
+        return json.dumps(browser_cancel(str(payload.get("pending_id") or "")))
+
     _SIDECAR_LOCAL = frozenset({
         "open_app", "open_url", "youtube_search", "youtube_play",
         "spotify_open", "spotify_search", "spotify_play",

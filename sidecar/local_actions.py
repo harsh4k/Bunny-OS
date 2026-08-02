@@ -89,6 +89,10 @@ def execute(action: dict) -> str:
         return _media_next()
     if kind == "media_prev":
         return _media_prev()
+    if isinstance(kind, str) and kind.startswith("browser_"):
+        from browser_actions import handle_browser_action
+
+        return handle_browser_action(action)
     raise ValueError(f"Unsupported local action: {kind!r}")
 
 

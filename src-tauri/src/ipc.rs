@@ -142,6 +142,27 @@ pub enum Action {
         enabled: bool,
     },
     GetFocusedWindowText,
+    // Browser tools
+    BrowserScroll {
+        direction: String,
+        #[serde(default)]
+        steps: Option<i64>,
+    },
+    BrowserType {
+        text: String,
+    },
+    BrowserClickRole {
+        #[serde(default)]
+        role: Option<String>,
+        name: String,
+    },
+    BrowserFocusSearch,
+    BrowserConfirm {
+        pending_id: String,
+    },
+    BrowserCancel {
+        pending_id: String,
+    },
     // Typed placeholders — not yet implemented
     VoiceTranscribe {
         _placeholder: bool,

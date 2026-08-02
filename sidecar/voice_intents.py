@@ -169,6 +169,29 @@ _MEDIA_PLAY = re.compile(
     r")(?:\s+please|\s+for me)?$",
     re.IGNORECASE,
 )
+_SCROLL_DOWN = re.compile(
+    r"^(?:please\s+)?(?:scroll|page)\s+down(?:\s+please)?$",
+    re.IGNORECASE,
+)
+_SCROLL_UP = re.compile(
+    r"^(?:please\s+)?(?:scroll|page)\s+up(?:\s+please)?$",
+    re.IGNORECASE,
+)
+_FOCUS_BAR = re.compile(
+    r"^(?:please\s+)?(?:focus|open)\s+(?:the\s+)?(?:address|search|url)\s+bar"
+    r"(?:\s+please)?$",
+    re.IGNORECASE,
+)
+_TYPE_TEXT = re.compile(
+    r"^(?:please\s+)?type\s+(?:this\s+)?[:\-]?\s*[\"']?(.+?)[\"']?\s*$",
+    re.IGNORECASE,
+)
+_CLICK_NAMED = re.compile(
+    r"^(?:please\s+)?click\s+(?:the\s+)?"
+    r"(?:(button|link|tab|menuitem|checkbox)\s+)?"
+    r"[\"']?(.+?)[\"']?\s*$",
+    re.IGNORECASE,
+)
 
 # Strip filler the STT often appends.
 _FILLER = re.compile(
@@ -240,6 +263,40 @@ def match_intent(spoken: str) -> _Result | None:
     if _MEDIA_PLAY.match(text):
         _clear_domain()
         return {"kind": "action", "action": {"action": "media_play"}}
+
+    if _SCROLL_DOWN.match(text):
+        _clear_domain()
+        return {
+            "kind": "action",
+            "action": {"action": "browser_scroll", "direction": "down", "steps": 3},
+        }
+    if _SCROLL_UP.match(text):
+        _clear_domain()
+        return {
+            "kind": "action",
+            "action": {"action": "browser_scroll", "direction": "up", "steps": 3},
+        }
+    if _FOCUS_BAR.match(text):
+        _clear_domain()
+        return {"kind": "action", "action": {"action": "browser_focus_search"}}
+    type_m = _TYPE_TEXT.match(text)
+    if type_m:
+        _clear_domain()
+        return {
+            "kind": "action",
+            "action": {"action": "browser_type", "text": type_m.group(1).strip()},
+        }
+    click_m = _CLICK_NAMED.match(text)
+    if click_m:
+        _clear_domain()
+        return {
+            "kind": "action",
+            "action": {
+                "action": "browser_click_role",
+                "role": (click_m.group(1) or "button").lower(),
+                "name": click_m.group(2).strip(),
+            },
+        }
 
     url_match = _OPEN_URL.search(text)
     if url_match:

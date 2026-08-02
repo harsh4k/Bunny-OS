@@ -438,7 +438,14 @@ class VoiceWorker:
                 )
                 return None
             try:
-                spoken = execute_local(action)
+                if isinstance(action.get("action"), str) and str(action["action"]).startswith(
+                    "browser_"
+                ):
+                    from browser_actions import handle_browser_action
+
+                    spoken = handle_browser_action(action, self._write, msg_id)
+                else:
+                    spoken = execute_local(action)
             except Exception as exc:  # noqa: BLE001
                 self._fail_spoken(msg_id, _spoken_error(str(exc)), str(exc))
                 return None

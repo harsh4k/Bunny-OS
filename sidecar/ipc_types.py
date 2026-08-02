@@ -136,4 +136,11 @@ ALLOWED_ACTIONS: frozenset[str] = frozenset({
     "screen_status",
     "screen_set_enabled",
     "get_focused_window_text",
+    # Browser tools
+    "browser_scroll",
+    "browser_type",
+    "browser_click_role",
+    "browser_focus_search",
+    "browser_confirm",
+    "browser_cancel",
 })
