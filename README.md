@@ -15,6 +15,10 @@
 
 **Website:** [harsh4k.github.io/Bunny-OS](https://harsh4k.github.io/Bunny-OS/)
 
+<p align="center">
+  <img src="bunny-os.jpg" alt="Bunny OS icon" width="120" />
+</p>
+
 | Your computer | Click this |
 |---|---|
 | **Windows** | [Download Bunny OS](https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.1/Bunny.OS_0.2.1_x64_en-US.msi) |

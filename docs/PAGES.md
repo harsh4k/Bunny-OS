@@ -1,13 +1,29 @@
-# Enable the public install / legal site (once)
+# Enable / refresh the public site
 
-GitHub → **Settings** → **Pages** → Build from branch **main** → folder **/docs** → Save.
+GitHub → **Settings** → **Pages** → Deploy from branch **main** → folder **/docs**.
 
-Then these URLs work:
+## Edit the site
+
+Source lives in `website/` (Next.js + shadcn). Brand icon files:
+
+- `website/public/bunny-os.jpg`
+- `website/public/icon.png`
+
+Always use those for logo / favicon / menu mark.
+
+```powershell
+cd website
+npm install
+npm run dev          # local preview
+npm run export:pages # builds and copies into ../docs
+```
+
+Commit `website/` + updated `docs/` export, then push.
 
 | Page | URL |
 |---|---|
-| Easy install | https://harsh4k.github.io/Bunny-OS/ |
-| Privacy | https://harsh4k.github.io/Bunny-OS/privacy.html |
-| Terms | https://harsh4k.github.io/Bunny-OS/terms.html |
+| Home | https://harsh4k.github.io/Bunny-OS/ |
+| Privacy | https://harsh4k.github.io/Bunny-OS/privacy/ |
+| Terms | https://harsh4k.github.io/Bunny-OS/terms/ |
 
-Markdown sources of truth: [`privacy.md`](privacy.md), [`terms.md`](terms.md).
+Markdown legal sources (kept): [`privacy.md`](privacy.md), [`terms.md`](terms.md).
