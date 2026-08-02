@@ -15,25 +15,29 @@ Hold **F9** to talk. Say **Hey Bunny** if you enable wake word. Bunny opens apps
 
 ## Install
 
-### Windows
+**Latest:** [v0.2.0](https://github.com/harsh4k/Bunny-OS/releases/tag/v0.2.0)
+
+| Platform | Download |
+|---|---|
+| Windows (x64) | [Bunny.OS_0.2.0_x64_en-US.msi](https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.0/Bunny.OS_0.2.0_x64_en-US.msi) |
+| macOS (Apple Silicon) | [Bunny.OS_0.2.0_aarch64.dmg](https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.0/Bunny.OS_0.2.0_aarch64.dmg) |
+| Checksums | [SHA256SUMS.txt](https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.0/SHA256SUMS.txt) |
+
+### One-liner (fetches latest release + verifies checksums)
+
+**Windows**
 
 ```powershell
 irm https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.ps1 | iex
 ```
 
-### macOS (Apple Silicon)
+**macOS (Apple Silicon)**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.sh | bash
 ```
 
-The script downloads the latest GitHub Release, verifies `SHA256SUMS.txt`, installs, and launches. **No other packages to install** — on first run Bunny can set up official Ollama and a small chat model for you.
-
-| | |
-|---|---|
-| **Latest** | [v0.2.0](https://github.com/harsh4k/Bunny-OS/releases/latest) |
-| **Unsigned beta** | Windows SmartScreen → *More info* → *Run anyway*. macOS: right-click → *Open* if Gatekeeper blocks. |
-| **Uninstall** | [docs/uninstall.md](docs/uninstall.md) |
+On first run Bunny can set up official Ollama and a small chat model for you. **Unsigned beta:** Windows SmartScreen → *More info* → *Run anyway*; macOS: right-click → *Open* if Gatekeeper blocks. [Uninstall](docs/uninstall.md).
 
 ---
 
