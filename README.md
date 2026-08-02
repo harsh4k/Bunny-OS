@@ -9,29 +9,31 @@
   Windows &amp; Mac · stays on your PC · no account needed
 </p>
 
+<p align="center">
+  <a href="https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.1/Bunny.OS_0.2.1_x64_en-US.msi"><img src="https://img.shields.io/badge/Windows-0.2.1_MSI-0e0f12?style=for-the-badge&labelColor=d4bc94" alt="Download Windows MSI 0.2.1" /></a>
+  <a href="https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.1/Bunny.OS_0.2.1_aarch64.dmg"><img src="https://img.shields.io/badge/macOS-0.2.1_DMG-0e0f12?style=for-the-badge&labelColor=d4bc94" alt="Download Mac DMG 0.2.1" /></a>
+  <a href="https://harsh4k.github.io/Bunny-OS/"><img src="https://img.shields.io/badge/Website-harsh4k.github.io-0e0f12?style=for-the-badge&labelColor=9aa1ad" alt="Bunny OS website" /></a>
+</p>
+
 ---
 
 ## Install (easiest)
 
 **Current release: [v0.2.1](https://github.com/harsh4k/Bunny-OS/releases/tag/v0.2.1)** · **Website:** [harsh4k.github.io/Bunny-OS](https://harsh4k.github.io/Bunny-OS/)
 
-<p align="center">
-  <img src="bunny-os.jpg" alt="Bunny OS icon" width="120" />
-</p>
-
 | Your computer | Installer |
 |---|---|
-| **Windows 10/11 (x64)** | [Download MSI — Bunny OS 0.2.1](https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.1/Bunny.OS_0.2.1_x64_en-US.msi) |
-| **Mac (Apple silicon)** | [Download DMG — Bunny OS 0.2.1](https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.1/Bunny.OS_0.2.1_aarch64.dmg) |
+| **Windows 10/11 (x64)** | [Bunny.OS_0.2.1_x64_en-US.msi](https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.1/Bunny.OS_0.2.1_x64_en-US.msi) |
+| **Mac (Apple silicon)** | [Bunny.OS_0.2.1_aarch64.dmg](https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.1/Bunny.OS_0.2.1_aarch64.dmg) |
 
 ### First-time steps
 
-1. Download the file for your computer (table above).
+1. Download the file for your computer (badges above or table).
 2. Open it. **Windows** may say it protected your PC → **More info** → **Run anyway**.
 3. Follow the short setup on screen (microphone + optional chat helper).
 4. Hold **F9** and talk. Or click the Bunny icon near the clock.
 
-Checksums: [SHA256SUMS.txt](https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.1/SHA256SUMS.txt) · [All releases](https://github.com/harsh4k/Bunny-OS/releases)
+Checksums: [SHA256SUMS.txt](https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.1/SHA256SUMS.txt) · [All releases](https://github.com/harsh4k/Bunny-OS/releases/latest)
 
 **Before you install:** [Privacy Policy](https://harsh4k.github.io/Bunny-OS/privacy/) · [Terms of Use](https://harsh4k.github.io/Bunny-OS/terms/)  
 (Markdown copies: [`docs/privacy.md`](docs/privacy.md), [`docs/terms.md`](docs/terms.md))

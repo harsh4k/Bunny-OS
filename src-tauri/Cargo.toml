@@ -20,6 +20,7 @@ tokio                    = { version = "1", features = ["rt", "process", "io-uti
 anyhow                   = "1"
 # Task 4: open apps/URLs via ShellExecuteW (Windows) — no cmd.exe, no PowerShell
 open                     = "5"
+rfd                      = "0.15"
 tauri-plugin-global-shortcut = "2"
 
 [build-dependencies]

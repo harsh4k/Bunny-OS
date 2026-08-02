@@ -1,6 +1,7 @@
 import type { PanelView } from "./CompactPanel";
 import { CompactPanel } from "./CompactPanel";
 import {
+  IconApps,
   IconChat,
   IconCollapse,
   IconHome,
@@ -30,6 +31,7 @@ const NAV_ITEMS: Array<{
 }> = [
   { view: "overview", label: "Overview", Icon: IconHome },
   { view: "chat", label: "Conversation", Icon: IconChat },
+  { view: "apps", label: "Apps", Icon: IconApps },
   { view: "advisor", label: "Models", Icon: IconModels },
   { view: "wake", label: "Voice & wake", Icon: IconWave },
   { view: "memory", label: "Memory", Icon: IconMemory },

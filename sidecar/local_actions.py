@@ -272,9 +272,17 @@ def _resolve_app(app_name: str) -> str | None:
     from pathlib import Path
 
     from app_catalog import get_app_catalog
+    from user_apps import apply_user_alias, resolve_user_path
 
     key = app_name.lower().strip()
-    alias = _APP_ALIASES.get(key, key)
+    step = apply_user_alias(key)
+    step = _APP_ALIASES.get(step, step)
+    alias = apply_user_alias(step).lower()
+
+    custom = resolve_user_path(app_name) or resolve_user_path(alias) or resolve_user_path(key)
+    if custom:
+        return custom
+
     catalog = get_app_catalog()
 
     for app in catalog:
@@ -316,7 +324,9 @@ def _resolve_app(app_name: str) -> str | None:
         raise ValueError(
             f"App '{app_name}' not found. Did you mean: {', '.join(suggestions)}?"
         )
-    raise ValueError(f"App '{app_name}' not found. Check the spelling.")
+    raise ValueError(
+        f"App '{app_name}' not found. Add it under Apps, or check the spelling."
+    )
 
 
 def _collect_lnk(dir_path, apps: dict[str, str], depth: int) -> None:

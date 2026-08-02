@@ -14,6 +14,7 @@ import {
   type LifecycleState,
 } from "../lib/stateReducer";
 import { AdvisorPanel } from "./AdvisorPanel";
+import { AppsPanel } from "./AppsPanel";
 import { ChatPanel } from "./ChatPanel";
 import { FirstRunNotice } from "./FirstRunNotice";
 import { IconClose } from "./icons";
@@ -29,7 +30,8 @@ export type PanelView =
   | "advisor"
   | "memory"
   | "wake"
-  | "updates";
+  | "updates"
+  | "apps";
 
 interface Props {
   onClose?: () => void;
@@ -225,6 +227,7 @@ export function CompactPanel({
       {view === "updates" && (
         <UpdatesPanel onClose={() => setView("overview")} />
       )}
+      {view === "apps" && <AppsPanel onClose={() => setView("overview")} />}
       {view === "advisor" && (
         <AdvisorPanel onClose={() => setView("overview")} sidecarReady={ready} />
       )}
