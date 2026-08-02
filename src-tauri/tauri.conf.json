@@ -14,8 +14,8 @@
       {
         "label": "main",
         "title": "Bunny OS",
-        "width": 276,
-        "height": 56,
+        "width": 316,
+        "height": 58,
         "resizable": false,
         "center": false,
         "visible": false,

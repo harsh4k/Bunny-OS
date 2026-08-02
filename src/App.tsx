@@ -13,8 +13,9 @@ import { BrowserConfirmBanner } from "./components/BrowserConfirmBanner";
 import { VoicePill } from "./components/VoicePill";
 import {
   ISLAND_WINDOW,
+  PAD_BOTTOM,
+  PAD_TOP,
   PAD_X,
-  PAD_Y,
   PILL_H,
   PILL_W,
   TOP_INSET,
@@ -163,7 +164,7 @@ function App() {
         ]);
         const cursor = await cursorPosition();
         const pillLeft = pos.x + PAD_X * scale;
-        const pillTop = pos.y + PAD_Y * scale;
+        const pillTop = pos.y + PAD_TOP * scale;
         const pillRight = pillLeft + PILL_W * scale;
         const pillBottom = pillTop + PILL_H * scale;
         const overPill =

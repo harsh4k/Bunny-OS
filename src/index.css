@@ -90,12 +90,14 @@
   --text-xl:    22px;
 
   /* Island geometry — MUST match src/lib/islandGeometry.ts + tauri.conf.json */
-  --island-pill-w: 260px;
-  --island-pill-h: 36px;
-  --island-pad-x: 8px;
-  --island-pad-y: 10px;
-  --island-window-w: 276px;
-  --island-window-h: 56px;
+  --island-pill-w: 288px;
+  --island-pill-h: 40px;
+  --island-pad-x: 14px;
+  --island-pad-top: 0px;
+  --island-pad-bottom: 18px;
+  --island-pad-y: 18px;
+  --island-window-w: 316px;
+  --island-window-h: 58px;
 }
 
 *, *::before, *::after {
@@ -143,12 +145,12 @@ body {
   user-select: none;
 }
 
-/* Tauri island window fills the derived size; no extra top pad (clips the pill). */
+/* Tauri island: hang from top — no vertical centering (that clipped the pill). */
 html[data-surface="island"] body,
 body[data-surface="island"] {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   padding: 0;
   background: transparent;
 }
@@ -164,7 +166,7 @@ body[data-surface="island"] #root {
 html[data-surface="island"]:not([data-tauri]) body,
 body[data-surface="island"]:not([data-tauri]) {
   align-items: flex-start;
-  padding-top: 14px;
+  padding-top: 0;
 }
 
 html[data-surface="island"]:not([data-tauri]) #root,
