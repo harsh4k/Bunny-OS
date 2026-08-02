@@ -15,6 +15,12 @@ from paths import wake_dir
 DEFAULT_PHRASE = "hey bunny"
 MAX_PHRASE_CHARS = 48
 _SETTINGS_NAME = "settings.json"
+DEFAULT_PROFILE = "balanced"
+PROFILE_PRESETS: dict[str, dict[str, float]] = {
+    "strict": {"sensitivity": 0.75, "cooldown_secs": 3.0},
+    "balanced": {"sensitivity": 0.5, "cooldown_secs": 2.0},
+    "sensitive": {"sensitivity": 0.35, "cooldown_secs": 1.5},
+}
 # Letters, digits, spaces, hyphen, apostrophe — enough for "hey bunny" / "ok jarvis".
 _PHRASE_OK = re.compile(r"^[a-z0-9][a-z0-9 '\-]{0,46}[a-z0-9]$|^[a-z0-9]$", re.I)
 _NON_WORD = re.compile(r"[^a-z0-9\s]+")
@@ -60,6 +66,7 @@ def load_settings() -> dict:
         "sensitivity": 0.5,
         "cooldown_secs": 2.0,
         "enabled": False,
+        "profile": DEFAULT_PROFILE,
     }
     if not path.is_file():
         return defaults
@@ -87,7 +94,17 @@ def load_settings() -> dict:
         out["enabled"] = raw["enabled"]
     elif raw.get("enabled") in (0, 1, "0", "1"):
         out["enabled"] = raw["enabled"] in (1, "1")
+    profile = str(raw.get("profile") or DEFAULT_PROFILE).strip().lower()
+    if profile in PROFILE_PRESETS:
+        out["profile"] = profile
     return out
+
+
+def apply_profile(profile: str) -> dict[str, float]:
+    key = (profile or DEFAULT_PROFILE).strip().lower()
+    if key not in PROFILE_PRESETS:
+        raise ValueError(f"Unknown wake profile: {profile}")
+    return dict(PROFILE_PRESETS[key])
 
 
 def save_settings(
@@ -96,6 +113,7 @@ def save_settings(
     cooldown_secs: float,
     *,
     enabled: bool | None = None,
+    profile: str | None = None,
 ) -> None:
     directory = wake_dir()
     directory.mkdir(parents=True, exist_ok=True)
@@ -107,10 +125,17 @@ def save_settings(
         stored = validate_phrase(cleaned)
     previous = load_settings()
     want_enabled = previous["enabled"] if enabled is None else bool(enabled)
+    want_profile = previous.get("profile", DEFAULT_PROFILE)
+    if profile is not None:
+        key = str(profile).strip().lower()
+        if key not in PROFILE_PRESETS:
+            raise ValueError(f"Unknown wake profile: {profile}")
+        want_profile = key
     payload = {
         "phrase": stored,
         "sensitivity": float(sensitivity),
         "cooldown_secs": float(cooldown_secs),
         "enabled": want_enabled,
+        "profile": want_profile,
     }
     settings_path().write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

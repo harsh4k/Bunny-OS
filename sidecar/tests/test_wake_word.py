@@ -150,6 +150,17 @@ class TestWakeWordCustom(unittest.TestCase):
                 w._state = STATE_OFF
                 self.assertTrue(w.status()["enabled"])
 
+    def test_profile_configure_persists(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BUNNY_APP_DATA": tmp}):
+                w = WakeWordDetector(on_detect=lambda: None)
+                w.configure(profile="strict")
+                self.assertEqual(w.status()["profile"], "strict")
+                self.assertAlmostEqual(w.status()["sensitivity"], 0.75)
+                loaded = load_settings()
+                self.assertEqual(loaded["profile"], "strict")
+                self.assertAlmostEqual(loaded["sensitivity"], 0.75)
+
 
 if __name__ == "__main__":
     unittest.main()

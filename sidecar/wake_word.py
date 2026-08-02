@@ -21,6 +21,9 @@ from wake_oww import (
 )
 from wake_phrase import (
     DEFAULT_PHRASE,
+    DEFAULT_PROFILE,
+    PROFILE_PRESETS,
+    apply_profile,
     load_settings,
     phrase_matches,
     save_settings,
@@ -40,9 +43,10 @@ _INSTALL_HINT = (
     "Talk / push-to-talk still work. Reinstall from GitHub Releases if this persists."
 )
 
-_RMS_LO = 0.008
+# Slightly stricter floor than v0.1.1 to cut false triggers in quiet rooms.
+_RMS_LO = 0.010
 _RMS_HI = 0.035
-_MIN_SPEECH_SECS = 0.35
+_MIN_SPEECH_SECS = 0.45
 _MAX_UTTER_SECS = 3.5
 _SILENCE_SECS = 0.45
 
@@ -88,6 +92,7 @@ class WakeWordDetector:
         self._mode = "model" if is_model_phrase(self._phrase) else "text"
         # User preference (persisted). Distinct from runtime listening state.
         self._desired_enabled = bool(saved.get("enabled"))
+        self._profile = str(saved.get("profile") or DEFAULT_PROFILE)
 
     @property
     def available(self) -> bool:
@@ -113,6 +118,8 @@ class WakeWordDetector:
             "phrases": model_opts,
             "sensitivity": self._sensitivity,
             "cooldown_secs": self._cooldown,
+            "profile": self._profile,
+            "profiles": list(PROFILE_PRESETS.keys()),
             "error": self._error,
             "hotkey_fallback": True,
             "default_phrase": DEFAULT_PHRASE,
@@ -123,7 +130,13 @@ class WakeWordDetector:
         sensitivity: float | None = None,
         cooldown_secs: float | None = None,
         phrase: str | None = None,
+        profile: str | None = None,
     ) -> None:
+        if profile is not None:
+            preset = apply_profile(profile)
+            self._profile = str(profile).strip().lower()
+            self._sensitivity = float(preset["sensitivity"])
+            self._cooldown = float(preset["cooldown_secs"])
         if sensitivity is not None:
             self._sensitivity = max(0.1, min(0.95, float(sensitivity)))
         if cooldown_secs is not None:
@@ -177,6 +190,7 @@ class WakeWordDetector:
                 self._sensitivity,
                 self._cooldown,
                 enabled=enabled,
+                profile=self._profile,
             )
         except (OSError, ValueError):
             pass

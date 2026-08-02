@@ -250,6 +250,37 @@ class TestVoiceIntents(unittest.TestCase):
         self.assertIsNone(match_intent("what can you do for me"))
         self.assertIsNone(match_intent("search sunflower"))
 
+    def test_bare_query_then_play_first(self):
+        from voice_intents import reset_dialog_domain
+
+        reset_dialog_domain()
+        self.assertIsNotNone(match_intent("open youtube"))
+        result = match_intent("sunflower")
+        self.assertEqual(
+            result,
+            {
+                "kind": "action",
+                "action": {"action": "youtube_search", "query": "sunflower"},
+            },
+        )
+        play = match_intent("play the first one")
+        self.assertEqual(
+            play,
+            {
+                "kind": "action",
+                "action": {"action": "youtube_play", "query": "sunflower"},
+            },
+        )
+
+    def test_play_first_without_query_asks(self):
+        from voice_intents import reset_dialog_domain
+
+        reset_dialog_domain()
+        self.assertIsNotNone(match_intent("open youtube"))
+        result = match_intent("play the first one")
+        self.assertEqual(result["kind"], "respond")
+        self.assertIn("search", result["text"].lower())
+
     def test_unrelated_intent_clears_domain(self):
         from voice_intents import reset_dialog_domain
 

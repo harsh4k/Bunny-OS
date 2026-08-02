@@ -17,6 +17,8 @@ interface WakeStatus {
   phrases: string[];
   sensitivity: number;
   cooldown_secs: number;
+  profile?: string;
+  profiles?: string[];
   error: string;
   hotkey_fallback: boolean;
   default_phrase?: string;
@@ -212,6 +214,23 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
                 Disable wake word
               </button>
             ) : null}
+            <label className={styles.fieldLabel}>
+              Sensitivity profile
+              <select
+                value={status.profile ?? "balanced"}
+                disabled={!sidecarReady || busy}
+                onChange={(e) => {
+                  if (e.target.value) void configure({ profile: e.target.value });
+                }}
+                aria-label="Wake sensitivity profile"
+              >
+                {(status.profiles ?? ["strict", "balanced", "sensitive"]).map((name) => (
+                  <option key={name} value={name}>
+                    {name.charAt(0).toUpperCase() + name.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className={styles.fieldLabel}>
               Custom wake phrase
               <input

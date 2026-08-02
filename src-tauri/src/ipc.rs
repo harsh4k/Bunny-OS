@@ -113,6 +113,8 @@ pub enum Action {
         cooldown_secs: Option<f64>,
         #[serde(default)]
         phrase: Option<String>,
+        #[serde(default)]
+        profile: Option<String>,
     },
     // Memory
     MemoryStatus,

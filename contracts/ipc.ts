@@ -52,7 +52,7 @@ export type Action =
   | { action: "wake_status" }
   | { action: "wake_start" }
   | { action: "wake_stop" }
-  | { action: "wake_configure"; sensitivity?: number; cooldown_secs?: number; phrase?: string }
+  | { action: "wake_configure"; sensitivity?: number; cooldown_secs?: number; phrase?: string; profile?: string }
   // Memory
   | { action: "memory_status" }
   | { action: "memory_list" }

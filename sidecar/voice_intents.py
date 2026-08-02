@@ -21,6 +21,7 @@ _Result = dict[str, Any]
 _DOMAIN_TTL_SECS = 90.0
 _last_domain: str | None = None
 _domain_ts: float = 0.0
+_last_query: str | None = None
 
 _TIME = re.compile(
     r"\b("
@@ -108,6 +109,20 @@ _FOLLOW_SEARCH = re.compile(
     r"^(?:please\s+)?search(?:\s+for)?\s+(.+)$",
     re.IGNORECASE,
 )
+_PLAY_FIRST = re.compile(
+    r"^(?:please\s+)?"
+    r"(?:"
+    r"(?:play|watch)\s+(?:the\s+)?(?:first|1st|top)(?:\s+(?:one|result|video|track|song))?"
+    r"|(?:the\s+)?(?:first|1st)\s+(?:one|result|video)?"
+    r"|(?:play|watch)\s+(?:it|that|this)"
+    r")$",
+    re.IGNORECASE,
+)
+_COMMANDISH = re.compile(
+    r"^(?:please\s+)?(?:open|launch|search|find|look|play|watch|start|run|skip|pause|resume|"
+    r"what|who|when|where|why|how|tell|show|next|previous|prev)\b",
+    re.IGNORECASE,
+)
 _OPEN_URL = re.compile(
     r"(?:(?:please\s+)?(?:open|go to|visit|launch)\s+)(https://\S+)",
     re.IGNORECASE,
@@ -163,22 +178,27 @@ _FILLER = re.compile(
 
 
 def reset_dialog_domain() -> None:
-    """Test helper — clear follow-up domain."""
-    global _last_domain, _domain_ts
+    """Test helper — clear follow-up domain and query slot."""
+    global _last_domain, _domain_ts, _last_query
     _last_domain = None
     _domain_ts = 0.0
+    _last_query = None
 
 
-def _set_domain(domain: str) -> None:
-    global _last_domain, _domain_ts
+def _set_domain(domain: str, query: str | None = None) -> None:
+    global _last_domain, _domain_ts, _last_query
     _last_domain = domain
     _domain_ts = time.monotonic()
+    if query is not None:
+        cleaned = query.strip()[:200]
+        _last_query = cleaned or None
 
 
 def _clear_domain() -> None:
-    global _last_domain, _domain_ts
+    global _last_domain, _domain_ts, _last_query
     _last_domain = None
     _domain_ts = 0.0
+    _last_query = None
 
 
 def _active_domain() -> str | None:
@@ -250,7 +270,7 @@ def match_intent(spoken: str) -> _Result | None:
             # Keep "playlist" in the query so local_actions uses the playlist URI.
             if "playlist" in text.lower() and "playlist" not in query.lower():
                 query = f"{query} playlist"
-            _set_domain("spotify")
+            _set_domain("spotify", query)
             return {
                 "kind": "action",
                 "action": {"action": "spotify_play", "query": query},
@@ -260,7 +280,7 @@ def match_intent(spoken: str) -> _Result | None:
     if sp_search:
         query = sp_search.group(1).strip().rstrip(".,!?")
         if query:
-            _set_domain("spotify")
+            _set_domain("spotify", query)
             return {
                 "kind": "action",
                 "action": {"action": "spotify_search", "query": query},
@@ -270,7 +290,7 @@ def match_intent(spoken: str) -> _Result | None:
     if yt_play:
         query = _first_group(yt_play)
         if query:
-            _set_domain("youtube")
+            _set_domain("youtube", query)
             return {
                 "kind": "action",
                 "action": {"action": "youtube_play", "query": query},
@@ -280,7 +300,7 @@ def match_intent(spoken: str) -> _Result | None:
     if yt:
         query = yt.group(1).strip().rstrip(".,!?")
         if query:
-            _set_domain("youtube")
+            _set_domain("youtube", query)
             return {
                 "kind": "action",
                 "action": {"action": "youtube_search", "query": query},
@@ -292,10 +312,11 @@ def match_intent(spoken: str) -> _Result | None:
         if not name:
             return {"kind": "respond", "text": "Which playlist would you like?"}
         keyword = bare_playlist.group("kw").lower()
-        _set_domain("spotify")
+        query = f"{name} {keyword}"
+        _set_domain("spotify", query)
         return {
             "kind": "action",
-            "action": {"action": "spotify_play", "query": f"{name} {keyword}"},
+            "action": {"action": "spotify_play", "query": query},
         }
 
     bare_video = _BARE_VIDEO.match(text)
@@ -304,23 +325,45 @@ def match_intent(spoken: str) -> _Result | None:
         if not name:
             return {"kind": "respond", "text": "Which video would you like?"}
         keyword = bare_video.group("kw").lower()
-        _set_domain("youtube")
+        query = f"{name} {keyword}"
+        _set_domain("youtube", query)
         return {
             "kind": "action",
-            "action": {"action": "youtube_play", "query": f"{name} {keyword}"},
+            "action": {"action": "youtube_play", "query": query},
         }
 
     # Follow-ups in the active dialog domain (e.g. "search sunflower" after YT).
-    # Search-only — "start/play …" must not steal open_app (e.g. "start Notepad").
     domain = _active_domain()
     if domain in ("youtube", "spotify"):
+        if _PLAY_FIRST.match(text):
+            if not _last_query:
+                return {"kind": "respond", "text": "What should I search for first?"}
+            query = _last_query
+            _set_domain(domain, query)
+            action = "youtube_play" if domain == "youtube" else "spotify_play"
+            return {"kind": "action", "action": {"action": action, "query": query}}
+
         follow_search = _FOLLOW_SEARCH.match(text)
         if follow_search:
             query = follow_search.group(1).strip().rstrip(".,!?")
             if query and "youtube" not in query.lower() and "spotify" not in query.lower():
-                _set_domain(domain)
+                _set_domain(domain, query)
                 action = "youtube_search" if domain == "youtube" else "spotify_search"
                 return {"kind": "action", "action": {"action": action, "query": query}}
+
+        # Bare short query after open youtube/spotify → search that phrase.
+        if (
+            not _COMMANDISH.match(text)
+            and not _OPEN_APP.match(text)
+            and 1 <= len(text.split()) <= 5
+            and len(text) <= 60
+            and "youtube" not in text.lower()
+            and "spotify" not in text.lower()
+        ):
+            query = text.strip().rstrip(".,!?")
+            _set_domain(domain, query)
+            action = "youtube_search" if domain == "youtube" else "spotify_search"
+            return {"kind": "action", "action": {"action": action, "query": query}}
 
     app = _OPEN_APP.match(text)
     if app and not _MEDIA_WORDS.search(text):

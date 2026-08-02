@@ -205,6 +205,7 @@ def dispatch(action: str, payload: dict, msg_id: str, ctx: dict) -> object:
             payload.get("sensitivity"),
             payload.get("cooldown_secs"),
             payload.get("phrase"),
+            payload.get("profile"),
         )
         return json.dumps(wake.status())
 
