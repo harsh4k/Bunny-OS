@@ -1,6 +1,6 @@
 /** Single source for public installer links (GitHub Releases). */
-export const RELEASE_TAG = "v0.2.1";
-export const RELEASE_VERSION = "0.2.1";
+export const RELEASE_TAG = "v0.2.2";
+export const RELEASE_VERSION = "0.2.2";
 
 const BASE = `https://github.com/harsh4k/Bunny-OS/releases/download/${RELEASE_TAG}`;
 
