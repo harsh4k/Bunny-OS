@@ -83,7 +83,7 @@ pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSV
 - Done: v0.1.1 patch (wake persist, island click-through, memory auto-facts, voice domain)
 - Done: Next-update W1 — session log + app aliases
 - Done: Next-update W2 — voice follow-up v2 + wake profiles/VAD
-- Done: Next-update W3 — opt-in screen context (focused-window title; default Off)
+- Done: Next-update W3 — opt-in screen context (focused-window UIA/AX text; default Off)
 - Done: Next-update W4 — allowlisted browser tools + confirm UX
 - Done: Updates panel — version + Open Releases + optional GitHub compare (manual install)
 - Next: soak / tag as needed (`docs/beta-checklist.md`)

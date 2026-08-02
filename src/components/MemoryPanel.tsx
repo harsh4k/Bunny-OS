@@ -168,8 +168,9 @@ export function MemoryPanel({ onClose, sidecarReady }: Props) {
           </button>
         </div>
         <p className={styles.idleHint}>
-          Screen context is Off by default. When On, questions about the focused
-          window use its title locally — never silent capture.
+          Screen context is Off by default. When On, questions about your screen
+          read the focused app’s visible text locally (UI Automation /
+          Accessibility) — never silent capture, never cloud OCR.
         </p>
 
         <p className={styles.fieldLabel}>Recent session</p>

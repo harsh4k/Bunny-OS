@@ -23,9 +23,15 @@ _SCREEN_QUERY = re.compile(
     r"what\s+app\s+is\s+(open|focused|active)|"
     r"what('?s|\s+is)\s+(this|the)\s+(window|app)|"
     r"what\s+am\s+i\s+(looking\s+at|seeing)|"
-    r"read\s+(the\s+)?(window\s+)?title|"
+    r"read\s+(the\s+)?(window\s+)?(title|text|screen)|"
+    r"read\s+(this|that|it)|"
+    r"what\s+does\s+(this|it|that)\s+say|"
+    r"what\s+does\s+it\s+say|"
     r"window\s+title|"
-    r"screen\s+context"
+    r"screen\s+context|"
+    r"\bocr\b|"
+    r"look\s+at\s+(my\s+)?screen|"
+    r"can\s+you\s+see\s+(my\s+)?(screen|this|that)"
     r")\b",
     re.IGNORECASE,
 )
@@ -66,6 +72,7 @@ def enrich_prompt_with_screen(
         block = memory.build_screen_block(
             str(probe.get("title") or ""),
             str(probe.get("app") or ""),
+            str(probe.get("text") or ""),
         )
     except Exception:  # noqa: BLE001
         return base_prompt, "I couldn't prepare screen context."
@@ -78,8 +85,8 @@ def _spoken_probe_error(err: str) -> str:
         return "Screen context needs Accessibility permission on this Mac."
     if "no focused" in low or "no frontmost" in low:
         return "I couldn't find a focused window."
-    if "no title" in low:
-        return "That window has no title I can read."
+    if "no title" in low or "no readable" in low:
+        return "That window has no text I can read."
     if "not supported" in low:
         return "Screen context isn't supported on this system."
     return "I couldn't read the focused window."
