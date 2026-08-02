@@ -75,6 +75,40 @@ class TestMemoryStore(unittest.TestCase):
         self.store.set_enabled(False)
         self.assertIsNone(self.store.maybe_remember_voice("I prefer tea"))
 
+    def test_session_turn_persists_across_reopen(self):
+        self.store.append_session_turn("user", "voice", "what time is it")
+        self.store.append_session_turn("bunny", "voice", "It's 3:00 PM.")
+        path = self.store._path
+        reopened = MemoryStore(path)
+        turns = reopened.list_session()
+        self.assertEqual(len(turns), 2)
+        self.assertEqual(turns[0]["role"], "bunny")
+        self.assertEqual(turns[1]["text"], "what time is it")
+
+    def test_session_delete_and_clear(self):
+        self.store.append_session_turn("user", "chat", "hello")
+        tid = self.store.list_session()[0]["id"]
+        self.assertTrue(self.store.delete_session_turn(tid)["ok"])
+        self.assertEqual(self.store.list_session(), [])
+        self.store.append_session_turn("user", "chat", "again")
+        self.assertTrue(self.store.clear_session()["ok"])
+        self.assertEqual(self.store.list_session(), [])
+
+    def test_session_respects_memory_off(self):
+        self.store.set_enabled(False)
+        self.store.append_session_turn("user", "voice", "hello there friend")
+        self.assertEqual(self.store.list_session(), [])
+
+    def test_session_redacts_secrets(self):
+        self.store.append_session_turn(
+            "user",
+            "chat",
+            "my password is hunter2 and api_key is sk-abcdefghijklmnop",
+        )
+        turns = self.store.list_session()
+        self.assertEqual(len(turns), 1)
+        self.assertIn("[REDACTED]", turns[0]["text"])
+
 
 if __name__ == "__main__":
     unittest.main()

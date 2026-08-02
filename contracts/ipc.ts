@@ -60,6 +60,7 @@ export type Action =
   | { action: "memory_delete"; id: number }
   | { action: "memory_clear" }
   | { action: "memory_clear_session" }
+  | { action: "memory_delete_session"; id: number }
   | { action: "memory_set_enabled"; enabled: boolean }
   | { action: "memory_export" }
   // Typed placeholders — not yet implemented

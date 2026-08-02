@@ -129,6 +129,7 @@ ALLOWED_ACTIONS: frozenset[str] = frozenset({
     "memory_delete",
     "memory_clear",
     "memory_clear_session",
+    "memory_delete_session",
     "memory_set_enabled",
     "memory_export",
 })

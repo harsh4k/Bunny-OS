@@ -31,12 +31,16 @@ _APP_ALIASES: dict[str, str] = {
     "google chrome": "google chrome",
     "edge": "microsoft edge",
     "microsoft edge": "microsoft edge",
+    "ms edge": "microsoft edge",
+    "msedge": "microsoft edge",
     "safari": "safari",
     "vscode": "visual studio code",
     "vs code": "visual studio code",
     "visual studio code": "visual studio code",
+    "code": "visual studio code",
     "notepad": "notepad",
     "textedit": "textedit",
+    "text edit": "textedit",
     "calculator": "calculator",
     "calc": "calculator",
     "explorer": "file explorer",
@@ -103,6 +107,11 @@ def _open_app(app_name: str) -> str:
     bad = sorted({c for c in name if c in _BAD_APP_CHARS})
     if bad:
         raise ValueError(f"app_name contains invalid characters: {bad!r}")
+    key = name.lower()
+    alias = _APP_ALIASES.get(key, key)
+    if alias == "youtube" or key in ("youtube", "yt"):
+        open_url_or_file("https://www.youtube.com")
+        return "Opening YouTube."
     path = _resolve_app(name)
     open_application(name, path)
     return f"Opening {name}."

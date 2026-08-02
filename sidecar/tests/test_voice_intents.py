@@ -331,6 +331,20 @@ class TestLocalActions(unittest.TestCase):
         start.assert_called_once_with("Notepad", r"C:\fake\Notepad.lnk")
         self.assertEqual(spoken, "Opening Notepad.")
 
+    def test_open_app_yt_alias_opens_youtube_https(self):
+        with mock.patch("local_actions.open_url_or_file") as start:
+            spoken = execute({"action": "open_app", "app_name": "yt"})
+        start.assert_called_once()
+        self.assertTrue(start.call_args[0][0].startswith("https://www.youtube.com"))
+        self.assertIn("YouTube", spoken)
+
+    def test_open_app_alias_vscode(self):
+        with mock.patch(
+            "local_actions._resolve_app", return_value=r"C:\fake\Code.lnk"
+        ), mock.patch("local_actions.open_application") as start:
+            execute({"action": "open_app", "app_name": "vscode"})
+        start.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

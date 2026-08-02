@@ -208,7 +208,8 @@ class TestIpcTypes(unittest.TestCase):
             "start_listen", "stop_listen", "cancel_voice", "set_mute",
             "wake_status", "wake_start", "wake_stop", "wake_configure",
             "memory_status", "memory_list", "memory_add", "memory_delete",
-            "memory_clear", "memory_clear_session", "memory_set_enabled", "memory_export",
+            "memory_clear", "memory_clear_session", "memory_delete_session",
+            "memory_set_enabled", "memory_export",
         }
         self.assertTrue(required.issubset(ALLOWED_ACTIONS))
 

@@ -212,7 +212,11 @@ def dispatch(action: str, payload: dict, msg_id: str, ctx: dict) -> object:
         return json.dumps({"enabled": memory.is_enabled(), "count": len(memory.list_facts())})
 
     if action == "memory_list":
-        return json.dumps({"enabled": memory.is_enabled(), "facts": memory.list_facts()})
+        return json.dumps({
+            "enabled": memory.is_enabled(),
+            "facts": memory.list_facts(),
+            "session": memory.list_session(),
+        })
 
     if action == "memory_add":
         return json.dumps(memory.add_fact(payload.get("text", ""), payload.get("source", "user")))
@@ -225,6 +229,9 @@ def dispatch(action: str, payload: dict, msg_id: str, ctx: dict) -> object:
 
     if action == "memory_clear_session":
         return json.dumps(memory.clear_session())
+
+    if action == "memory_delete_session":
+        return json.dumps(memory.delete_session_turn(int(payload.get("id", 0))))
 
     if action == "memory_set_enabled":
         memory.set_enabled(bool(payload.get("enabled", True)))

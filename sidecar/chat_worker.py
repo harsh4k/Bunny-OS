@@ -318,7 +318,7 @@ class ChatWorker:
             if self._memory is not None:
                 try:
                     prompt = self._memory.build_prompt_prefix()
-                    self._memory.remember_session(f"user: {message[:200]}")
+                    self._memory.append_session_turn("user", "chat", message[:200])
                 except Exception:  # noqa: BLE001
                     prompt = SYSTEM_PROMPT
             handle_chat_streaming(

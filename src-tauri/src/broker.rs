@@ -29,10 +29,11 @@ const MAX_QUERY_LEN: usize = 500;
 fn app_alias(key: &str) -> &str {
     match key {
         "chrome" | "google chrome" => "google chrome",
-        "edge" | "microsoft edge" => "microsoft edge",
-        "vscode" | "vs code" | "visual studio code" => "visual studio code",
+        "edge" | "microsoft edge" | "msedge" | "ms edge" => "microsoft edge",
+        "vscode" | "vs code" | "visual studio code" | "code" => "visual studio code",
         "calc" | "calculator" => "calculator",
         "explorer" | "file explorer" => "file explorer",
+        "yt" | "youtube" => "youtube",
         // macOS
         "safari" => "safari",
         "finder" => "finder",
@@ -119,6 +120,11 @@ fn execute_open_app(app_name: &str) -> Result<String, String> {
     ];
     if app_name.chars().any(|c| bad.contains(&c)) {
         return Err("app_name contains invalid characters".to_string());
+    }
+    let key = app_name.to_lowercase();
+    let alias = app_alias(&key);
+    if alias == "youtube" {
+        return execute_open_url("https://www.youtube.com");
     }
     let path = resolve_installed_app(app_name)?;
     open::that(&path).map_err(|e| format!("Failed to open '{app_name}': {e}"))?;

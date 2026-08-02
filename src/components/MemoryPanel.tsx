@@ -15,6 +15,14 @@ interface Fact {
   confidence: number;
 }
 
+interface SessionTurn {
+  id: number;
+  role: string;
+  channel: string;
+  text: string;
+  timestamp: number;
+}
+
 interface Props {
   onClose: () => void;
   sidecarReady: boolean;
@@ -23,6 +31,7 @@ interface Props {
 export function MemoryPanel({ onClose, sidecarReady }: Props) {
   const [enabled, setEnabled] = useState(true);
   const [facts, setFacts] = useState<Fact[]>([]);
+  const [session, setSession] = useState<SessionTurn[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -67,9 +76,14 @@ export function MemoryPanel({ onClose, sidecarReady }: Props) {
     setError(null);
     try {
       const raw = await send({ action: "memory_list" });
-      const parsed = JSON.parse(raw) as { enabled: boolean; facts: Fact[] };
+      const parsed = JSON.parse(raw) as {
+        enabled: boolean;
+        facts: Fact[];
+        session?: SessionTurn[];
+      };
       setEnabled(parsed.enabled);
       setFacts(parsed.facts ?? []);
+      setSession(parsed.session ?? []);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -81,7 +95,7 @@ export function MemoryPanel({ onClose, sidecarReady }: Props) {
     void refresh();
   }, [refresh]);
 
-  // Voice auto-facts land in SQLite without a push — poll while the panel is open.
+  // Voice auto-facts / session turns land in SQLite without a push — poll while open.
   useEffect(() => {
     if (!sidecarReady || busy) return;
     const timer = setInterval(() => {
@@ -139,6 +153,32 @@ export function MemoryPanel({ onClose, sidecarReady }: Props) {
           </button>
         </div>
 
+        <p className={styles.fieldLabel}>Recent session</p>
+        <ul className={styles.auditList} aria-label="Session turns">
+          {session.map((t) => (
+            <li key={t.id} className={styles.auditRow}>
+              <span className={styles.auditLabel}>
+                [{t.role}/{t.channel}] {t.text}
+              </span>
+              <button
+                className={styles.btnSecondary}
+                disabled={busy}
+                onClick={() =>
+                  void (async () => {
+                    await send({ action: "memory_delete_session", id: t.id });
+                    await refresh();
+                  })()
+                }
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+          {session.length === 0 && (
+            <li className={styles.idleHint}>No session turns yet.</li>
+          )}
+        </ul>
+
         <label htmlFor={inputId} className={styles.fieldLabel}>
           Add fact
         </label>
@@ -165,6 +205,7 @@ export function MemoryPanel({ onClose, sidecarReady }: Props) {
             onClick={() =>
               void (async () => {
                 await send({ action: "memory_clear_session" });
+                await refresh();
               })()
             }
           >
@@ -190,6 +231,7 @@ export function MemoryPanel({ onClose, sidecarReady }: Props) {
           </div>
         )}
 
+        <p className={styles.fieldLabel}>Saved memories</p>
         <ul className={styles.auditList} aria-label="Saved memories">
           {facts.map((f) => (
             <li key={f.id} className={styles.auditRow}>

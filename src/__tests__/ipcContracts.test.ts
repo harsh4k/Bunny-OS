@@ -177,6 +177,15 @@ describe("Action type — chat and cancel_chat variants exist", () => {
       expect(rt.request_id).toBe("req-1");
     }
   });
+
+  it("memory_delete_session action has id field", () => {
+    const a: Action = { action: "memory_delete_session", id: 7 };
+    const rt = roundTrip(a);
+    expect(rt.action).toBe("memory_delete_session");
+    if (rt.action === "memory_delete_session") {
+      expect(rt.id).toBe(7);
+    }
+  });
 });
 
 // ── Security: AssistantAction does NOT include dangerous variants ─────────────

@@ -127,6 +127,9 @@ pub enum Action {
     },
     MemoryClear,
     MemoryClearSession,
+    MemoryDeleteSession {
+        id: i64,
+    },
     MemorySetEnabled {
         enabled: bool,
     },

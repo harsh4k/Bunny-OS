@@ -249,9 +249,9 @@ class VoiceWorker:
         if self._memory is None:
             return
         try:
-            self._memory.remember_session(f"user (voice): {spoken[:200]}")
+            self._memory.append_session_turn("user", "voice", spoken[:200])
             if reply:
-                self._memory.remember_session(f"bunny (voice): {reply[:200]}")
+                self._memory.append_session_turn("bunny", "voice", reply[:200])
             self._memory.maybe_remember_voice(spoken)
         except Exception:  # noqa: BLE001
             pass
