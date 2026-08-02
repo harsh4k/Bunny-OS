@@ -111,7 +111,7 @@ pub async fn show_window(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// First-run onboarding: count installed apps (read-only, no shell).
+/// First-run onboarding: scan + persist installed apps (read-only, no shell).
 #[derive(serde::Serialize)]
 pub struct OnboardingScan {
     pub os: String,
@@ -123,8 +123,8 @@ pub struct OnboardingScan {
 #[tauri::command]
 pub async fn onboarding_scan() -> Result<OnboardingScan, String> {
     let scan = tauri::async_runtime::spawn_blocking(|| {
-        let apps = crate::start_menu::discover_installed_apps();
-        let mut names: Vec<String> = apps.keys().cloned().collect();
+        let file = crate::user_apps::rescan_and_store()?;
+        let mut names: Vec<String> = file.scanned.iter().map(|a| a.name.clone()).collect();
         names.sort();
         let sample_apps = names.into_iter().take(8).collect();
         let os = match std::env::consts::OS {
@@ -132,16 +132,69 @@ pub async fn onboarding_scan() -> Result<OnboardingScan, String> {
             "windows" => "Windows".to_string(),
             other => other.to_string(),
         };
-        OnboardingScan {
+        Ok::<OnboardingScan, String>(OnboardingScan {
             os,
             arch: std::env::consts::ARCH.to_string(),
-            app_count: apps.len(),
+            app_count: file.scanned.len(),
             sample_apps,
-        }
+        })
     })
     .await
-    .map_err(|e| format!("onboarding_scan task failed: {e}"))?;
+    .map_err(|e| format!("onboarding_scan task failed: {e}"))??;
     Ok(scan)
+}
+
+#[tauri::command]
+pub async fn list_apps() -> Result<Vec<crate::user_apps::AppListEntry>, String> {
+    tauri::async_runtime::spawn_blocking(|| crate::user_apps::list_apps(false))
+        .await
+        .map_err(|e| format!("list_apps task failed: {e}"))?
+}
+
+#[tauri::command]
+pub async fn rescan_apps() -> Result<Vec<crate::user_apps::AppListEntry>, String> {
+    tauri::async_runtime::spawn_blocking(|| crate::user_apps::list_apps(true))
+        .await
+        .map_err(|e| format!("rescan_apps task failed: {e}"))?
+}
+
+#[tauri::command]
+pub async fn add_app_alias(alias: String, target: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::user_apps::add_alias(&alias, &target)?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("add_app_alias task failed: {e}"))?
+}
+
+/// Native file dialog → persist a custom launchable under Apps.
+#[tauri::command]
+pub async fn pick_and_add_app(name: String) -> Result<crate::user_apps::CustomApp, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut dialog = rfd::FileDialog::new().set_title("Choose an app for Bunny");
+        dialog = if cfg!(target_os = "macos") {
+            dialog.add_filter("Applications", &["app"])
+        } else {
+            dialog
+                .add_filter("Shortcuts & programs", &["lnk", "exe"])
+                .add_filter("Shortcuts", &["lnk"])
+                .add_filter("Programs", &["exe"])
+        };
+        let path = dialog
+            .pick_file()
+            .ok_or_else(|| "No file selected.".to_string())?;
+        crate::user_apps::add_custom(&name, &path)
+    })
+    .await
+    .map_err(|e| format!("pick_and_add_app task failed: {e}"))?
+}
+
+#[tauri::command]
+pub async fn remove_user_app(id: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || crate::user_apps::remove_user_entry(&id))
+        .await
+        .map_err(|e| format!("remove_user_app task failed: {e}"))?
 }
 
 /// Forward a typed action to the running sidecar.

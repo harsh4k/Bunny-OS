@@ -14,11 +14,11 @@ use crate::{
     audit::{self, AuditLog},
     ipc::{AssistantAction, AuditOutcome},
     media_keys::{self, MediaKind},
-    start_menu::discover_installed_apps,
     url_tools::{
         build_spotify_search_uri, build_youtube_play_url, build_youtube_url, extract_domain,
         is_open_spotify_url, validate_spotify_uri, validate_url,
     },
+    user_apps,
 };
 use tauri::Emitter;
 
@@ -134,53 +134,14 @@ fn execute_open_app(app_name: &str) -> Result<String, String> {
 }
 
 fn resolve_installed_app(app_name: &str) -> Result<PathBuf, String> {
-    let apps = discover_installed_apps();
     let key = app_name.to_lowercase();
-    let alias = app_alias(&key);
-
-    if let Some(path) = apps.get(alias).or_else(|| apps.get(&key)) {
-        return Ok(path.clone());
-    }
-
-    let prefix: Vec<&PathBuf> = apps
-        .iter()
-        .filter(|(name, _)| name.starts_with(alias))
-        .map(|(_, p)| p)
-        .collect();
-    if prefix.len() == 1 {
-        return Ok(prefix[0].clone());
-    }
-
-    let hits: Vec<&PathBuf> = apps
-        .iter()
-        .filter(|(name, _)| name.contains(alias) || alias.contains(name.as_str()))
-        .map(|(_, p)| p)
-        .collect();
-    if hits.len() == 1 {
-        return Ok(hits[0].clone());
-    }
-
-    let needle = alias.get(..4.min(alias.len())).unwrap_or(alias);
-    let suggestions: Vec<String> = apps
-        .keys()
-        .filter(|k| k.contains(needle))
-        .take(5)
-        .cloned()
-        .collect();
-    let catalog = if cfg!(target_os = "macos") {
-        "Applications"
-    } else {
-        "Start Menu"
-    };
-    if suggestions.is_empty() {
-        Err(format!(
-            "App '{app_name}' not found in {catalog}. Check the spelling."
-        ))
-    } else {
-        Err(format!(
-            "App '{app_name}' not found. Did you mean: {}?",
-            suggestions.join(", ")
-        ))
+    let builtin = app_alias(&key);
+    match user_apps::resolve_path(app_name) {
+        Ok(path) => Ok(path),
+        Err(err) if builtin != key.as_str() => {
+            user_apps::resolve_path(builtin).map_err(|_| err)
+        }
+        Err(err) => Err(err),
     }
 }
 

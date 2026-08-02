@@ -35,3 +35,7 @@ def memory_db_path() -> Path:
 
 def wake_dir() -> Path:
     return app_data_dir() / "wake"
+
+
+def user_apps_path() -> Path:
+    return app_data_dir() / "user_apps.json"

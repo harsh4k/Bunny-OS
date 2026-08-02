@@ -177,8 +177,9 @@ export function FirstRunNotice({ onDismiss }: Props) {
         {step === "scan" && (
           <>
             <p className={styles.idleHint}>
-              Scan installed apps so Bunny can open them by name. Read-only — no
-              shell, no cloud.
+              Scan Start Menu / Applications and save the list on this PC so Bunny
+              can open apps by name. Read-only — no shell, no cloud. Manage the
+              full list later under Apps.
             </p>
             {scanError && (
               <p className={styles.idleHint} role="alert">
@@ -200,7 +201,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
           <>
             <p className={styles.idleHint}>
               {scan
-                ? `Found ${scan.app_count} apps on ${scan.os} (${scan.arch}).`
+                ? `Saved ${scan.app_count} apps on ${scan.os} (${scan.arch}). Open Apps anytime to review or add more.`
                 : "Permissions"}
             </p>
             {scan && scan.sample_apps.length > 0 && (

@@ -21,6 +21,7 @@ pub mod start_menu;
 mod tray;
 pub mod updates;
 pub mod url_tools;
+pub mod user_apps;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -87,6 +88,11 @@ pub fn run() {
             commands::check_github_release,
             commands::get_dependency_board,
             commands::open_trusted_https,
+            commands::list_apps,
+            commands::rescan_apps,
+            commands::add_app_alias,
+            commands::pick_and_add_app,
+            commands::remove_user_app,
         ])
         .setup(|app| {
             applog::info("app", "startup");

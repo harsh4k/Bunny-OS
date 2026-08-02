@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { friendlyError } from "../lib/voiceStatus";
 import {
+  IconApps,
   IconChat,
   IconMemory,
   IconMic,
@@ -29,7 +30,7 @@ interface Props {
   onTalkDown: () => void;
   onTalkUp: () => void;
   onOpenMicPrivacy: () => void;
-  onOpen: (view: "advisor" | "chat" | "memory" | "wake") => void;
+  onOpen: (view: "advisor" | "chat" | "memory" | "wake" | "apps" | "updates") => void;
   onQuit: () => void;
 }
 
@@ -156,6 +157,13 @@ export function OverviewPane({
             onClick={() => onOpen("chat")}
             disabled={!ready}
             ariaLabel="Open assistant chat"
+          />
+          <Tile
+            label="Apps"
+            hint="Scan & add"
+            icon={<IconApps size={18} className={styles.tileIcon} />}
+            onClick={() => onOpen("apps")}
+            ariaLabel="Open apps catalog"
           />
           <Tile
             label="Memory"

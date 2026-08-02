@@ -21,11 +21,23 @@ class InstalledApp:
 
 
 def get_app_catalog() -> list[InstalledApp]:
+    from user_apps import user_catalog_entries
+
     if sys.platform == "darwin":
-        return _catalog_macos()
-    if sys.platform.startswith("win"):
-        return _catalog_windows()
-    return []
+        apps = _catalog_macos()
+    elif sys.platform.startswith("win"):
+        apps = _catalog_windows()
+    else:
+        apps = []
+
+    seen = {a.name.lower() for a in apps}
+    for name, source, path in user_catalog_entries():
+        low = name.lower()
+        if low in seen:
+            continue
+        seen.add(low)
+        apps.insert(0, InstalledApp(name=name, source=source, path=path))
+    return apps
 
 
 def resolve_app_path(app_name: str) -> str | None:
