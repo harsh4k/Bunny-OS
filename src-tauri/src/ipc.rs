@@ -141,7 +141,6 @@ pub enum Action {
     ScreenSetEnabled {
         enabled: bool,
     },
-    GetFocusedWindowText,
     // Browser tools
     BrowserScroll {
         direction: String,
@@ -162,13 +161,6 @@ pub enum Action {
     },
     BrowserCancel {
         pending_id: String,
-    },
-    // Typed placeholders — not yet implemented
-    VoiceTranscribe {
-        _placeholder: bool,
-    },
-    WakeWordDetected {
-        _placeholder: bool,
     },
 }
 

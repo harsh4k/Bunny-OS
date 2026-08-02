@@ -18,6 +18,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { AppEvent, GetAdvisorResponse } from "~contracts/ipc";
 import { Results } from "./AdvisorResults";
 import { OllamaGate } from "./OllamaGate";
+import shell from "./ChatPanel.module.css";
 import styles from "./AdvisorPanel.module.css";
 
 // ── Watchdog durations ─────────────────────────────────────────────────────────
@@ -163,21 +164,21 @@ export function AdvisorPanel({ onClose, sidecarReady }: Props) {
   }, []);
 
   return (
-    <div className={styles.overlay} role="dialog" aria-label="Model Advisor">
-      <div className={styles.header}>
-        <span className={styles.title}>Model Advisor</span>
-        <button className={styles.closeBtn} onClick={onClose} aria-label="Close advisor">
+    <div className={shell.overlay} role="dialog" aria-label="Model Advisor">
+      <div className={shell.header}>
+        <span className={shell.title}>Model Advisor</span>
+        <button className={shell.closeBtn} onClick={onClose} aria-label="Close advisor">
           ×
         </button>
       </div>
 
-      <div className={styles.body}>
+      <div className={shell.body}>
         <OllamaGate onReady={scan} />
         {state.phase === "idle" && (
           <div className={styles.emptyState}>
             <p>Scan hardware and Ollama to get model recommendations.</p>
             <button
-              className={styles.btnPrimary}
+              className={`${shell.btn} ${shell.btnPrimary}`}
               onClick={scan}
               disabled={!sidecarReady}
             >
@@ -187,23 +188,23 @@ export function AdvisorPanel({ onClose, sidecarReady }: Props) {
         )}
 
         {state.phase === "loading" && (
-          <div className={styles.loadingState} role="status" aria-live="polite">
-            <div className={styles.spinner} aria-hidden="true" />
+          <div className={shell.loadingState} role="status" aria-live="polite">
+            <div className={shell.spinner} aria-hidden="true" />
             <span>Scanning hardware &amp; Ollama…</span>
           </div>
         )}
 
         {state.phase === "pulling" && (
-          <div className={styles.loadingState} role="status" aria-live="polite">
-            <div className={styles.spinner} aria-hidden="true" />
+          <div className={shell.loadingState} role="status" aria-live="polite">
+            <div className={shell.spinner} aria-hidden="true" />
             <span>Pulling {state.model}…</span>
           </div>
         )}
 
         {state.phase === "error" && (
-          <div className={styles.errorState} role="alert">
-            <p className={styles.errorMsg}>{state.message}</p>
-            <button className={styles.btnSecondary} onClick={scan}>
+          <div className={shell.errorState} role="alert">
+            <p className={shell.errorMsg}>{state.message}</p>
+            <button className={`${shell.btn} ${shell.btnSecondary}`} onClick={scan}>
               Retry
             </button>
           </div>

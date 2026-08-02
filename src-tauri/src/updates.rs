@@ -30,7 +30,6 @@ pub struct DependencyBoard {
     pub bunny_version: String,
     pub ollama: ComponentRow,
     pub models: ModelsRow,
-    pub voice: ComponentRow,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -160,13 +159,6 @@ pub fn dependency_board(bunny_version: &str) -> DependencyBoard {
             recommended_present,
             installed: models,
         },
-        voice: ComponentRow {
-            title: "Voice (sidecar + Whisper)".to_string(),
-            state: "Bundled".to_string(),
-            detail: "Speech engines ship inside Bunny OS. They update when you install a newer Bunny release."
-                .to_string(),
-            needs_attention: false,
-        },
     }
 }
 
@@ -276,10 +268,8 @@ mod tests {
     }
 
     #[test]
-    fn board_voice_never_needs_attention() {
+    fn board_has_recommended_model() {
         let board = dependency_board("0.1.0");
-        assert!(!board.voice.needs_attention);
-        assert_eq!(board.voice.state, "Bundled");
         assert_eq!(board.bunny_version, "0.1.0");
         assert_eq!(board.models.recommended, DEFAULT_MODEL);
     }

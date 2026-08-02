@@ -22,37 +22,19 @@ from platform_open import open_application, open_url_or_file
 
 _MAX_URL_LEN = 2048
 
-# Spoken / casual names → catalog stems (lowercase).
+# Spoken / casual names → catalog stems (lowercase). Identity keys omitted — .get(k, k).
 _APP_ALIASES: dict[str, str] = {
-    "spotify": "spotify",
-    "youtube": "youtube",
     "yt": "youtube",
     "chrome": "google chrome",
-    "google chrome": "google chrome",
     "edge": "microsoft edge",
-    "microsoft edge": "microsoft edge",
     "ms edge": "microsoft edge",
     "msedge": "microsoft edge",
-    "safari": "safari",
     "vscode": "visual studio code",
     "vs code": "visual studio code",
-    "visual studio code": "visual studio code",
     "code": "visual studio code",
-    "notepad": "notepad",
-    "textedit": "textedit",
     "text edit": "textedit",
-    "calculator": "calculator",
     "calc": "calculator",
     "explorer": "file explorer",
-    "file explorer": "file explorer",
-    "finder": "finder",
-    "discord": "discord",
-    "slack": "slack",
-    "telegram": "telegram",
-    "whatsapp": "whatsapp",
-    "firefox": "firefox",
-    "brave": "brave",
-    "obsidian": "obsidian",
 }
 
 _YT_VIDEOS_FILTER = "EgIQAQ%3D%3D"

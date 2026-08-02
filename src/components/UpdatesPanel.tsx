@@ -1,17 +1,15 @@
 /**
- * UpdatesPanel — status board for Bunny, Ollama, models, and bundled voice.
+ * UpdatesPanel — status board for Bunny, Ollama, and chat models.
  */
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
+import { RELEASES_PAGE, OLLAMA_DOWNLOAD_PAGE } from "../lib/updateLinks";
 import styles from "./ChatPanel.module.css";
 
 interface UpdateCheck {
   current: string;
   latest: string | null;
   newer: boolean;
-  release_url: string;
-  html_url: string | null;
   message: string;
 }
 
@@ -32,7 +30,6 @@ interface DependencyBoard {
   bunny_version: string;
   ollama: ComponentRow;
   models: ModelsRow;
-  voice: ComponentRow;
 }
 
 interface Props {
@@ -40,7 +37,6 @@ interface Props {
 }
 
 export function UpdatesPanel({ onClose }: Props) {
-  const [version, setVersion] = useState<string>("…");
   const [board, setBoard] = useState<DependencyBoard | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionNote, setActionNote] = useState<string | null>(null);
@@ -49,66 +45,27 @@ export function UpdatesPanel({ onClose }: Props) {
 
   const refreshBoard = useCallback(async () => {
     try {
-      const next = await invoke<DependencyBoard>("get_dependency_board");
-      setBoard(next);
+      setBoard(await invoke<DependencyBoard>("get_dependency_board"));
     } catch (err) {
       setError(String(err));
     }
   }, []);
 
   useEffect(() => {
-    void getVersion()
-      .then(setVersion)
-      .catch(() => setVersion("unknown"));
     void refreshBoard();
   }, [refreshBoard]);
 
-  const openReleases = useCallback(async () => {
-    setError(null);
-    try {
-      await invoke("open_releases_page");
-    } catch (err) {
-      setError(String(err));
-    }
-  }, []);
-
-  const openOllamaDownload = useCallback(async () => {
-    setError(null);
-    try {
-      await invoke("open_ollama_download");
-    } catch (err) {
-      setError(String(err));
-    }
-  }, []);
-
-  const compare = useCallback(async () => {
+  const run = async (fn: () => Promise<void>) => {
     setBusy(true);
     setError(null);
-    setCheck(null);
     try {
-      const result = await invoke<UpdateCheck>("check_github_release");
-      setCheck(result);
+      await fn();
     } catch (err) {
       setError(String(err));
     } finally {
       setBusy(false);
     }
-  }, []);
-
-  const ensureOllama = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    setActionNote(null);
-    try {
-      const note = await invoke<string>("ensure_ollama");
-      setActionNote(note);
-      await refreshBoard();
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }, [refreshBoard]);
+  };
 
   return (
     <div className={styles.overlay} role="dialog" aria-label="Updates">
@@ -128,17 +85,16 @@ export function UpdatesPanel({ onClose }: Props) {
           <button
             className={`${styles.btn} ${styles.btnSecondary}`}
             disabled={busy}
-            onClick={() => void refreshBoard()}
+            onClick={() => void run(refreshBoard)}
           >
             Refresh status
           </button>
         </div>
 
-        {/* Bunny OS */}
         <div className={styles.actionCard} data-testid="row-bunny">
           <p className={styles.fieldLabel}>Bunny OS</p>
           <p className={styles.idleHint} data-testid="installed-version">
-            Installed {board?.bunny_version ?? version}
+            Installed {board?.bunny_version ?? "…"}
             {check?.newer ? " · update available" : ""}
           </p>
           {check && (
@@ -151,50 +107,57 @@ export function UpdatesPanel({ onClose }: Props) {
             <button
               className={`${styles.btn} ${styles.btnPrimary}`}
               disabled={busy}
-              onClick={() => void compare()}
+              onClick={() =>
+                void run(async () => {
+                  setCheck(await invoke<UpdateCheck>("check_github_release"));
+                })
+              }
             >
               {busy ? "Checking…" : "Compare with latest"}
             </button>
             <button
               className={`${styles.btn} ${styles.btnSecondary}`}
               disabled={busy}
-              onClick={() => void openReleases()}
+              onClick={() =>
+                void run(async () => {
+                  await invoke("open_trusted_https", { url: RELEASES_PAGE });
+                })
+              }
             >
               Open Releases
             </button>
           </div>
         </div>
 
-        {/* Ollama */}
-        <StatusCard
-          testId="row-ollama"
-          row={board?.ollama}
-          fallbackTitle="Ollama"
-        >
+        <StatusCard testId="row-ollama" row={board?.ollama} fallbackTitle="Ollama">
           <div className={styles.btnRow}>
             <button
               className={`${styles.btn} ${styles.btnPrimary}`}
               disabled={busy}
-              onClick={() => void ensureOllama()}
+              onClick={() =>
+                void run(async () => {
+                  setActionNote(await invoke<string>("ensure_ollama"));
+                  await refreshBoard();
+                })
+              }
             >
-              Install / start Ollama
+              Install / start & refresh models
             </button>
             <button
               className={`${styles.btn} ${styles.btnSecondary}`}
               disabled={busy}
-              onClick={() => void openOllamaDownload()}
+              onClick={() =>
+                void run(async () => {
+                  await invoke("open_trusted_https", { url: OLLAMA_DOWNLOAD_PAGE });
+                })
+              }
             >
               Open Ollama download
             </button>
           </div>
         </StatusCard>
 
-        {/* Models */}
-        <StatusCard
-          testId="row-models"
-          row={board?.models}
-          fallbackTitle="Chat models"
-        >
+        <StatusCard testId="row-models" row={board?.models} fallbackTitle="Chat models">
           {board?.models.installed && board.models.installed.length > 0 && (
             <ul className={styles.auditList} aria-label="Installed chat models">
               {board.models.installed.map((name) => (
@@ -208,30 +171,20 @@ export function UpdatesPanel({ onClose }: Props) {
             Recommended: {board?.models.recommended ?? "llama3.2:1b"}
             {board?.models.recommended_present ? " (present)" : " (missing)"}
           </p>
-          <div className={styles.btnRow}>
-            <button
-              className={`${styles.btn} ${styles.btnPrimary}`}
-              disabled={busy}
-              onClick={() => void ensureOllama()}
-            >
-              Pull / refresh recommended
-            </button>
-          </div>
         </StatusCard>
 
-        {/* Voice */}
-        <StatusCard
-          testId="row-voice"
-          row={board?.voice}
-          fallbackTitle="Voice (sidecar + Whisper)"
-        />
+        <div className={styles.actionCard} data-testid="row-voice">
+          <p className={styles.fieldLabel}>Voice (sidecar + Whisper)</p>
+          <p className={styles.idleHint}>
+            Bundled with Bunny OS — updates when you install a newer Bunny release.
+          </p>
+        </div>
 
         {actionNote && (
           <div className={styles.idleHint} role="status">
             {actionNote}
           </div>
         )}
-
         {error && (
           <div className={styles.errorState} role="alert">
             {error}

@@ -200,18 +200,21 @@ describe("Action type — chat and cancel_chat variants exist", () => {
 // ── Security: AssistantAction does NOT include dangerous variants ─────────────
 
 describe("AssistantAction — exclusion constraints (type-level)", () => {
-  it("only includes the 4 safe action kinds", () => {
-    // This test ensures the type's discriminants stay bounded.
-    // TypeScript compile-time — we verify the runtime values of valid discriminants.
+  it("AssistantAction stays broker-safe (no chat/respond/placeholders)", () => {
     const valid: AssistantAction["action"][] = [
       "open_app",
       "open_url",
       "youtube_search",
+      "youtube_play",
+      "spotify_open",
+      "spotify_search",
+      "spotify_play",
+      "media_play",
+      "media_next",
+      "media_prev",
       "show_system_summary",
     ];
-    expect(valid).toHaveLength(4);
-    for (const v of valid) {
-      expect(["open_app", "open_url", "youtube_search", "show_system_summary"]).toContain(v);
-    }
+    expect(valid).toHaveLength(11);
+    expect(valid).not.toContain("chat" as AssistantAction["action"]);
   });
 });

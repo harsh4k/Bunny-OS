@@ -66,17 +66,13 @@ export type Action =
   // Screen context (opt-in focused-window text)
   | { action: "screen_status" }
   | { action: "screen_set_enabled"; enabled: boolean }
-  | { action: "get_focused_window_text" }
   // Browser tools
   | { action: "browser_scroll"; direction: string; steps?: number }
   | { action: "browser_type"; text: string }
   | { action: "browser_click_role"; role?: string; name: string }
   | { action: "browser_focus_search" }
   | { action: "browser_confirm"; pending_id: string }
-  | { action: "browser_cancel"; pending_id: string }
-  // Typed placeholders — not yet implemented
-  | { action: "voice_transcribe";   _placeholder: true }
-  | { action: "wake_word_detected"; _placeholder: true };
+  | { action: "browser_cancel"; pending_id: string };
 
 // ── Task 4: Assistant action types ───────────────────────────────────────────
 // Subset of Action that the Rust broker can execute.

@@ -249,16 +249,6 @@ def dispatch(action: str, payload: dict, msg_id: str, ctx: dict) -> object:
         memory.set_screen_context_enabled(bool(payload.get("enabled", False)))
         return json.dumps({"enabled": memory.is_screen_context_enabled()})
 
-    if action == "get_focused_window_text":
-        if not memory.is_screen_context_enabled():
-            return json.dumps({
-                "ok": False,
-                "title": "",
-                "error": "Screen context is Off. Turn it on in Memory.",
-            })
-        from platform_screen import get_focused_window_text
-        return json.dumps(get_focused_window_text())
-
     if action in {
         "browser_scroll",
         "browser_type",

@@ -5,10 +5,6 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { UpdatesPanel } from "../components/UpdatesPanel";
 
-vi.mock("@tauri-apps/api/app", () => ({
-  getVersion: vi.fn(async () => "0.1.0"),
-}));
-
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
 }));
@@ -32,12 +28,6 @@ const board = {
     recommended_present: false,
     installed: [] as string[],
   },
-  voice: {
-    title: "Voice (sidecar + Whisper)",
-    state: "Bundled",
-    detail: "Speech engines ship inside Bunny OS.",
-    needs_attention: false,
-  },
 };
 
 describe("UpdatesPanel", () => {
@@ -56,10 +46,7 @@ describe("UpdatesPanel", () => {
       "data-needs-attention",
       "true"
     );
-    expect(screen.getByTestId("row-voice")).toHaveAttribute(
-      "data-needs-attention",
-      "false"
-    );
+    expect(screen.getByTestId("row-voice")).toBeInTheDocument();
     expect(await screen.findByTestId("installed-version")).toHaveTextContent(
       "0.1.0"
     );
@@ -73,8 +60,6 @@ describe("UpdatesPanel", () => {
           current: "0.1.0",
           latest: "0.2.0",
           newer: true,
-          release_url: "https://github.com/harsh4k/Bunny-OS/releases",
-          html_url: "https://github.com/harsh4k/Bunny-OS/releases/tag/v0.2.0",
           message: "A newer release is available: 0.2.0.",
         };
       }
@@ -89,7 +74,7 @@ describe("UpdatesPanel", () => {
     });
   });
 
-  it("Install / start Ollama invokes ensure_ollama", async () => {
+  it("Install / start invokes ensure_ollama", async () => {
     vi.mocked(invoke).mockImplementation(async (cmd: string) => {
       if (cmd === "get_dependency_board") return board;
       if (cmd === "ensure_ollama") return "Ollama started";
@@ -97,7 +82,9 @@ describe("UpdatesPanel", () => {
     });
     render(<UpdatesPanel onClose={() => {}} />);
     fireEvent.click(
-      await screen.findByRole("button", { name: /Install \/ start Ollama/i })
+      await screen.findByRole("button", {
+        name: /Install \/ start & refresh models/i,
+      })
     );
     await waitFor(() => {
       expect(invoke).toHaveBeenCalledWith("ensure_ollama");

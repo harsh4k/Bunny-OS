@@ -1,67 +1,7 @@
-/* AdvisorPanel — overlay rendered inside the CompactPanel */
+/* AdvisorPanel — advisor-specific rules. Shell (overlay/header/body/btns) from ChatPanel.module.css */
 
-.overlay {
-  position: absolute;
-  inset: 0;
-  background: var(--color-surface);
-  display: flex;
-  flex-direction: column;
-  z-index: 10;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-/* ── Header ── */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--sp-3) var(--sp-4);
-  background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-}
-
-.title {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.closeBtn {
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-sm);
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-base);
-  transition: background 0.15s, color 0.15s;
-}
-
-.closeBtn:hover {
-  background: var(--state-error-bg);
-  color: var(--state-error-fg);
-}
-
-/* ── Body ── */
-.body {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--sp-3) var(--sp-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-}
-
-/* ── Idle / loading / error states ── */
-.emptyState,
-.loadingState,
-.errorState {
+/* ── Idle ── */
+.emptyState {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -71,25 +11,6 @@
   text-align: center;
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
-}
-
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-brand);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.errorMsg {
-  color: var(--state-error-fg);
-  font-size: var(--text-xs);
-  word-break: break-word;
 }
 
 /* ── Hardware section ── */
@@ -202,7 +123,6 @@
 .recMeta dd { color: var(--color-text-secondary); font-family: var(--font-mono); }
 .recMeta .reason { font-family: var(--font-sans); word-break: break-word; }
 
-/* ── Badges + buttons in card header ── */
 .availBadge {
   font-size: 10px;
   padding: 2px var(--sp-2);
@@ -219,9 +139,7 @@
   padding: var(--sp-4) 0;
 }
 
-/* ── Action buttons ── */
-.btnPrimary,
-.btnSecondary,
+/* ── Advisor-only buttons ── */
 .btnPull,
 .btnConfirm,
 .btnCancel,
@@ -237,17 +155,6 @@
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
-
-.btnPrimary {
-  background: var(--color-brand-dim);
-  border-color: var(--color-brand);
-  color: var(--color-text-primary);
-}
-.btnPrimary:hover  { background: var(--color-brand); }
-.btnPrimary:disabled { opacity: 0.4; cursor: default; }
-
-.btnSecondary { background: var(--color-surface-elevated); color: var(--color-text-secondary); }
-.btnSecondary:hover { background: var(--color-border); color: var(--color-text-primary); }
 
 .btnPull { background: var(--state-starting-bg); border-color: var(--state-starting-fg); color: var(--state-starting-fg); }
 .btnPull:hover { background: var(--state-starting-fg); color: var(--color-bg); }
@@ -269,7 +176,6 @@
 
 .confirmRow { display: flex; align-items: center; gap: var(--sp-1); }
 
-/* ── GPU disclosure note ── */
 .gpuNote {
   font-size: var(--text-xs);
   color: var(--color-text-muted);

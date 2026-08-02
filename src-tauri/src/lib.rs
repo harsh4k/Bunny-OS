@@ -86,8 +86,7 @@ pub fn run() {
             commands::execute_assistant_action,
             commands::check_github_release,
             commands::get_dependency_board,
-            commands::open_releases_page,
-            commands::open_ollama_download,
+            commands::open_trusted_https,
         ])
         .setup(|app| {
             applog::info("app", "startup");

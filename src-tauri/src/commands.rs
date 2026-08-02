@@ -241,24 +241,19 @@ pub async fn get_dependency_board(
         .map_err(|e| format!("get_dependency_board task failed: {e}"))
 }
 
-/// Open the public GitHub Releases page in the default browser (HTTPS).
+/// Open an allowlisted HTTPS page in the default browser (Updates panel).
 #[tauri::command]
-pub async fn open_releases_page() -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(|| {
-        open::that(crate::updates::RELEASES_PAGE)
-            .map_err(|e| format!("Could not open Releases page: {e}"))
+pub async fn open_trusted_https(url: String) -> Result<(), String> {
+    const ALLOWED: &[&str] = &[
+        crate::updates::RELEASES_PAGE,
+        crate::updates::OLLAMA_DOWNLOAD_PAGE,
+    ];
+    if !ALLOWED.contains(&url.as_str()) {
+        return Err("URL is not on the Updates allowlist.".to_string());
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        open::that(&url).map_err(|e| format!("Could not open page: {e}"))
     })
     .await
-    .map_err(|e| format!("open_releases_page task failed: {e}"))?
-}
-
-/// Open the official Ollama download page (HTTPS).
-#[tauri::command]
-pub async fn open_ollama_download() -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(|| {
-        open::that(crate::updates::OLLAMA_DOWNLOAD_PAGE)
-            .map_err(|e| format!("Could not open Ollama download page: {e}"))
-    })
-    .await
-    .map_err(|e| format!("open_ollama_download task failed: {e}"))?
+    .map_err(|e| format!("open_trusted_https task failed: {e}"))?
 }
