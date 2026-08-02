@@ -180,7 +180,7 @@ export function MemoryPanel({ onClose, sidecarReady }: Props) {
                 [{t.role}/{t.channel}] {t.text}
               </span>
               <button
-                className={styles.btnSecondary}
+                className={`${styles.btn} ${styles.btnSecondary} ${styles.btnCompact}`}
                 disabled={busy}
                 onClick={() =>
                   void (async () => {
@@ -256,7 +256,7 @@ export function MemoryPanel({ onClose, sidecarReady }: Props) {
             <li key={f.id} className={styles.auditRow}>
               <span className={styles.auditLabel}>{f.text}</span>
               <button
-                className={styles.btnSecondary}
+                className={`${styles.btn} ${styles.btnSecondary} ${styles.btnCompact}`}
                 onClick={() =>
                   void (async () => {
                     await send({ action: "memory_delete", id: f.id });

@@ -15,7 +15,6 @@ import {
   ISLAND_WINDOW,
   PAD_X,
   PAD_Y,
-  PILL_BORDER_Y,
   PILL_H,
   PILL_W,
   TOP_INSET,
@@ -166,7 +165,7 @@ function App() {
         const pillLeft = pos.x + PAD_X * scale;
         const pillTop = pos.y + PAD_Y * scale;
         const pillRight = pillLeft + PILL_W * scale;
-        const pillBottom = pillTop + (PILL_H + PILL_BORDER_Y) * scale;
+        const pillBottom = pillTop + PILL_H * scale;
         const overPill =
           cursor.x >= pillLeft &&
           cursor.x <= pillRight &&

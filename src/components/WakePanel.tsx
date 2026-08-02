@@ -252,7 +252,7 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
               />
             </label>
             <button
-              className={styles.btn}
+              className={`${styles.btn} ${styles.btnSecondary}`}
               disabled={!sidecarReady || busy || draftPhrase.trim() === defaultPhrase}
               onClick={() => {
                 setDraftPhrase(defaultPhrase);

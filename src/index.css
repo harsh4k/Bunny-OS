@@ -89,13 +89,13 @@
   --text-lg:    17px;
   --text-xl:    22px;
 
-  /* Island geometry — sync with src/lib/islandGeometry.ts (304×66) */
+  /* Island geometry — MUST match src/lib/islandGeometry.ts + tauri.conf.json */
   --island-pill-w: 260px;
   --island-pill-h: 36px;
-  --island-pad-x: 22px;
-  --island-pad-y: 14px;
-  --island-window-w: 304px;
-  --island-window-h: 66px;
+  --island-pad-x: 8px;
+  --island-pad-y: 10px;
+  --island-window-w: 276px;
+  --island-window-h: 56px;
 }
 
 *, *::before, *::after {
