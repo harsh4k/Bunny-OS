@@ -7,11 +7,12 @@ import ClippedFeatureTabs from "@/components/ui/clipped-video-tab";
 import { SiteHeader } from "@/components/site-header";
 import { BrandMark } from "@/components/brand-mark";
 import { asset } from "@/lib/base-path";
-
-const WIN =
-  "https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.1/Bunny.OS_0.2.1_x64_en-US.msi";
-const MAC =
-  "https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.1/Bunny.OS_0.2.1_aarch64.dmg";
+import {
+  MAC_DMG,
+  RELEASE_VERSION,
+  RELEASES_LATEST,
+  WIN_MSI,
+} from "@/lib/downloads";
 
 const btnPrimary =
   "inline-flex h-12 min-w-[180px] items-center justify-center rounded-xl bg-[#d4bc94] px-5 text-sm font-semibold text-[#0e0f12] transition hover:bg-[#e4d2b0]";
@@ -57,11 +58,11 @@ export default function HomePage() {
             cloud.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <a className={btnPrimary} href={WIN}>
-              Download for Windows
+            <a className={btnPrimary} href={WIN_MSI}>
+              Download Windows · {RELEASE_VERSION}
             </a>
-            <a className={btnGhost} href={MAC}>
-              Download for Mac
+            <a className={btnGhost} href={MAC_DMG}>
+              Download Mac · {RELEASE_VERSION}
             </a>
           </div>
           <p className="mt-4 text-sm text-[#6b7280]">
@@ -117,15 +118,15 @@ export default function HomePage() {
             </li>
           </ol>
           <div className="mt-10 flex flex-wrap gap-3">
-            <a className={btnPrimary} href={WIN}>
-              Windows MSI
+            <a className={btnPrimary} href={WIN_MSI}>
+              Windows MSI · {RELEASE_VERSION}
             </a>
-            <a className={btnGhost} href={MAC}>
-              Mac DMG
+            <a className={btnGhost} href={MAC_DMG}>
+              Mac DMG · {RELEASE_VERSION}
             </a>
             <a
               className="inline-flex h-12 items-center justify-center px-3 text-sm font-medium text-[#d4bc94]"
-              href="https://github.com/harsh4k/Bunny-OS/releases/latest"
+              href={RELEASES_LATEST}
             >
               All releases →
             </a>
