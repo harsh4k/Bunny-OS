@@ -20,13 +20,13 @@ export const metadata: Metadata = {
   description:
     "Hold F9 to talk. Opens apps, YouTube, and local chat — on your PC. No account. No Bunny cloud.",
   icons: {
-    icon: [{ url: "/icon.png", type: "image/png" }],
-    apple: [{ url: "/icon.png" }],
+    icon: [{ url: "./icon.png", type: "image/png" }],
+    apple: [{ url: "./icon.png" }],
   },
   openGraph: {
     title: "Bunny OS",
     description: "A local voice helper for Windows and Mac.",
-    images: [{ url: "/bunny-os.jpg" }],
+    images: [{ url: "./bunny-os.jpg" }],
   },
 };
 

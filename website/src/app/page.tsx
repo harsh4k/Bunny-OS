@@ -1,12 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import FloatingMenu from "@/components/ui/liquid-morph-floating-menu";
 import { SwirlPlayground } from "@/components/ui/midjourney-ascii";
 import ClippedFeatureTabs from "@/components/ui/clipped-video-tab";
 import { SiteHeader } from "@/components/site-header";
 import { BrandMark } from "@/components/brand-mark";
+import { asset } from "@/lib/base-path";
 
 const WIN =
   "https://github.com/harsh4k/Bunny-OS/releases/download/v0.2.1/Bunny.OS_0.2.1_x64_en-US.msi";
@@ -31,12 +31,13 @@ export default function HomePage() {
 
         <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-5xl flex-col justify-end px-6 pb-28 pt-28 sm:pb-36">
           <div className="mb-6 flex items-center gap-4">
-            <Image
-              src="/bunny-os.jpg"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={asset("/bunny-os.jpg")}
               alt="Bunny OS icon"
               width={88}
               height={88}
-              priority
+              fetchPriority="high"
               className="rounded-2xl border border-[#d4bc94]/25 bg-black shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
             />
             <p className="text-xs tracking-[0.18em] text-[#d4bc94] uppercase">
@@ -88,8 +89,9 @@ export default function HomePage() {
       <section id="install" className="bg-[#0e0f12] px-6 py-24">
         <div className="mx-auto max-w-3xl">
           <div className="mb-6 flex items-center gap-3">
-            <Image
-              src="/icon.png"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={asset("/icon.png")}
               alt=""
               width={40}
               height={40}

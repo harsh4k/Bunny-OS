@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { asset } from "@/lib/base-path";
 import { cn } from "@/lib/utils";
 
 type BrandMarkProps = {
@@ -19,13 +19,16 @@ export function BrandMark({
 }: BrandMarkProps) {
   const mark = (
     <span className={cn("inline-flex items-center gap-3", className)}>
-      <Image
-        src="/bunny-os.jpg"
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={asset("/bunny-os.jpg")}
         alt="Bunny OS"
         width={size}
         height={size}
-        priority={priority}
         className="rounded-xl border border-white/10 bg-black object-cover shadow-[0_0_0_1px_rgba(212,188,148,0.15)]"
+        {...(priority
+          ? { fetchPriority: "high" as const }
+          : { loading: "lazy" as const })}
       />
       {showWordmark ? (
         <span

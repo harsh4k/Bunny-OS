@@ -10,7 +10,7 @@
 > They are drafted with users in **India** in mind (contract law, IT Act 2000, consumer concepts).  
 > **This is not legal advice.** For binding advice, consult a qualified Indian lawyer.
 
-Public HTML copy: <https://harsh4k.github.io/Bunny-OS/terms.html>  
+Public page: <https://harsh4k.github.io/Bunny-OS/terms/>  
 Related: [Privacy Policy](privacy.md)
 
 ---

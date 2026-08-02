@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mic,
@@ -12,6 +11,7 @@ import {
   LoaderCircle,
   Circle,
 } from "lucide-react";
+import { asset } from "@/lib/base-path";
 
 const items = [
   {
@@ -106,8 +106,9 @@ export default function ClippedFeatureTabs() {
         <div className="grid items-start gap-10 md:grid-cols-2 md:gap-14">
           <div>
             <div className="mb-4 flex items-center gap-3">
-              <Image
-                src="/bunny-os.jpg"
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={asset("/bunny-os.jpg")}
                 alt="Bunny OS"
                 width={44}
                 height={44}

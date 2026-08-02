@@ -10,8 +10,8 @@ use crate::proc::command;
 
 pub const RELEASES_PAGE: &str = "https://github.com/harsh4k/Bunny-OS/releases";
 pub const OLLAMA_DOWNLOAD_PAGE: &str = "https://ollama.com/download";
-pub const PRIVACY_PAGE: &str = "https://harsh4k.github.io/Bunny-OS/privacy.html";
-pub const TERMS_PAGE: &str = "https://harsh4k.github.io/Bunny-OS/terms.html";
+pub const PRIVACY_PAGE: &str = "https://harsh4k.github.io/Bunny-OS/privacy/";
+pub const TERMS_PAGE: &str = "https://harsh4k.github.io/Bunny-OS/terms/";
 pub const LATEST_API: &str =
     "https://api.github.com/repos/harsh4k/Bunny-OS/releases/latest";
 

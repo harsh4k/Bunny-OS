@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
+import { asset } from "@/lib/base-path";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -134,11 +134,11 @@ export default function FloatingMenu({ items }: FloatingMenuProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const menuItems: MenuItem[] = items ?? [
-    { label: "Home", href: "#top" },
-    { label: "Features", href: "#features" },
-    { label: "Install", href: "#install" },
-    { label: "Privacy", href: "./privacy/" },
-    { label: "Terms", href: "./terms/" },
+    { label: "Home", href: asset("/") },
+    { label: "Features", href: `${asset("/")}#features` },
+    { label: "Install", href: `${asset("/")}#install` },
+    { label: "Privacy", href: asset("/privacy/") },
+    { label: "Terms", href: asset("/terms/") },
   ];
 
   useEffect(() => {
@@ -258,8 +258,9 @@ export default function FloatingMenu({ items }: FloatingMenuProps) {
             animate={{ color: isOpen ? "#f7f1ed" : "#0e0f12" }}
             transition={{ duration: 0.3, ease }}
           >
-            <Image
-              src="/icon.png"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={asset("/icon.png")}
               alt=""
               width={20}
               height={20}

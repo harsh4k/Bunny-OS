@@ -10,7 +10,7 @@
 > It is written for users in **India** with reference to the **Digital Personal Data Protection Act, 2023 (DPDP Act)**, the **Information Technology Act, 2000**, and related rules.  
 > **This is not legal advice.** If you need advice for your situation, consult a qualified Indian lawyer.
 
-Public HTML copy: <https://harsh4k.github.io/Bunny-OS/privacy.html>
+Public page: <https://harsh4k.github.io/Bunny-OS/privacy/>
 
 ---
 
