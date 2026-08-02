@@ -35,12 +35,14 @@ pub fn register(app: &AppHandle) {
         return;
     }
 
-    let result = app.global_shortcut().on_shortcut(ptt_shortcut(), |app, _shortcut, event| {
-        match event.state() {
-            ShortcutState::Pressed => on_press(app),
-            ShortcutState::Released => on_release(app),
-        }
-    });
+    let result = app
+        .global_shortcut()
+        .on_shortcut(ptt_shortcut(), |app, _shortcut, event| {
+            match event.state() {
+                ShortcutState::Pressed => on_press(app),
+                ShortcutState::Released => on_release(app),
+            }
+        });
 
     match result {
         Ok(()) => crate::applog::info("hotkey", &format!("push-to-talk bound to {PTT_LABEL}")),
@@ -101,11 +103,7 @@ fn on_release(app: &AppHandle) {
     if !state.ptt_active.swap(false, Ordering::SeqCst) {
         return;
     }
-    let id = state
-        .ptt_id
-        .lock()
-        .expect("ptt_id mutex poisoned")
-        .take();
+    let id = state.ptt_id.lock().expect("ptt_id mutex poisoned").take();
     let Some(id) = id else { return };
 
     emit_ptt(app, "up", None);

@@ -233,6 +233,28 @@ class TestBuildAction(unittest.TestCase):
         r = _build_action("show_system_summary", {"extra": "ignored"})
         self.assertEqual(r, {"action": "show_system_summary"})
 
+    def test_browser_tools_build(self):
+        self.assertEqual(
+            _build_action("browser_scroll", {"direction": "up", "steps": 2}),
+            {"action": "browser_scroll", "direction": "up", "steps": 2},
+        )
+        self.assertEqual(
+            _build_action("browser_type", {"text": "hi"}),
+            {"action": "browser_type", "text": "hi"},
+        )
+        self.assertEqual(
+            _build_action("browser_focus_search", {}),
+            {"action": "browser_focus_search"},
+        )
+        self.assertEqual(
+            _build_action("browser_click_role", {"name": "OK", "role": "button"}),
+            {"action": "browser_click_role", "role": "button", "name": "OK"},
+        )
+
+    def test_browser_scroll_rejects_bad_direction(self):
+        with self.assertRaises(ValueError):
+            _build_action("browser_scroll", {"direction": "sideways"})
+
 
 # ── Prompt-injection / adversarial corpus ──────────────────────────────────────
 

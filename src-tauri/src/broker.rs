@@ -77,9 +77,11 @@ fn dispatch(action: AssistantAction) -> (&'static str, String, Result<String, St
             let label = truncate_label(&query, 50);
             ("youtube_play", label, execute_youtube_play(&query))
         }
-        AssistantAction::SpotifyOpen => {
-            ("spotify_open", "spotify".to_string(), execute_spotify_open())
-        }
+        AssistantAction::SpotifyOpen => (
+            "spotify_open",
+            "spotify".to_string(),
+            execute_spotify_open(),
+        ),
         AssistantAction::SpotifySearch { query } => {
             let label = truncate_label(&query, 50);
             ("spotify_search", label, execute_spotify_search(&query))
@@ -245,7 +247,9 @@ fn execute_spotify_play(query: &str) -> Result<String, String> {
         open::that(q).map_err(|e| format!("Failed to open Spotify: {e}"))?;
         return Ok("Opening that in Spotify.".to_string());
     }
-    if q.to_ascii_lowercase().starts_with("https://open.spotify.com/") {
+    if q.to_ascii_lowercase()
+        .starts_with("https://open.spotify.com/")
+    {
         validate_url(q)?;
         if !is_open_spotify_url(q) {
             return Err("Only https://open.spotify.com links are allowed".to_string());

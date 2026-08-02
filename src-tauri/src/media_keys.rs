@@ -145,9 +145,7 @@ mod macos {
     static DRIVER: OnceLock<Result<IoConnect, String>> = OnceLock::new();
 
     fn event_driver() -> Result<IoConnect, String> {
-        DRIVER
-            .get_or_init(|| unsafe { open_hid_system() })
-            .clone()
+        DRIVER.get_or_init(|| unsafe { open_hid_system() }).clone()
     }
 
     unsafe fn open_hid_system() -> Result<IoConnect, String> {

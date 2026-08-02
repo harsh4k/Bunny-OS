@@ -254,7 +254,10 @@ mod tests {
                 {"name": "llama3.1:8b"},
             ]
         });
-        assert_eq!(chat_models_from_tags(&tags), vec!["llama3.1:8b".to_string()]);
+        assert_eq!(
+            chat_models_from_tags(&tags),
+            vec!["llama3.1:8b".to_string()]
+        );
     }
 
     #[test]

@@ -397,6 +397,20 @@ class TestLocalActions(unittest.TestCase):
             execute({"action": "open_app", "app_name": "vscode"})
         start.assert_called_once()
 
+    def test_open_app_alias_chrome_and_edge(self):
+        with mock.patch(
+            "local_actions._resolve_app", return_value=r"C:\fake\Chrome.lnk"
+        ) as resolve, mock.patch("local_actions.open_application") as start:
+            execute({"action": "open_app", "app_name": "chrome"})
+            self.assertEqual(resolve.call_args[0][0], "chrome")
+            start.assert_called_once()
+            # Alias expands when resolving catalog stem
+            from local_actions import _APP_ALIASES
+
+            self.assertEqual(_APP_ALIASES["chrome"], "google chrome")
+            self.assertEqual(_APP_ALIASES["edge"], "microsoft edge")
+            self.assertEqual(_APP_ALIASES["msedge"], "microsoft edge")
+
 
 if __name__ == "__main__":
     unittest.main()

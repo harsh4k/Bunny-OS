@@ -66,9 +66,7 @@ fn download_file(url: &str, dest: &Path) -> Result<(), String> {
             url,
         ])
         .status()
-        .map_err(|e| {
-            format!("Could not run curl to download Ollama ({e}). Check your network.")
-        })?;
+        .map_err(|e| format!("Could not run curl to download Ollama ({e}). Check your network."))?;
     if !status.success() {
         return Err(format!("Download failed (curl exit {status}). URL: {url}"));
     }
@@ -144,10 +142,8 @@ fn install_macos_dmg(dmg: &Path) -> Result<(), String> {
             .map(|e| e.path())
             .find(|p| p.extension().and_then(|e| e.to_str()) == Some("app"))
             .ok_or_else(|| "No .app inside Ollama.dmg".to_string())?;
-        let dest = PathBuf::from("/Applications").join(
-            app.file_name()
-                .ok_or_else(|| "bad app name".to_string())?,
-        );
+        let dest = PathBuf::from("/Applications")
+            .join(app.file_name().ok_or_else(|| "bad app name".to_string())?);
         if dest.exists() {
             let _ = std::fs::remove_dir_all(&dest);
         }

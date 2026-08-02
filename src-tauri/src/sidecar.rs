@@ -269,10 +269,7 @@ fn emit_sidecar_msg(app: &tauri::AppHandle, msg: SidecarMessage) {
     // Error frames used to vanish after the frontend rendered them — nothing
     // hit the log file, so a "Voice error" on the pill was unrecoverable.
     if let SidecarMessage::Error { id, error } = &msg {
-        crate::applog::warn(
-            "sidecar",
-            &format!("error id={id} msg={error}"),
-        );
+        crate::applog::warn("sidecar", &format!("error id={id} msg={error}"));
     }
     let _ = app.emit(
         "app-event",

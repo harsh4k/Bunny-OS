@@ -9,6 +9,7 @@ import {
 } from "@tauri-apps/api/window";
 import { ExpandedDashboard } from "./components/ExpandedDashboard";
 import type { PanelView } from "./components/CompactPanel";
+import { BrowserConfirmBanner } from "./components/BrowserConfirmBanner";
 import { VoicePill } from "./components/VoicePill";
 import {
   ISLAND_WINDOW,
@@ -224,29 +225,45 @@ function App() {
     };
   }, [placeWindow]);
 
-  if (!expanded) {
-    return (
-      <VoicePill
-        onExpand={() => {
-          setPillHovered(false);
-          setIslandShown(true);
-          setExpanded(true);
-        }}
-        onHoverChange={setPillHovered}
-      />
-    );
-  }
+  const handleBrowserPending = useCallback(
+    (pending: { pendingId: string } | null) => {
+      if (!pending) return;
+      setPillHovered(false);
+      setIslandShown(true);
+      setExpanded(true);
+      void invoke("show_window").catch(() => {});
+    },
+    []
+  );
 
   return (
-    <ExpandedDashboard
-      activeView={activeView}
-      onViewChange={setActiveView}
-      onCollapse={handleCollapse}
-      onClose={handleClose}
-      micMuted={micMuted}
-      onMicMutedChange={setMicMuted}
-      onOnboardingDone={handleOnboardingDone}
-    />
+    <>
+      {/* Always mounted so island voice turns still receive confirm streams. */}
+      <BrowserConfirmBanner
+        visible={expanded}
+        onPendingChange={handleBrowserPending}
+      />
+      {!expanded ? (
+        <VoicePill
+          onExpand={() => {
+            setPillHovered(false);
+            setIslandShown(true);
+            setExpanded(true);
+          }}
+          onHoverChange={setPillHovered}
+        />
+      ) : (
+        <ExpandedDashboard
+          activeView={activeView}
+          onViewChange={setActiveView}
+          onCollapse={handleCollapse}
+          onClose={handleClose}
+          micMuted={micMuted}
+          onMicMutedChange={setMicMuted}
+          onOnboardingDone={handleOnboardingDone}
+        />
+      )}
+    </>
   );
 }
 

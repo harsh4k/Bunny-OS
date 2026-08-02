@@ -1,59 +1,91 @@
 /**
  * Confirm banner for risky browser actions (type / click-by-role).
+ * Must stay mounted at App root so island/collapsed voice turns still receive pending streams.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { AppEvent } from "~contracts/ipc";
 import styles from "./ChatPanel.module.css";
 
-interface Pending {
+export interface BrowserPending {
   pendingId: string;
   summary: string;
   actionKind: string;
 }
 
 interface Props {
-  sidecarReady: boolean;
+  /** When false, Confirm is disabled (sidecar not ready). */
+  sidecarReady?: boolean;
+  /** Called when a pending confirm arrives or clears — use to expand the dashboard. */
+  onPendingChange?: (pending: BrowserPending | null) => void;
+  /** When false, listen only (no visible chrome) — used while island is collapsed. */
+  visible?: boolean;
 }
 
-export function BrowserConfirmBanner({ sidecarReady }: Props) {
-  const [pending, setPending] = useState<Pending | null>(null);
+function parsePendingChunk(chunk: string): BrowserPending | null {
+  if (!chunk.startsWith("{")) return null;
+  try {
+    const parsed = JSON.parse(chunk) as {
+      browser_confirm_pending?: boolean;
+      pending_id?: string;
+      summary?: string;
+      action_kind?: string;
+    };
+    if (!parsed.browser_confirm_pending || !parsed.pending_id) return null;
+    return {
+      pendingId: parsed.pending_id,
+      summary: parsed.summary || "Confirm browser action",
+      actionKind: parsed.action_kind || "browser",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function BrowserConfirmBanner({
+  sidecarReady = true,
+  onPendingChange,
+  visible = true,
+}: Props) {
+  const [pending, setPending] = useState<BrowserPending | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const onPendingChangeRef = useRef(onPendingChange);
+  onPendingChangeRef.current = onPendingChange;
+
+  const updatePending = useCallback((next: BrowserPending | null) => {
+    setPending(next);
+    onPendingChangeRef.current?.(next);
+  }, []);
 
   useEffect(() => {
     let unlisten: UnlistenFn | null = null;
-    void listen<AppEvent>("app-event", (e) => {
-      const ev = e.payload;
-      if (ev.event !== "sidecar-message") return;
-      const msg = ev.message;
-      if (msg.type !== "stream" || !msg.chunk.startsWith("{")) return;
-      try {
-        const parsed = JSON.parse(msg.chunk) as {
-          browser_confirm_pending?: boolean;
-          pending_id?: string;
-          summary?: string;
-          action_kind?: string;
-        };
-        if (parsed.browser_confirm_pending && parsed.pending_id) {
-          setPending({
-            pendingId: parsed.pending_id,
-            summary: parsed.summary || "Confirm browser action",
-            actionKind: parsed.action_kind || "browser",
-          });
-          setNote(null);
-        }
-      } catch {
-        /* ignore */
+    let cancelled = false;
+
+    void (async () => {
+      const fn = await listen<AppEvent>("app-event", (e) => {
+        const ev = e.payload;
+        if (ev.event !== "sidecar-message") return;
+        const msg = ev.message;
+        if (msg.type !== "stream") return;
+        const next = parsePendingChunk(msg.chunk);
+        if (!next) return;
+        setNote(null);
+        updatePending(next);
+      });
+      if (cancelled) {
+        fn();
+        return;
       }
-    }).then((fn) => {
       unlisten = fn;
-    });
+    })();
+
     return () => {
+      cancelled = true;
       unlisten?.();
     };
-  }, []);
+  }, [updatePending]);
 
   const send = useCallback(async (payload: Record<string, unknown>) => {
     const id = crypto.randomUUID();
@@ -63,7 +95,7 @@ export function BrowserConfirmBanner({ sidecarReady }: Props) {
         unlisten?.();
         reject(new Error("browser confirm timed out"));
       }, 15_000);
-      listen<AppEvent>("app-event", (e) => {
+      void listen<AppEvent>("app-event", (e) => {
         const ev = e.payload;
         if (ev.event !== "sidecar-message") return;
         const msg = ev.message;
@@ -85,68 +117,95 @@ export function BrowserConfirmBanner({ sidecarReady }: Props) {
     });
   }, []);
 
+  if (!visible) return null;
+
   if (!pending) {
     if (!note) return null;
     return (
-      <div className={styles.errorState} role="status">
-        {note}
+      <div className={styles.browserConfirmHost} data-testid="browser-confirm-host">
+        <div className={styles.errorState} role="status">
+          {note}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.actionCard} role="alertdialog" aria-label="Confirm browser action">
-      <p className={styles.fieldLabel}>Confirm browser action</p>
-      <p className={styles.idleHint}>{pending.summary}</p>
-      <div className={styles.btnRow}>
-        <button
-          className={`${styles.btn} ${styles.btnPrimary}`}
-          disabled={!sidecarReady || busy}
-          onClick={() =>
-            void (async () => {
-              setBusy(true);
-              try {
-                const raw = await send({
-                  action: "browser_confirm",
-                  pending_id: pending.pendingId,
-                });
-                const parsed = JSON.parse(raw) as { ok?: boolean; result?: string; error?: string };
-                setNote(parsed.ok ? parsed.result ?? "Done." : parsed.error ?? "Failed.");
-              } catch (err) {
-                setNote(String(err));
-              } finally {
-                setPending(null);
-                setBusy(false);
-              }
-            })()
-          }
-        >
-          Confirm
-        </button>
-        <button
-          className={`${styles.btn} ${styles.btnSecondary}`}
-          disabled={busy}
-          onClick={() =>
-            void (async () => {
-              setBusy(true);
-              try {
-                await send({
-                  action: "browser_cancel",
-                  pending_id: pending.pendingId,
-                });
-                setNote("Cancelled.");
-              } catch (err) {
-                setNote(String(err));
-              } finally {
-                setPending(null);
-                setBusy(false);
-              }
-            })()
-          }
-        >
-          Cancel
-        </button>
+    <div className={styles.browserConfirmHost} data-testid="browser-confirm-host">
+      <div className={styles.actionCard} role="alertdialog" aria-label="Confirm browser action">
+        <p className={styles.fieldLabel}>Confirm browser action</p>
+        <p className={styles.idleHint}>{pending.summary}</p>
+        {note && (
+          <div className={styles.errorState} role="alert">
+            {note}
+          </div>
+        )}
+        <div className={styles.btnRow}>
+          <button
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            disabled={!sidecarReady || busy}
+            onClick={() =>
+              void (async () => {
+                setBusy(true);
+                try {
+                  const raw = await send({
+                    action: "browser_confirm",
+                    pending_id: pending.pendingId,
+                  });
+                  const parsed = JSON.parse(raw) as {
+                    ok?: boolean;
+                    result?: string;
+                    error?: string;
+                  };
+                  if (!parsed.ok) {
+                    setNote(parsed.error ?? "Failed.");
+                    return;
+                  }
+                  setNote(parsed.result ?? "Done.");
+                  updatePending(null);
+                } catch (err) {
+                  setNote(String(err));
+                } finally {
+                  setBusy(false);
+                }
+              })()
+            }
+          >
+            Confirm
+          </button>
+          <button
+            className={`${styles.btn} ${styles.btnSecondary}`}
+            disabled={busy}
+            onClick={() =>
+              void (async () => {
+                setBusy(true);
+                try {
+                  const raw = await send({
+                    action: "browser_cancel",
+                    pending_id: pending.pendingId,
+                  });
+                  const parsed = JSON.parse(raw) as { ok?: boolean; error?: string };
+                  if (!parsed.ok) {
+                    setNote(parsed.error ?? "Cancel failed.");
+                    return;
+                  }
+                  setNote("Cancelled.");
+                  updatePending(null);
+                } catch (err) {
+                  setNote(String(err));
+                } finally {
+                  setBusy(false);
+                }
+              })()
+            }
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );
 }
+
+/** Exported for unit tests. */
+export { parsePendingChunk };
