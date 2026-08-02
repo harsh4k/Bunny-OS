@@ -10,6 +10,7 @@ import {
   IconUpdates,
   IconWave,
 } from "./icons";
+import { invoke } from "@tauri-apps/api/core";
 import styles from "./ExpandedDashboard.module.css";
 
 interface Props {
@@ -78,6 +79,31 @@ export function ExpandedDashboard({
           <div>
             <strong>Local & private</strong>
             <span>No telemetry — models stay on this machine</span>
+            <span className={styles.legalLinks}>
+              <button
+                type="button"
+                className={styles.legalLink}
+                onClick={() =>
+                  void invoke("open_trusted_https", {
+                    url: "https://harsh4k.github.io/Bunny-OS/privacy.html",
+                  })
+                }
+              >
+                Privacy
+              </button>
+              <span aria-hidden="true"> · </span>
+              <button
+                type="button"
+                className={styles.legalLink}
+                onClick={() =>
+                  void invoke("open_trusted_https", {
+                    url: "https://harsh4k.github.io/Bunny-OS/terms.html",
+                  })
+                }
+              >
+                Terms
+              </button>
+            </span>
           </div>
         </div>
       </aside>

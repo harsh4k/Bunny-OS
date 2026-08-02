@@ -54,15 +54,34 @@ _YOUTUBE_PLAY = re.compile(
     rf")$",
     re.IGNORECASE,
 )
+# Require an explicit search cue after youtube — bare "youtube …" must NOT
+# steal "open youtube and search for …" (that used to capture "and search…").
 _YOUTUBE_SEARCH = re.compile(
-    rf"(?:(?:please\s+)?(?:search(?:\s+on)?|find|look up)\s+(?:on\s+)?{_YT}(?:\s+for)?|"
-    rf"{_YT}(?:\s+search)?(?:\s+for)?)\s+(.+)$",
+    rf"(?:"
+    rf"(?:please\s+)?(?:search(?:\s+on)?|find|look up)\s+(?:on\s+)?{_YT}(?:\s+for)?\s+(.+)"
+    rf"|{_YT}\s+search(?:\s+for)?\s+(.+)"
+    rf"|{_YT}\s+for\s+(.+)"
+    rf")$",
     re.IGNORECASE,
 )
 _OPEN_YOUTUBE = re.compile(
     rf"^(?:please\s+)?(?:can you\s+|could you\s+)?"
     rf"(?:open|launch|start|run)\s+(?:{_YT}|you\s+tube)"
     rf"(?:\s+please|\s+for me)?$",
+    re.IGNORECASE,
+)
+# One-shot: "open youtube and search for sunflower [and play the first]"
+_OPEN_YT_AND_SEARCH = re.compile(
+    rf"^(?:please\s+)?(?:can you\s+|could you\s+)?"
+    rf"(?:open|launch|start|run)\s+{_YT}\s+and\s+"
+    rf"(?:(?:please\s+)?(?:search|find|look\s+up)(?:\s+for)?\s+)(.+)$",
+    re.IGNORECASE,
+)
+# One-shot: "open youtube and play despacito"
+_OPEN_YT_AND_PLAY = re.compile(
+    rf"^(?:please\s+)?(?:can you\s+|could you\s+)?"
+    rf"(?:open|launch|start|run)\s+{_YT}\s+and\s+"
+    rf"{_PLAY_VERB}\s+(.+)$",
     re.IGNORECASE,
 )
 _SPOTIFY_PLAY = re.compile(
@@ -105,8 +124,8 @@ _SPOTIFY_OPEN = re.compile(
     re.IGNORECASE,
 )
 _FOLLOW_SEARCH = re.compile(
-    # Bare "search …" only — "find/look up" stay free for Ollama / other intents.
-    r"^(?:please\s+)?search(?:\s+for)?\s+(.+)$",
+    # Bare "search …" / "and search …" after open youtube/spotify.
+    r"^(?:(?:please\s+)?and\s+)?(?:please\s+)?search(?:\s+for)?\s+(.+)$",
     re.IGNORECASE,
 )
 _PLAY_FIRST = re.compile(
@@ -118,6 +137,15 @@ _PLAY_FIRST = re.compile(
     r")$",
     re.IGNORECASE,
 )
+# Trailing clause glued onto a search query by STT / one-shot compounds.
+_TRAILING_PLAY_FIRST = re.compile(
+    r"\s*[.,?]?\s*(?:and\s+)?(?:please\s+)?"
+    r"(?:play|watch)\s+(?:the\s+)?(?:first|1st|top)"
+    r"(?:\s+(?:one|result|video|track|song))?\s*$",
+    re.IGNORECASE,
+)
+# Leading junk STT leaves on follow-ups: "and search for X"
+_LEADING_AND = re.compile(r"^(?:and\s+)+", re.IGNORECASE)
 _COMMANDISH = re.compile(
     r"^(?:please\s+)?(?:open|launch|search|find|look|play|watch|start|run|skip|pause|resume|"
     r"what|who|when|where|why|how|tell|show|next|previous|prev)\b",
@@ -316,6 +344,21 @@ def match_intent(spoken: str) -> _Result | None:
             "action": {"action": "open_url", "url": "https://www.youtube.com"},
         }
 
+    open_yt_play = _OPEN_YT_AND_PLAY.match(text)
+    if open_yt_play:
+        query, _wants = _clean_media_query(open_yt_play.group(1))
+        if query:
+            _set_domain("youtube", query)
+            return {"kind": "action", "action": {"action": "youtube_play", "query": query}}
+
+    open_yt_search = _OPEN_YT_AND_SEARCH.match(text)
+    if open_yt_search:
+        query, wants_first = _clean_media_query(open_yt_search.group(1))
+        if query:
+            _set_domain("youtube", query)
+            action = "youtube_play" if wants_first else "youtube_search"
+            return {"kind": "action", "action": {"action": action, "query": query}}
+
     if _SPOTIFY_OPEN.match(text):
         _set_domain("spotify")
         return {"kind": "action", "action": {"action": "spotify_open"}}
@@ -327,25 +370,28 @@ def match_intent(spoken: str) -> _Result | None:
             # Keep "playlist" in the query so local_actions uses the playlist URI.
             if "playlist" in text.lower() and "playlist" not in query.lower():
                 query = f"{query} playlist"
-            _set_domain("spotify", query)
-            return {
-                "kind": "action",
-                "action": {"action": "spotify_play", "query": query},
-            }
+            query, _wants = _clean_media_query(query)
+            if query:
+                _set_domain("spotify", query)
+                return {
+                    "kind": "action",
+                    "action": {"action": "spotify_play", "query": query},
+                }
 
     sp_search = _SPOTIFY_SEARCH.search(text)
     if sp_search:
-        query = sp_search.group(1).strip().rstrip(".,!?")
+        query, wants_first = _clean_media_query(sp_search.group(1))
         if query:
             _set_domain("spotify", query)
+            action = "spotify_play" if wants_first else "spotify_search"
             return {
                 "kind": "action",
-                "action": {"action": "spotify_search", "query": query},
+                "action": {"action": action, "query": query},
             }
 
     yt_play = _YOUTUBE_PLAY.search(text)
     if yt_play:
-        query = _first_group(yt_play)
+        query, _wants = _clean_media_query(_first_group(yt_play))
         if query:
             _set_domain("youtube", query)
             return {
@@ -355,12 +401,13 @@ def match_intent(spoken: str) -> _Result | None:
 
     yt = _YOUTUBE_SEARCH.search(text)
     if yt:
-        query = yt.group(1).strip().rstrip(".,!?")
+        query, wants_first = _clean_media_query(_first_group(yt))
         if query:
             _set_domain("youtube", query)
+            action = "youtube_play" if wants_first else "youtube_search"
             return {
                 "kind": "action",
-                "action": {"action": "youtube_search", "query": query},
+                "action": {"action": action, "query": query},
             }
 
     bare_playlist = _BARE_PLAYLIST.match(text)
@@ -402,10 +449,13 @@ def match_intent(spoken: str) -> _Result | None:
 
         follow_search = _FOLLOW_SEARCH.match(text)
         if follow_search:
-            query = follow_search.group(1).strip().rstrip(".,!?")
+            query, wants_first = _clean_media_query(follow_search.group(1))
             if query and "youtube" not in query.lower() and "spotify" not in query.lower():
                 _set_domain(domain, query)
-                action = "youtube_search" if domain == "youtube" else "spotify_search"
+                if domain == "youtube":
+                    action = "youtube_play" if wants_first else "youtube_search"
+                else:
+                    action = "spotify_play" if wants_first else "spotify_search"
                 return {"kind": "action", "action": {"action": action, "query": query}}
 
         # Bare short query after open youtube/spotify → search that phrase.
@@ -417,10 +467,14 @@ def match_intent(spoken: str) -> _Result | None:
             and "youtube" not in text.lower()
             and "spotify" not in text.lower()
         ):
-            query = text.strip().rstrip(".,!?")
-            _set_domain(domain, query)
-            action = "youtube_search" if domain == "youtube" else "spotify_search"
-            return {"kind": "action", "action": {"action": action, "query": query}}
+            query, wants_first = _clean_media_query(text)
+            if query:
+                _set_domain(domain, query)
+                if domain == "youtube":
+                    action = "youtube_play" if wants_first else "youtube_search"
+                else:
+                    action = "spotify_play" if wants_first else "spotify_search"
+                return {"kind": "action", "action": {"action": action, "query": query}}
 
     app = _OPEN_APP.match(text)
     if app and not _MEDIA_WORDS.search(text):
@@ -448,6 +502,31 @@ def _clean_name(raw: str) -> str:
         name = stripped
 
 
+def _clean_media_query(raw: str) -> tuple[str, bool]:
+    """
+    Normalize a spoken media query.
+
+    Returns (query, wants_play_first). Strips trailing "and play the first …"
+    and leading "and "/"search for " leftovers from compound STT phrases.
+    """
+    query = (raw or "").strip().rstrip(".,!?")
+    query = _LEADING_AND.sub("", query).strip()
+    wants_first = False
+    trimmed = _TRAILING_PLAY_FIRST.sub("", query).strip().rstrip(".,!?")
+    if trimmed != query:
+        wants_first = True
+        query = trimmed
+    # "search for sunflower" leftover inside a capture group
+    query = re.sub(
+        r"^(?:please\s+)?(?:search|find|look\s+up)(?:\s+for)?\s+",
+        "",
+        query,
+        flags=re.IGNORECASE,
+    ).strip()
+    query = _LEADING_AND.sub("", query).strip().rstrip(".,!?")
+    return query[:200], wants_first
+
+
 def _first_group(match: re.Match[str]) -> str:
     for group in match.groups():
         if group:
@@ -458,4 +537,5 @@ def _first_group(match: re.Match[str]) -> str:
 def _normalize(spoken: str) -> str:
     text = " ".join(spoken.strip().split())
     text = _FILLER.sub("", text).strip()
+    # Keep "?" out of matches; compound phrases often have "level?"
     return text.rstrip(".!?")

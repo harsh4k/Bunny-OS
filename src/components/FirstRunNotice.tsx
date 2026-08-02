@@ -30,6 +30,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
   const [ollamaOk, setOllamaOk] = useState<boolean | null>(null);
   const [ollamaNote, setOllamaNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   useEffect(() => {
     try {
@@ -118,16 +119,53 @@ export function FirstRunNotice({ onDismiss }: Props) {
         {step === "welcome" && (
           <>
             <p className={styles.idleHint}>
-              Local-only assistant. No telemetry. Speech models and Ollama run on
-              this machine. YouTube play may do one HTTPS lookup you trigger.
+              Bunny is a helper that stays on <strong>this computer</strong>. It
+              does not need an account and does not send your voice to a Bunny
+              cloud.
             </p>
             <ul className={styles.idleHint}>
-              <li>Mic starts muted — F9 temporarily unmutes while you talk.</li>
-              <li>Memory is opt-in and reviewable.</li>
-              <li>Voice never auto-approves app or URL actions.</li>
+              <li>Hold <strong>F9</strong> to talk. The mic starts muted.</li>
+              <li>Memory and screen reading stay off until you turn them on.</li>
+              <li>Bunny will ask you to confirm before typing or clicking in a browser.</li>
             </ul>
+            <p className={styles.idleHint}>
+              Please read{" "}
+              <button
+                type="button"
+                className={styles.linkBtn}
+                onClick={() =>
+                  void invoke("open_trusted_https", {
+                    url: "https://harsh4k.github.io/Bunny-OS/privacy.html",
+                  })
+                }
+              >
+                Privacy
+              </button>{" "}
+              and{" "}
+              <button
+                type="button"
+                className={styles.linkBtn}
+                onClick={() =>
+                  void invoke("open_trusted_https", {
+                    url: "https://harsh4k.github.io/Bunny-OS/terms.html",
+                  })
+                }
+              >
+                Terms
+              </button>{" "}
+              (Indian law–oriented) before continuing.
+            </p>
+            <label className={styles.checkRow}>
+              <input
+                type="checkbox"
+                checked={acceptedLegal}
+                onChange={(e) => setAcceptedLegal(e.target.checked)}
+              />
+              <span>I am 18+ and I agree to the Privacy Policy and Terms of Use.</span>
+            </label>
             <button
               className={`${styles.btn} ${styles.btnPrimary}`}
+              disabled={!acceptedLegal}
               onClick={() => setStep("scan")}
               aria-label="Continue to system scan"
             >

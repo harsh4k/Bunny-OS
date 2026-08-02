@@ -181,10 +181,31 @@
   font-weight: 600;
 }
 
-.privacy span:last-child {
+.privacy span {
   color: var(--color-text-muted);
   font-size: 10px;
   line-height: 1.35;
+}
+
+.legalLinks {
+  margin-top: 4px;
+}
+
+.legalLink {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  color: var(--color-brand);
+  font: inherit;
+  font-size: 10px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.legalLink:hover {
+  color: var(--color-brand-soft);
 }
 
 .workspace {

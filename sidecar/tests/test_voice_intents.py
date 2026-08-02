@@ -190,6 +190,59 @@ class TestVoiceIntents(unittest.TestCase):
         self.assertIsNone(match_intent("what can you do for me"))
         self.assertIsNone(match_intent("write a poem about rain"))
 
+    def test_open_youtube_and_search_compound(self):
+        from voice_intents import reset_dialog_domain
+
+        reset_dialog_domain()
+        result = match_intent("open youtube and search for some level")
+        self.assertEqual(
+            result,
+            {
+                "kind": "action",
+                "action": {"action": "youtube_search", "query": "some level"},
+            },
+        )
+
+    def test_open_youtube_search_and_play_first_one_shot(self):
+        from voice_intents import reset_dialog_domain
+
+        reset_dialog_domain()
+        # Exact failure from production: whole clause was used as the search box.
+        result = match_intent(
+            "open youtube and search for some level? And play the first song"
+        )
+        self.assertEqual(
+            result,
+            {
+                "kind": "action",
+                "action": {"action": "youtube_play", "query": "some level"},
+            },
+        )
+
+    def test_search_youtube_strips_play_first_tail(self):
+        result = match_intent("search youtube for sunflower and play the first")
+        self.assertEqual(
+            result,
+            {
+                "kind": "action",
+                "action": {"action": "youtube_play", "query": "sunflower"},
+            },
+        )
+
+    def test_follow_up_and_search_for(self):
+        from voice_intents import reset_dialog_domain
+
+        reset_dialog_domain()
+        self.assertIsNotNone(match_intent("open youtube"))
+        result = match_intent("and search for sunflower")
+        self.assertEqual(
+            result,
+            {
+                "kind": "action",
+                "action": {"action": "youtube_search", "query": "sunflower"},
+            },
+        )
+
     def test_open_youtube_and_yt_alias(self):
         from voice_intents import reset_dialog_domain
 

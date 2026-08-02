@@ -247,6 +247,8 @@ pub async fn open_trusted_https(url: String) -> Result<(), String> {
     const ALLOWED: &[&str] = &[
         crate::updates::RELEASES_PAGE,
         crate::updates::OLLAMA_DOWNLOAD_PAGE,
+        crate::updates::PRIVACY_PAGE,
+        crate::updates::TERMS_PAGE,
     ];
     if !ALLOWED.contains(&url.as_str()) {
         return Err("URL is not on the Updates allowlist.".to_string());

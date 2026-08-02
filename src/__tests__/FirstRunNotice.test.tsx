@@ -18,6 +18,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "ollama_running") return true;
     if (cmd === "open_mic_privacy_settings") return;
     if (cmd === "open_sound_settings") return;
+    if (cmd === "open_trusted_https") return;
     return null;
   }),
 }));
@@ -33,6 +34,9 @@ describe("FirstRunNotice onboarding", () => {
     });
     expect(screen.getByLabelText(/bunny os onboarding/i)).toBeTruthy();
 
+    await act(async () => {
+      screen.getByRole("checkbox").click();
+    });
     await act(async () => {
       screen.getByLabelText(/continue to system scan/i).click();
     });
