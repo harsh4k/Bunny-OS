@@ -1,4 +1,11 @@
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 
 const outDir = resolve(process.cwd(), "out");
@@ -31,6 +38,9 @@ const brand = resolve(process.cwd(), "public", "bunny-os.jpg");
 if (existsSync(brand)) {
   cpSync(brand, join(docsDir, "bunny-os.jpg"));
 }
+
+// GitHub Pages runs Jekyll by default; without this, `_next/` is omitted (404 CSS/JS).
+writeFileSync(join(docsDir, ".nojekyll"), "");
 
 console.log("Exported Next site into docs/ for GitHub Pages.");
 console.log("Preserved all *.md and docs/superpowers/");

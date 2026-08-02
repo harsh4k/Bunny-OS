@@ -2,6 +2,8 @@
 
 GitHub → **Settings** → **Pages** → Deploy from branch **main** → folder **/docs**.
 
+`docs/.nojekyll` must exist so GitHub Pages serves the Next `_next/` CSS/JS (Jekyll otherwise hides `_`-prefixed folders).
+
 ## Edit the site
 
 Source lives in `website/` (Next.js + shadcn). Brand icon files:
