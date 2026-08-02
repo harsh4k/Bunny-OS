@@ -2,17 +2,19 @@
 
 ## Update model (private beta)
 
-Bunny OS private beta uses **manual updates**:
+Bunny OS private beta uses **manual updates**, with an in-app **Updates** panel:
 
-1. Download the new installer from the trusted release channel.
-2. Verify the published `SHA256SUMS.txt` with:
+1. Dashboard → **Updates** shows the installed version.
+2. **Compare with latest** (optional, user click only) does one HTTPS GET to the public GitHub Releases API and compares tags. No background polling.
+3. **Open Releases** opens `https://github.com/harsh4k/Bunny-OS/releases` in the default browser.
+4. Download the new installer, verify `SHA256SUMS.txt` when published:
    ```powershell
    Get-FileHash -Algorithm SHA256 .\BunnyOS_x.y.z_x64-setup.exe
    ```
-3. Install over the previous version (Windows installer upgrade).
-4. Keep Ollama and models as **external** prerequisites — they are not replaced by the app installer.
+5. Install over the previous version (Windows installer upgrade / replace `.app` on Mac).
+6. Keep Ollama and models as **external** prerequisites — they are not replaced by the app installer.
 
-There is **no silent auto-update** in MVP. Auto-update with hash verification is planned post-beta and must never embed private signing keys in the repo.
+There is **no silent auto-update** and **no in-app download/install** in MVP. Tauri updater + code signing is planned post-beta and must never embed private signing keys in the repo.
 
 ## Signing
 

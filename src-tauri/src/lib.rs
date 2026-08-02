@@ -19,6 +19,7 @@ pub mod protocol;
 pub mod sidecar;
 pub mod start_menu;
 mod tray;
+pub mod updates;
 pub mod url_tools;
 
 use std::sync::atomic::AtomicBool;
@@ -83,6 +84,8 @@ pub fn run() {
             commands::start_ollama,
             commands::ensure_ollama,
             commands::execute_assistant_action,
+            commands::check_github_release,
+            commands::open_releases_page,
         ])
         .setup(|app| {
             applog::info("app", "startup");

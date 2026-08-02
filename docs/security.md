@@ -82,6 +82,7 @@
 - Diagnostics/logs omit transcripts, raw audio, and memory text by default
 - [PLANNED] Dependencies locked in Cargo.lock and package-lock.json
 - [PLANNED] Tauri built-in auto-update includes hash verification
+- Updates panel: user-triggered GitHub Releases API compare only (no silent poll, no download)
 
 **User responsibility:** Verify checksums before first install.
 

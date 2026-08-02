@@ -26,6 +26,7 @@ Bunny OS: local-only privacy-first desktop automation suite for Windows 10/11 an
 - Wake word: custom text phrase (default **hey bunny**), persisted under app-data `wake/`; optional openWakeWord models; never authorizes actions
 - No LLM-invented tools — new capabilities must be added to the typed allowlist
 - `youtube_play` may do one user-triggered HTTPS GET to youtube.com to open the first watch URL (no API key)
+- Updates panel may do one user-triggered HTTPS GET to GitHub Releases API to compare versions (no silent check; no download/install)
 - `spotify_play` only opens search results — Spotify's pages are client-rendered so no entity ID is resolvable without an authenticated Web API. It must never claim a track is playing
 - `media_play` / `media_next` / `media_prev` — Win32 multimedia keys on Windows; IOKit NX aux keys on macOS — no cloud
 - TTS: Windows SAPI / macOS system voice (no cloud neural voices)
@@ -84,6 +85,7 @@ pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSV
 - Done: Next-update W2 — voice follow-up v2 + wake profiles/VAD
 - Done: Next-update W3 — opt-in screen context (focused-window title; default Off)
 - Done: Next-update W4 — allowlisted browser tools + confirm UX
+- Done: Updates panel — version + Open Releases + optional GitHub compare (manual install)
 - Next: soak / tag as needed (`docs/beta-checklist.md`)
 - Human gates: soak on Win + Mac after CI artifacts (`docs/beta-checklist.md`); unsigned beta OK (no paid certs)
 - Tag release: `git tag v0.1.1 && git push origin v0.1.1` → MSI + Mac DMGs + `SHA256SUMS.txt`

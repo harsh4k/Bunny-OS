@@ -220,3 +220,23 @@ pub async fn restart_sidecar(app: AppHandle, state: State<'_, AppState>) -> Resu
     crate::spawn_supervisor(&app, &state);
     Ok(())
 }
+
+/// User-triggered compare of installed version vs GitHub latest release.
+#[tauri::command]
+pub async fn check_github_release(app: AppHandle) -> Result<crate::updates::UpdateCheck, String> {
+    let current = app.package_info().version.to_string();
+    tauri::async_runtime::spawn_blocking(move || crate::updates::check_latest(&current))
+        .await
+        .map_err(|e| format!("check_github_release task failed: {e}"))?
+}
+
+/// Open the public GitHub Releases page in the default browser (HTTPS).
+#[tauri::command]
+pub async fn open_releases_page() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        open::that(crate::updates::RELEASES_PAGE)
+            .map_err(|e| format!("Could not open Releases page: {e}"))
+    })
+    .await
+    .map_err(|e| format!("open_releases_page task failed: {e}"))?
+}

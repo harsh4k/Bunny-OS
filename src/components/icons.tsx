@@ -134,6 +134,17 @@ export function IconClose(p: IconProps) {
   );
 }
 
+export function IconUpdates(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M4 12a8 8 0 0 1 14.5-4.5" />
+      <path d="M20 4v5h-5" />
+      <path d="M20 12a8 8 0 0 1-14.5 4.5" />
+      <path d="M4 20v-5h5" />
+    </Svg>
+  );
+}
+
 export function IconRecover(p: IconProps) {
   return (
     <Svg {...p}>

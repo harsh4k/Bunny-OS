@@ -7,6 +7,7 @@ import {
   IconMemory,
   IconModels,
   IconShield,
+  IconUpdates,
   IconWave,
 } from "./icons";
 import styles from "./ExpandedDashboard.module.css";
@@ -31,6 +32,7 @@ const NAV_ITEMS: Array<{
   { view: "advisor", label: "Models", Icon: IconModels },
   { view: "wake", label: "Voice & wake", Icon: IconWave },
   { view: "memory", label: "Memory", Icon: IconMemory },
+  { view: "updates", label: "Updates", Icon: IconUpdates },
 ];
 
 export function ExpandedDashboard({

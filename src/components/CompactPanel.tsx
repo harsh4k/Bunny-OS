@@ -19,10 +19,17 @@ import { FirstRunNotice } from "./FirstRunNotice";
 import { IconClose } from "./icons";
 import { MemoryPanel } from "./MemoryPanel";
 import { OverviewPane } from "./OverviewPane";
+import { UpdatesPanel } from "./UpdatesPanel";
 import { WakePanel } from "./WakePanel";
 import styles from "./CompactPanel.module.css";
 
-export type PanelView = "overview" | "chat" | "advisor" | "memory" | "wake";
+export type PanelView =
+  | "overview"
+  | "chat"
+  | "advisor"
+  | "memory"
+  | "wake"
+  | "updates";
 
 interface Props {
   onClose?: () => void;
@@ -214,6 +221,9 @@ export function CompactPanel({
       )}
       {view === "wake" && (
         <WakePanel onClose={() => setView("overview")} sidecarReady={ready} />
+      )}
+      {view === "updates" && (
+        <UpdatesPanel onClose={() => setView("overview")} />
       )}
       {view === "advisor" && (
         <AdvisorPanel onClose={() => setView("overview")} sidecarReady={ready} />
