@@ -1,76 +1,72 @@
-/* Bunny OS — design tokens (VoiceOS-inspired light product) */
+/* Bunny OS — design tokens (macOS Settings–finished light shell) */
 
 :root {
-  /* Surfaces — airy light, cool sky undertone */
-  --color-bg:               #eef3f8;
-  --color-surface:          rgba(255, 255, 255, 0.78);
+  /* Surfaces — opaque so desktop never ghosts through */
+  --color-bg:               #f5f5f7;
+  --color-surface:          #ffffff;
   --color-surface-solid:    #ffffff;
   --color-surface-elevated: #ffffff;
-  --color-border:           rgba(15, 23, 42, 0.1);
-  --color-border-soft:      rgba(15, 23, 42, 0.06);
-  --color-sidebar:          rgba(255, 255, 255, 0.45);
-  --color-selection:        rgba(37, 99, 235, 0.1);
-  --color-selection-strong: rgba(37, 99, 235, 0.16);
-  --color-shell-glow:       rgba(125, 185, 232, 0.35);
-  --color-window-neutral:   #c4c9d1;
-  --color-window-rim:       rgba(15, 23, 42, 0.08);
+  --color-border:           rgba(0, 0, 0, 0.1);
+  --color-border-soft:      rgba(0, 0, 0, 0.06);
+  --color-sidebar:          #ececef;
+  --color-selection:        rgba(0, 122, 255, 0.12);
+  --color-selection-strong: rgba(0, 122, 255, 0.18);
+  --color-shell-glow:       transparent;
+  --color-window-neutral:   #c7c7cc;
+  --color-window-rim:       rgba(0, 0, 0, 0.12);
 
   /* Island — always black (Dynamic Island) */
-  --color-island:           rgba(12, 12, 16, 0.94);
-  --color-island-hover:     rgba(18, 18, 24, 0.96);
+  --color-island:           #000000;
+  --color-island-hover:     #111111;
   --color-island-rim:       rgba(255, 255, 255, 0.14);
   --color-island-rim-hover: rgba(255, 255, 255, 0.28);
   --color-island-sheen:     rgba(255, 255, 255, 0.08);
   --color-island-glow:      rgba(255, 255, 255, 0.06);
   --color-inner-highlight:  rgba(255, 255, 255, 0.55);
 
-  /* Text */
-  --color-text-primary:     #0f172a;
-  --color-text-secondary:   #475569;
-  --color-text-muted:       #94a3b8;
+  /* Text — SF-like contrast */
+  --color-text-primary:     #1d1d1f;
+  --color-text-secondary:   #6e6e73;
+  --color-text-muted:       #86868b;
 
-  /* Brand / accent — clear action blue + warm sand for Talk */
-  --color-brand:            #2563eb;
-  --color-brand-dim:        #1d4ed8;
-  --color-brand-soft:       #3b82f6;
-  --color-brand-glow:       rgba(37, 99, 235, 0.28);
+  /* Brand / accent — Apple system blue family */
+  --color-brand:            #007aff;
+  --color-brand-dim:        #0066d6;
+  --color-brand-soft:       #0a84ff;
+  --color-brand-glow:       rgba(0, 122, 255, 0.22);
   --color-accent-warm:      #c4a574;
   --color-accent-warm-glow: rgba(196, 165, 116, 0.35);
-  --color-wave-muted:       #94a3b8;
-  --color-sky-top:          #f7fbff;
-  --color-sky-mid:          #dcebff;
-  --color-sky-deep:         #7eb8e8;
+  --color-wave-muted:       #8e8e93;
+  --color-sky-top:          #f5f5f7;
+  --color-sky-mid:          #e8e8ed;
+  --color-sky-deep:         #d2d2d7;
 
-  /* Elevation — soft, wide, low opacity (no ghost-card + huge blur) */
+  /* Elevation — quiet macOS window */
   --shadow-island-inset: inset 0 1px 0 rgba(255, 255, 255, 0.12);
   --shadow-island: var(--shadow-island-inset);
   --shadow-island-focus: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
   --shadow-window:
-    0 1px 0 rgba(255, 255, 255, 0.85) inset,
-    0 18px 50px rgba(15, 23, 42, 0.14),
-    0 4px 12px rgba(15, 23, 42, 0.06);
-  --shadow-card:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 8px 24px rgba(15, 23, 42, 0.06);
-  --shadow-btn:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 4px 12px rgba(15, 23, 42, 0.08);
+    0 0 0 0.5px rgba(0, 0, 0, 0.12),
+    0 22px 70px rgba(0, 0, 0, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 0.5px 0 rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-btn: none;
   --ease-island: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: var(--ease-out);
+  --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Lifecycle */
-  --state-starting-bg:      #eff6ff;
-  --state-starting-fg:      #2563eb;
-  --state-ready-bg:         #ecfdf5;
-  --state-ready-fg:         #059669;
-  --state-ready-ring:       rgba(5, 150, 105, 0.16);
-  --state-degraded-bg:      #fffbeb;
-  --state-degraded-fg:      #b45309;
-  --state-error-bg:         #fef2f2;
-  --state-error-fg:         #dc2626;
-  --state-stopped-bg:       #f1f5f9;
-  --state-stopped-fg:       #64748b;
+  --state-starting-bg:      #eaf2ff;
+  --state-starting-fg:      #007aff;
+  --state-ready-bg:         #e8f8ef;
+  --state-ready-fg:         #248a3d;
+  --state-ready-ring:       rgba(36, 138, 61, 0.16);
+  --state-degraded-bg:      #fff6e5;
+  --state-degraded-fg:      #9a6700;
+  --state-error-bg:         #ffecec;
+  --state-error-fg:         #d70015;
+  --state-stopped-bg:       #f2f2f7;
+  --state-stopped-fg:       #8e8e93;
 
   /* Spacing */
   --sp-1: 4px;
@@ -81,34 +77,36 @@
   --sp-6: 24px;
   --sp-8: 32px;
 
-  /* Radii — soft product (not sharp form, not 40px balloons) */
-  --radius-sm:  8px;
-  --radius-md:  12px;
-  --radius-lg:  16px;
-  --radius-xl:  22px;
+  /* Radii — macOS controls + window */
+  --radius-sm:  6px;
+  --radius-md:  8px;
+  --radius-lg:  10px;
+  --radius-xl:  12px;
+  --radius-control: 7px;
   --radius-pill: 999px;
-  --radius-shell: 22px;
+  --radius-shell: 12px;
 
-  /* Typography */
-  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
-  --font-sans:  "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-mono:  "Cascadia Code", "Consolas", monospace;
-  --text-xs:    12px;
+  /* Typography — system SF on Apple, Inter fallback elsewhere */
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-sans:  -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono:  "SF Mono", ui-monospace, "Cascadia Code", "Consolas", monospace;
+  --text-xs:    11px;
   --text-sm:    13px;
-  --text-base:  15px;
-  --text-lg:    20px;
-  --text-xl:    28px;
+  --text-base:  13px;
+  --text-lg:    17px;
+  --text-xl:    22px;
 
   /* Island geometry — MUST match src/lib/islandGeometry.ts + tauri.conf.json */
-  --island-pill-w: 288px;
+  --island-pill-w: 220px;
   --island-pill-h: 40px;
-  --island-line-h: 6px;
-  --island-pad-x: 14px;
+  --island-line-h: 5px;
+  --island-total-h: 40px;
+  --island-pad-x: 28px;
   --island-pad-top: 0px;
-  --island-pad-bottom: 18px;
-  --island-pad-y: 18px;
-  --island-window-w: 316px;
-  --island-window-h: 58px;
+  --island-pad-bottom: 16px;
+  --island-pad-y: 16px;
+  --island-window-w: 276px;
+  --island-window-h: 56px;
 }
 
 *, *::before, *::after {
@@ -150,8 +148,11 @@ body {
   color: var(--color-text-primary);
   font-family: var(--font-sans);
   font-size: var(--text-base);
-  line-height: 1.5;
+  font-feature-settings: "ss01" 1;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   user-select: none;
 }
 
@@ -174,14 +175,20 @@ body[data-surface="island"] #root {
 html[data-surface="island"]:not([data-tauri]) body,
 body[data-surface="island"]:not([data-tauri]) {
   align-items: flex-start;
-  padding-top: 0;
+  justify-content: center;
+  padding: 0;
+  background:
+    radial-gradient(120% 80% at 50% 0%, #ececf0 0%, #f5f5f7 42%, #ffffff 100%);
 }
 
 html[data-surface="island"]:not([data-tauri]) #root,
 body[data-surface="island"]:not([data-tauri]) #root {
-  width: min(var(--island-window-w), calc(100vw - 24px));
+  position: relative;
+  top: 0;
+  width: min(var(--island-window-w), 100vw);
   height: var(--island-window-h);
   flex: 0 0 auto;
+  margin: 0 auto;
 }
 
 html[data-surface="dashboard"] #root,
@@ -192,17 +199,17 @@ body[data-surface="dashboard"] #root {
   min-height: 0;
 }
 
-/* Browser preview stage — soft sky behind the glass window */
+/* Browser preview — soft mac desktop wash behind the window */
 html[data-surface="dashboard"]:not([data-tauri]),
 html[data-surface="dashboard"]:not([data-tauri]) body {
   background:
-    radial-gradient(120% 80% at 50% 110%, var(--color-sky-deep) 0%, transparent 55%),
-    linear-gradient(180deg, var(--color-sky-top) 0%, var(--color-sky-mid) 100%);
+    radial-gradient(90% 70% at 50% 0%, #dfe3ea 0%, transparent 55%),
+    linear-gradient(180deg, #e8e9ed 0%, #f5f5f7 45%, #ececf1 100%);
 }
 
 html[data-surface="dashboard"]:not([data-tauri]) #root {
-  width: min(920px, calc(100vw - 48px));
-  height: min(620px, calc(100vh - 48px));
+  width: min(980px, calc(100vw - 48px));
+  height: min(640px, calc(100vh - 48px));
   margin: 24px auto;
   flex: 0 0 auto;
   border-radius: var(--radius-shell);

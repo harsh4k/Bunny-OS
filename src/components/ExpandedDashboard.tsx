@@ -12,9 +12,12 @@ import {
 } from "./icons";
 import bunnyMark from "../assets/bunny-mark.png";
 import { invoke } from "@tauri-apps/api/core";
+import type { ShellMotion } from "../lib/shellMotion";
 import styles from "./ExpandedDashboard.module.css";
 
 interface Props {
+  motion?: ShellMotion;
+  onMotionEnd?: (phase: ShellMotion) => void;
   activeView: PanelView;
   onViewChange: (view: PanelView) => void;
   onCollapse: () => void;
@@ -38,6 +41,8 @@ const NAV_ITEMS: Array<{
 ];
 
 export function ExpandedDashboard({
+  motion = "idle",
+  onMotionEnd,
   activeView,
   onViewChange,
   onCollapse,
@@ -50,7 +55,17 @@ export function ExpandedDashboard({
     NAV_ITEMS.find((n) => n.view === activeView)?.label ?? "Bunny OS";
 
   return (
-    <main className={styles.shell} aria-label="Bunny OS dashboard">
+    <main
+      className={styles.shell}
+      data-motion={motion}
+      aria-label="Bunny OS dashboard"
+      onAnimationEnd={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (motion === "enter" || motion === "exit") {
+          onMotionEnd?.(motion);
+        }
+      }}
+    >
       <FirstRunNotice onDismiss={onOnboardingDone} />
       <aside className={styles.sidebar}>
         <div className={styles.brand} data-tauri-drag-region="">
@@ -115,7 +130,26 @@ export function ExpandedDashboard({
 
       <section className={styles.workspace}>
         <header className={styles.windowBar} data-tauri-drag-region="">
-          <span className={styles.windowTitle}>{title}</span>
+          <div className={styles.windowLeading}>
+            <div className={styles.traffic} aria-hidden="true">
+              <button
+                type="button"
+                className={styles.trafficClose}
+                onClick={onClose}
+                tabIndex={-1}
+                title="Hide"
+              />
+              <button
+                type="button"
+                className={styles.trafficCollapse}
+                onClick={onCollapse}
+                tabIndex={-1}
+                title="Collapse"
+              />
+              <span className={styles.trafficIdle} />
+            </div>
+            <span className={styles.windowTitle}>{title}</span>
+          </div>
           <div className={styles.windowActions}>
             <button
               type="button"
@@ -136,21 +170,6 @@ export function ExpandedDashboard({
                 Hide
               </button>
             ) : null}
-            <div className={styles.traffic} aria-hidden="true">
-              <button
-                type="button"
-                className={styles.trafficCollapse}
-                onClick={onCollapse}
-                tabIndex={-1}
-              />
-              <span className={styles.trafficIdle} />
-              <button
-                type="button"
-                className={styles.trafficClose}
-                onClick={onClose}
-                tabIndex={-1}
-              />
-            </div>
           </div>
         </header>
 

@@ -1,0 +1,135 @@
+.nav {
+  width: 100%;
+  min-width: 0;
+}
+
+.list {
+  margin: 0;
+  padding: 0.5rem 0.75rem 0.35rem;
+  list-style: none;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.22) transparent;
+  font-size: clamp(0.875rem, 1.4vw, 1.125rem);
+  -webkit-overflow-scrolling: touch;
+}
+
+.list[data-align="start"] {
+  justify-content: flex-start;
+}
+
+.list[data-align="end"] {
+  justify-content: flex-end;
+}
+
+.list::-webkit-scrollbar {
+  height: 8px;
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: 0 0 auto;
+  height: 7rem;
+  padding-bottom: 0.15rem;
+}
+
+.link {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 0.35em 0.1em;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+}
+
+.icon,
+.iconImg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 18%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+}
+
+.remove {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.15rem;
+  z-index: 2;
+  width: 1.1rem;
+  height: 1.1rem;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.remove[data-visible="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tooltip {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  border-radius: 0.35em;
+  background: rgba(245, 245, 247, 0.96);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 0.35em 0.55em;
+  font-size: 0.72em;
+  font-weight: 510;
+  letter-spacing: -0.01em;
+  color: #1d1d1f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item,
+  .tooltip {
+    transition: none !important;
+  }
+}

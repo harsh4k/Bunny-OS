@@ -3,14 +3,16 @@
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--color-surface-solid);
   display: flex;
   flex-direction: column;
+  gap: 18px;
+  padding: 18px 20px 20px;
   z-index: 10;
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: var(--shadow-card);
-  animation: overlay-enter 280ms var(--ease-island) both;
+  box-shadow: none;
+  animation: overlay-enter 320ms var(--ease-out) both;
 }
 
 /* ── Header ── */
@@ -54,12 +56,17 @@
 .body {
   flex: 1;
   overflow-y: auto;
-  padding: var(--sp-3) var(--sp-4);
+  padding: 2px 2px 4px 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
+  gap: 14px;
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
+  min-height: 0;
+}
+
+.modelCard {
+  flex-shrink: 0;
 }
 
 .body::-webkit-scrollbar {
@@ -89,8 +96,9 @@
 .fieldLabel {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  font-weight: 510;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -104,29 +112,55 @@
   letter-spacing: normal;
 }
 
+.fieldLabel input[type="text"],
+.fieldLabel input:not([type]),
+.fieldLabel input[type="search"],
+input.modelInput {
+  width: 100%;
+  min-height: 36px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  padding: 8px 12px;
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  outline: none;
+  color-scheme: light;
+  box-sizing: border-box;
+  transition: border-color 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
+}
+
+.fieldLabel input:focus,
+input.modelInput:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
 .fieldLabel select,
 select.modelInput,
 select {
   appearance: none;
   -webkit-appearance: none;
   width: 100%;
-  min-height: 40px;
+  min-height: 36px;
   background-color: var(--color-surface-elevated);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 4.5L6 8L9.5 4.5' stroke='%239aa1ad' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 4.5L6 8L9.5 4.5' stroke='%238b93a1' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-position: right 12px center;
   background-size: 12px 12px;
   background-repeat: no-repeat;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-control);
   color: var(--color-text-primary);
-  padding: 10px 36px 10px 12px;
+  padding: 8px 36px 8px 12px;
   font-size: var(--text-sm);
   font-family: var(--font-sans);
+  font-weight: 400;
   line-height: 1.4;
   outline: none;
   cursor: pointer;
-  color-scheme: dark;
-  transition: border-color 180ms var(--ease-island), background-color 180ms var(--ease-island);
+  color-scheme: light;
+  transition: border-color 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
 }
 
 .fieldLabel select:hover,
@@ -140,6 +174,7 @@ select:hover {
 select.modelInput:focus,
 select:focus {
   border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
 }
 
 .fieldLabel select option,
@@ -152,13 +187,15 @@ select option {
   flex: 1;
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--sp-1) var(--sp-2);
-  font-size: var(--text-xs);
-  font-family: var(--font-mono);
-  color: var(--color-text-secondary);
+  border-radius: var(--radius-control);
+  padding: 8px 12px;
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
   outline: none;
   min-width: 0;
+  min-height: 36px;
+  color-scheme: light;
 }
 
 .modelInput:focus {
@@ -202,10 +239,10 @@ select option {
 .voiceTag {
   align-self: flex-start;
   font-size: var(--text-xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-accent);
-  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--color-brand);
+  font-weight: 590;
 }
 
 .voiceUser,
@@ -227,8 +264,9 @@ select option {
   display: block;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  font-weight: 510;
   margin-bottom: 2px;
 }
 
@@ -237,6 +275,11 @@ select option {
   color: var(--color-text-muted);
   text-align: center;
   margin: auto 0;
+}
+
+.body .idleHint {
+  text-align: left;
+  margin: 0;
 }
 
 .streamText {
@@ -273,11 +316,11 @@ select option {
 @keyframes overlay-enter {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px) scale(0.985);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -299,23 +342,25 @@ select option {
 
 /* ── Action card ── */
 .actionCard {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--sp-3);
-  background: var(--color-surface-elevated);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+  background: var(--color-bg);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-2);
+  gap: 12px;
+  overflow: visible;
 }
 
 .actionKind {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 590;
+  letter-spacing: -0.01em;
+  text-transform: none;
   color: var(--color-brand);
   padding: 2px var(--sp-2);
-  background: var(--color-brand-dim);
+  background: var(--color-selection);
   border-radius: var(--radius-sm);
   align-self: flex-start;
 }
@@ -337,8 +382,9 @@ select option {
 
 .auditTitle {
   font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  font-weight: 590;
   color: var(--color-text-muted);
   margin: 0 0 var(--sp-1);
 }
@@ -366,10 +412,10 @@ select option {
 .auditError { background: var(--state-error-bg);  color: var(--state-error-fg); }
 
 .auditKind {
-  font-weight: 600;
+  font-weight: 590;
   flex-shrink: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: none;
+  letter-spacing: -0.01em;
 }
 
 .auditLabel {
@@ -377,7 +423,9 @@ select option {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
 }
 
 .auditTime {
@@ -398,7 +446,7 @@ select option {
 /* ── Input area ── */
 .inputArea {
   border-top: 1px solid var(--color-border);
-  padding: var(--sp-3) var(--sp-4);
+  padding: var(--sp-3) 0 0;
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
@@ -411,7 +459,7 @@ select option {
   min-height: 64px;
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-control);
   padding: var(--sp-3);
   font-size: var(--text-sm);
   font-family: var(--font-sans);
@@ -419,11 +467,13 @@ select option {
   line-height: 1.5;
   outline: none;
   box-sizing: border-box;
-  transition: border-color 180ms var(--ease-island);
+  color-scheme: light;
+  transition: border-color 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
 }
 
 .textarea:focus {
   border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
 }
 
 .textarea:disabled {
@@ -433,23 +483,26 @@ select option {
 
 .btnRow {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  justify-content: flex-start;
   gap: var(--sp-2);
 }
 
-/* ── Buttons ── */
+/* ── Buttons — Linear-ish 6px controls, not pill balloons ── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 14px;
-  border-radius: var(--radius-pill);
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--color-border);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-family: var(--font-sans);
-  font-weight: 550;
+  font-weight: 510;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, opacity 0.15s, transform 0.1s;
+  transition: background 0.15s, color 0.15s, opacity 0.15s, border-color 0.15s;
 }
 
 .btn:disabled {
@@ -458,15 +511,26 @@ select option {
   color: var(--color-text-muted);
 }
 
+.btnSolid {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: #fff;
+  box-shadow: none;
+}
+.btnSolid:hover:not(:disabled) {
+  background: var(--color-brand-dim);
+  border-color: var(--color-brand-dim);
+}
+
 .btnPrimary {
-  background: linear-gradient(180deg, #ffffff 0%, #f3f6fa 100%);
+  background: var(--color-surface-solid);
   border-color: var(--color-border);
   color: var(--color-brand);
-  box-shadow: var(--shadow-btn);
+  box-shadow: none;
 }
 .btnPrimary:hover:not(:disabled) {
-  background: #fff;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+  background: var(--color-bg);
+  border-color: rgba(37, 99, 235, 0.35);
 }
 .btnPrimary:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -475,22 +539,22 @@ select option {
   color: var(--color-text-secondary);
 }
 .btnGhost:hover:not(:disabled) {
-  background: var(--color-surface-elevated);
+  background: var(--color-bg);
   color: var(--color-text-primary);
 }
 
 .btnSecondary {
-  background: var(--color-surface-elevated);
+  background: var(--color-surface-solid);
   color: var(--color-text-secondary);
 }
-.btnSecondary:hover { background: var(--color-border); color: var(--color-text-primary); }
+.btnSecondary:hover { background: var(--color-bg); color: var(--color-text-primary); }
 
 .btnCompact {
   flex-shrink: 0;
   min-height: 28px;
   padding: 4px 10px;
-  font-size: 11px;
-  border-radius: var(--radius-sm);
+  font-size: 12px;
+  border-radius: var(--radius-control);
 }
 
 .linkBtn {

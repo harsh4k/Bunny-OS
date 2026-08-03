@@ -1,0 +1,376 @@
+/* Shared page chrome — macOS Settings–quiet surfaces */
+
+.hero {
+  flex-shrink: 0;
+}
+
+.heroBezel {
+  padding: 0;
+  border-radius: var(--radius-xl);
+  background: transparent;
+  border: 0;
+}
+
+.heroInner {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 108px;
+  border-radius: var(--radius-xl);
+  background: #1d1d1f;
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 0.5px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  color: #f5f5f7;
+}
+
+.heroPhoto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+  z-index: 0;
+  transform: scale(1.05);
+  opacity: 0.92;
+}
+
+.heroShade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(105deg, rgba(29, 29, 31, 0.88) 0%, rgba(29, 29, 31, 0.55) 52%, rgba(29, 29, 31, 0.32) 100%),
+    radial-gradient(90% 80% at 92% 20%, var(--hero-glow, rgba(10, 132, 255, 0.28)), transparent 55%);
+}
+
+.hero[data-tone="sky"] { --hero-glow: rgba(10, 132, 255, 0.32); }
+.hero[data-tone="sand"] { --hero-glow: rgba(196, 165, 116, 0.32); }
+.hero[data-tone="mint"] { --hero-glow: rgba(48, 209, 88, 0.28); }
+.hero[data-tone="ink"] { --hero-glow: rgba(142, 142, 147, 0.28); }
+
+.heroTop,
+.heroCopy,
+.heroActions {
+  position: relative;
+  z-index: 2;
+}
+
+.heroTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.heroTopEnd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 590;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: rgba(245, 245, 247, 0.82);
+  background: rgba(255, 255, 255, 0.1);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.statusPill {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 9px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.35);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  font-size: 11px;
+  color: rgba(245, 245, 247, 0.7);
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8e8e93;
+  box-shadow: none;
+}
+
+.statusPill[data-tone="ok"] .statusDot {
+  background: #30d158;
+}
+
+.statusPill[data-tone="warn"] .statusDot {
+  background: #ffd60a;
+}
+
+.statusPill[data-tone="off"] .statusDot {
+  background: #8e8e93;
+}
+
+.statusLabel {
+  color: #fff;
+  font-weight: 590;
+}
+
+.statusMeta {
+  color: rgba(245, 245, 247, 0.62);
+}
+
+.closeBtn {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(245, 245, 247, 0.85);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms var(--ease-out);
+}
+
+.closeBtn:hover {
+  background: rgba(255, 69, 58, 0.45);
+  color: #fff;
+}
+
+.heroCopy {
+  max-width: 36rem;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(17px, 2.4vw, 22px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: #fff;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+}
+
+.lede {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(245, 245, 247, 0.72);
+  max-width: 42em;
+  letter-spacing: -0.01em;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.metrics[data-cols="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metrics[data-cols="3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.metric,
+.metricButton {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px 14px;
+  border-radius: var(--radius-lg);
+  border: 0.5px solid var(--color-border);
+  background: var(--color-bg);
+  text-align: left;
+  font: inherit;
+  min-width: 0;
+  box-shadow: none;
+}
+
+.metricButton {
+  cursor: pointer;
+  transition:
+    border-color 120ms var(--ease-out),
+    background 120ms var(--ease-out);
+}
+
+.metricButton:hover {
+  background: var(--color-surface-solid);
+  border-color: rgba(0, 122, 255, 0.28);
+}
+
+.metricLabel {
+  font-size: 11px;
+  font-weight: 510;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--color-text-muted);
+}
+
+.metricValue {
+  font-size: 13px;
+  font-weight: 590;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  text-transform: capitalize;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.metric[data-tone="ok"] .metricValue,
+.metricButton[data-tone="ok"] .metricValue {
+  color: var(--state-ready-fg);
+}
+
+.metric[data-tone="warn"] .metricValue,
+.metricButton[data-tone="warn"] .metricValue {
+  color: var(--state-degraded-fg);
+}
+
+.metric[data-tone="off"] .metricValue,
+.metricButton[data-tone="off"] .metricValue {
+  color: var(--color-text-muted);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg);
+  box-shadow: none;
+}
+
+.card[data-tone="sky"],
+.card[data-tone="sand"],
+.card[data-tone="mint"],
+.card[data-tone="ink"] {
+  background: var(--color-bg);
+}
+
+.btnInk,
+.btnGlass,
+.btnGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 510;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition:
+    background 120ms var(--ease-out),
+    transform 100ms var(--ease-out),
+    border-color 120ms var(--ease-out);
+}
+
+.btnInk {
+  border: 0;
+  background: var(--color-brand);
+  color: #fff;
+  box-shadow: none;
+}
+
+.btnInk:hover:not(:disabled) {
+  background: var(--color-brand-dim);
+}
+
+.btnGlass {
+  border: 0.5px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  backdrop-filter: blur(12px);
+}
+
+.btnGlass:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btnGhost {
+  border: 0.5px solid var(--color-border);
+  background: var(--color-surface-solid);
+  color: var(--color-text-secondary);
+}
+
+.btnGhost:hover:not(:disabled) {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.btnInk:disabled,
+.btnGlass:disabled,
+.btnGhost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btnInk:active:not(:disabled),
+.btnGlass:active:not(:disabled),
+.btnGhost:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+:global([data-embedded="true"]) .closeBtn {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .metrics,
+  .metrics[data-cols="3"],
+  .metrics[data-cols="4"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metricButton,
+  .btnInk,
+  .btnGlass,
+  .btnGhost {
+    transition: none !important;
+  }
+}

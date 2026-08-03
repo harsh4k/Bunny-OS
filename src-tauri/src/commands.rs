@@ -306,7 +306,8 @@ pub async fn open_trusted_https(url: String) -> Result<(), String> {
         crate::updates::PRIVACY_PAGE,
         crate::updates::TERMS_PAGE,
     ];
-    if !ALLOWED.contains(&url.as_str()) {
+    let ok = ALLOWED.contains(&url.as_str()) || crate::updates::is_allowed_download_url(&url);
+    if !ok {
         return Err("URL is not on the Updates allowlist.".to_string());
     }
     tauri::async_runtime::spawn_blocking(move || {

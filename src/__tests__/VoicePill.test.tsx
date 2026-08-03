@@ -85,7 +85,7 @@ describe("VoicePill", () => {
       });
     });
 
-    expect(screen.getByText("Hearing you")).toBeTruthy();
+    expect(screen.getByText("Hearing you.")).toBeTruthy();
   });
 
   it("condenses a sidecar failure into a label that fits the capsule", async () => {

@@ -12,6 +12,8 @@ pub const RELEASES_PAGE: &str = "https://github.com/harsh4k/Bunny-OS/releases";
 pub const OLLAMA_DOWNLOAD_PAGE: &str = "https://ollama.com/download";
 pub const PRIVACY_PAGE: &str = "https://harsh4k.github.io/Bunny-OS/privacy/";
 pub const TERMS_PAGE: &str = "https://harsh4k.github.io/Bunny-OS/terms/";
+pub const RELEASE_DOWNLOAD_PREFIX: &str =
+    "https://github.com/harsh4k/Bunny-OS/releases/download/";
 pub const LATEST_API: &str =
     "https://api.github.com/repos/harsh4k/Bunny-OS/releases/latest";
 
@@ -24,6 +26,10 @@ pub struct UpdateCheck {
     pub release_url: String,
     pub html_url: Option<String>,
     pub message: String,
+    #[serde(default)]
+    pub win_msi_url: Option<String>,
+    #[serde(default)]
+    pub mac_dmg_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -56,10 +62,36 @@ pub struct ModelsRow {
 }
 
 #[derive(Deserialize)]
+struct GhAsset {
+    name: String,
+    browser_download_url: String,
+}
+
+#[derive(Deserialize)]
 struct GhLatest {
     tag_name: String,
     #[serde(default)]
     html_url: Option<String>,
+    #[serde(default)]
+    assets: Vec<GhAsset>,
+}
+
+/// True when `url` is a Bunny OS release asset we may open in the browser.
+pub fn is_allowed_download_url(url: &str) -> bool {
+    if !url.starts_with(RELEASE_DOWNLOAD_PREFIX) {
+        return false;
+    }
+    let rest = &url[RELEASE_DOWNLOAD_PREFIX.len()..];
+    if rest.contains("..") || rest.contains('?') || rest.contains('#') {
+        return false;
+    }
+    let Some((tag, file)) = rest.split_once('/') else {
+        return false;
+    };
+    if tag.is_empty() || file.is_empty() || file.contains('/') {
+        return false;
+    }
+    file.ends_with(".msi") || file.ends_with(".dmg")
 }
 
 /// Snapshot for the Updates status board (local probes only — no GitHub).
@@ -177,8 +209,20 @@ pub fn check_latest(current: &str) -> Result<UpdateCheck, String> {
     let html = parsed
         .html_url
         .filter(|u| u.starts_with("https://github.com/"));
+    let win_msi_url = parsed
+        .assets
+        .iter()
+        .find(|a| a.name.ends_with("_x64_en-US.msi") || a.name.ends_with(".msi"))
+        .map(|a| a.browser_download_url.clone())
+        .filter(|u| is_allowed_download_url(u));
+    let mac_dmg_url = parsed
+        .assets
+        .iter()
+        .find(|a| a.name.ends_with("_aarch64.dmg") || a.name.ends_with(".dmg"))
+        .map(|a| a.browser_download_url.clone())
+        .filter(|u| is_allowed_download_url(u));
     let message = if newer {
-        format!("A newer release is available: {latest_raw}. Install over your current build from Releases.")
+        format!("A newer release is available: {latest_raw}. Download the installer below.")
     } else {
         format!("You're on the latest published release ({latest_raw}).")
     };
@@ -189,6 +233,8 @@ pub fn check_latest(current: &str) -> Result<UpdateCheck, String> {
         release_url: RELEASES_PAGE.to_string(),
         html_url: html,
         message,
+        win_msi_url,
+        mac_dmg_url,
     })
 }
 
@@ -274,5 +320,24 @@ mod tests {
         let board = dependency_board("0.1.0");
         assert_eq!(board.bunny_version, "0.1.0");
         assert_eq!(board.models.recommended, DEFAULT_MODEL);
+    }
+
+    #[test]
+    fn download_url_allowlist() {
+        assert!(is_allowed_download_url(
+            "https://github.com/harsh4k/Bunny-OS/releases/download/v0.3.0/Bunny.OS_0.3.0_x64_en-US.msi"
+        ));
+        assert!(is_allowed_download_url(
+            "https://github.com/harsh4k/Bunny-OS/releases/download/v0.3.0/Bunny.OS_0.3.0_aarch64.dmg"
+        ));
+        assert!(!is_allowed_download_url(
+            "https://evil.example/releases/download/v0.3.0/x.msi"
+        ));
+        assert!(!is_allowed_download_url(
+            "https://github.com/harsh4k/Bunny-OS/releases/download/../etc/passwd"
+        ));
+        assert!(!is_allowed_download_url(
+            "https://github.com/harsh4k/Bunny-OS/releases/download/v0.3.0/notes.txt"
+        ));
     }
 }

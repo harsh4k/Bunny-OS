@@ -15,6 +15,9 @@ import {
   DEFAULT_MODEL,
   type ChatPhase,
 } from "./chat/chatTypes";
+import learningAtmosphere from "../assets/learning-atmosphere.png";
+import { PageHero } from "./PageHero";
+import chrome from "./PageChrome.module.css";
 import styles from "./ChatPanel.module.css";
 
 interface Props {
@@ -207,33 +210,49 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
 
   return (
     <div className={styles.overlay} role="dialog" aria-label="Type to Bunny">
-      <div className={styles.header}>
-        <span className={styles.title}>Type to Bunny</span>
-        <button className={styles.closeBtn} onClick={onClose} aria-label="Back to learning">
-          ×
-        </button>
-      </div>
+      <PageHero
+        tone="sand"
+        atmosphere={learningAtmosphere}
+        eyebrow="Fallback"
+        title="Type to Bunny"
+        lede="Same local Bunny as voice — for when you can’t talk out loud."
+        statusLabel={
+          phase.phase === "streaming"
+            ? "Streaming"
+            : phase.phase === "executing"
+              ? "Working"
+              : phase.phase === "error"
+                ? "Error"
+                : "Ready"
+        }
+        statusTone={
+          phase.phase === "error"
+            ? "warn"
+            : phase.phase === "streaming" || phase.phase === "executing"
+              ? "warn"
+              : "ok"
+        }
+        statusMeta={model || "auto"}
+        onClose={onClose}
+        closeLabel="Back to learning"
+      />
 
       <div className={styles.body}>
-        <p className={styles.idleHint}>
-          Same local Bunny as voice — useful when you can’t talk out loud. What you
-          share here can still feed Learning when that’s on.
-        </p>
         <OllamaGate onReady={() => setPhase({ phase: "idle" })} />
-        <div className={styles.modelRow}>
+        <div className={`${chrome.card} ${styles.modelCard}`} data-tone="sand">
           <label htmlFor={modelInputId} className={styles.fieldLabel}>
             Model
+            <input
+              id={modelInputId}
+              className={styles.modelInput}
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder="Auto — uses an installed model"
+              disabled={phase.phase === "streaming" || phase.phase === "executing"}
+              aria-label="Ollama model name"
+              spellCheck={false}
+            />
           </label>
-          <input
-            id={modelInputId}
-            className={styles.modelInput}
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            placeholder="Auto — uses an installed model"
-            disabled={phase.phase === "streaming" || phase.phase === "executing"}
-            aria-label="Ollama model name"
-            spellCheck={false}
-          />
         </div>
 
         <div className={styles.outputArea} role="log" aria-live="polite" aria-label="Reply">
@@ -264,7 +283,8 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
         <div className={styles.btnRow}>
           {phase.phase === "streaming" ? (
             <button
-              className={`${styles.btn} ${styles.btnSecondary}`}
+              type="button"
+              className={chrome.btnGhost}
               onClick={() => void cancel()}
               aria-label="Cancel streaming"
             >
@@ -272,7 +292,8 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
             </button>
           ) : (
             <button
-              className={`${styles.btn} ${styles.btnPrimary}`}
+              type="button"
+              className={chrome.btnInk}
               onClick={() => void send()}
               disabled={!canSend}
               aria-label="Send message"

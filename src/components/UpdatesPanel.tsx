@@ -1,9 +1,18 @@
 /**
  * UpdatesPanel — status board for Bunny, Ollama, and chat models.
+ * Primary path: download Windows MSI / Mac DMG from GitHub Releases.
  */
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { RELEASES_PAGE, OLLAMA_DOWNLOAD_PAGE } from "../lib/updateLinks";
+import {
+  RELEASES_PAGE,
+  OLLAMA_DOWNLOAD_PAGE,
+  WIN_MSI,
+  MAC_DMG,
+} from "../lib/updateLinks";
+import updatesAtmosphere from "../assets/updates-atmosphere.png";
+import { PageHero, type StatusTone } from "./PageHero";
+import chrome from "./PageChrome.module.css";
 import styles from "./ChatPanel.module.css";
 
 interface UpdateCheck {
@@ -11,6 +20,8 @@ interface UpdateCheck {
   latest: string | null;
   newer: boolean;
   message: string;
+  win_msi_url?: string | null;
+  mac_dmg_url?: string | null;
 }
 
 interface ComponentRow {
@@ -34,6 +45,10 @@ interface DependencyBoard {
 
 interface Props {
   onClose: () => void;
+}
+
+function rowTone(needsAttention?: boolean): StatusTone {
+  return needsAttention ? "warn" : "ok";
 }
 
 export function UpdatesPanel({ onClose }: Props) {
@@ -67,31 +82,75 @@ export function UpdatesPanel({ onClose }: Props) {
     }
   };
 
+  const openUrl = (url: string) =>
+    run(async () => {
+      await invoke("open_trusted_https", { url });
+    });
+
+  const winUrl = check?.win_msi_url || WIN_MSI;
+  const macUrl = check?.mac_dmg_url || MAC_DMG;
+
+  const statusLabel = check
+    ? check.newer
+      ? "Update available"
+      : "Up to date"
+    : "…";
+  const statusTone: StatusTone = !check
+    ? "off"
+    : check.newer
+      ? "warn"
+      : "ok";
+
   return (
     <div className={styles.overlay} role="dialog" aria-label="Updates">
-      <div className={styles.header}>
-        <span className={styles.title}>Updates</span>
-        <button className={styles.closeBtn} onClick={onClose} aria-label="Close updates">
-          ×
-        </button>
-      </div>
-      <div className={styles.body}>
-        <p className={styles.idleHint}>
-          Status of Bunny and its local dependencies. Nothing updates silently —
-          use the buttons when something needs attention.
-        </p>
-
-        <div className={styles.btnRow}>
+      <PageHero
+        tone="sky"
+        atmosphere={updatesAtmosphere}
+        eyebrow="Installers"
+        title="Updates"
+        lede="Download a newer Bunny MSI or DMG here. Ollama updates separately from its own site."
+        statusLabel={statusLabel}
+        statusTone={statusTone}
+        statusMeta={board?.bunny_version}
+        onClose={onClose}
+        closeLabel="Close updates"
+        actions={
           <button
-            className={`${styles.btn} ${styles.btnSecondary}`}
+            type="button"
+            className={chrome.btnGlass}
             disabled={busy}
-            onClick={() => void run(refreshBoard)}
+            onClick={() =>
+              void run(async () => {
+                setCheck(await invoke<UpdateCheck>("check_github_release"));
+              })
+            }
           >
-            Refresh status
+            {busy ? "Checking…" : "Check for update"}
           </button>
-        </div>
+        }
+      />
 
-        <div className={styles.actionCard} data-testid="row-bunny">
+      <section className={chrome.metrics} data-cols="3" aria-label="Dependency summary">
+        <div className={chrome.metric} data-tone="ok">
+          <span className={chrome.metricLabel}>Bunny</span>
+          <span className={chrome.metricValue}>{board?.bunny_version ?? "…"}</span>
+        </div>
+        <div className={chrome.metric} data-tone={rowTone(board?.ollama.needs_attention)}>
+          <span className={chrome.metricLabel}>Ollama</span>
+          <span className={chrome.metricValue}>{board?.ollama.state ?? "…"}</span>
+        </div>
+        <div className={chrome.metric} data-tone={rowTone(board?.models.needs_attention)}>
+          <span className={chrome.metricLabel}>Models</span>
+          <span className={chrome.metricValue}>{board?.models.state ?? "…"}</span>
+        </div>
+      </section>
+
+      <div className={styles.body}>
+        <div
+          className={`${styles.actionCard} ${chrome.card}`}
+          data-tone="sky"
+          data-testid="row-bunny"
+        >
           <p className={styles.fieldLabel}>Bunny OS</p>
           <p className={styles.idleHint} data-testid="installed-version">
             Installed {board?.bunny_version ?? "…"}
@@ -103,36 +162,43 @@ export function UpdatesPanel({ onClose }: Props) {
               {check.message}
             </p>
           )}
-          <div className={styles.btnRow}>
+          <div className={styles.btnRow} style={{ justifyContent: "flex-start" }}>
             <button
-              className={`${styles.btn} ${styles.btnPrimary}`}
+              type="button"
+              className={chrome.btnInk}
               disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  setCheck(await invoke<UpdateCheck>("check_github_release"));
-                })
-              }
+              data-testid="download-windows"
+              onClick={() => void openUrl(winUrl)}
             >
-              {busy ? "Checking…" : "Compare with latest"}
+              Download Windows
             </button>
             <button
-              className={`${styles.btn} ${styles.btnSecondary}`}
+              type="button"
+              className={chrome.btnInk}
               disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  await invoke("open_trusted_https", { url: RELEASES_PAGE });
-                })
-              }
+              data-testid="download-mac"
+              onClick={() => void openUrl(macUrl)}
             >
-              Open Releases
+              Download Mac
+            </button>
+          </div>
+          <div className={styles.btnRow} style={{ justifyContent: "flex-start" }}>
+            <button
+              type="button"
+              className={chrome.btnGhost}
+              disabled={busy}
+              onClick={() => void openUrl(RELEASES_PAGE)}
+            >
+              All releases
             </button>
           </div>
         </div>
 
         <StatusCard testId="row-ollama" row={board?.ollama} fallbackTitle="Ollama">
-          <div className={styles.btnRow}>
+          <div className={styles.btnRow} style={{ justifyContent: "flex-start" }}>
             <button
-              className={`${styles.btn} ${styles.btnPrimary}`}
+              type="button"
+              className={chrome.btnInk}
               disabled={busy}
               onClick={() =>
                 void run(async () => {
@@ -141,18 +207,15 @@ export function UpdatesPanel({ onClose }: Props) {
                 })
               }
             >
-              Install / start & refresh models
+              Install / start
             </button>
             <button
-              className={`${styles.btn} ${styles.btnSecondary}`}
+              type="button"
+              className={chrome.btnGhost}
               disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  await invoke("open_trusted_https", { url: OLLAMA_DOWNLOAD_PAGE });
-                })
-              }
+              onClick={() => void openUrl(OLLAMA_DOWNLOAD_PAGE)}
             >
-              Open Ollama download
+              Ollama site
             </button>
           </div>
         </StatusCard>
@@ -173,10 +236,14 @@ export function UpdatesPanel({ onClose }: Props) {
           </p>
         </StatusCard>
 
-        <div className={styles.actionCard} data-testid="row-voice">
+        <div
+          className={`${styles.actionCard} ${chrome.card}`}
+          data-tone="sky"
+          data-testid="row-voice"
+        >
           <p className={styles.fieldLabel}>Voice (sidecar + Whisper)</p>
           <p className={styles.idleHint}>
-            Bundled with Bunny OS — updates when you install a newer Bunny release.
+            Ships with Bunny — updates when you install a newer release above.
           </p>
         </div>
 
@@ -209,7 +276,8 @@ function StatusCard({
   const attn = row?.needs_attention;
   return (
     <div
-      className={styles.actionCard}
+      className={`${styles.actionCard} ${chrome.card}`}
+      data-tone="sky"
       data-testid={testId}
       data-needs-attention={attn ? "true" : "false"}
     >

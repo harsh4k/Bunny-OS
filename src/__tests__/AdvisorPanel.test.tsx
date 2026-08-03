@@ -147,8 +147,8 @@ describe("AdvisorPanel — loading state", () => {
     await act(async () => {
       render(<AdvisorPanel onClose={() => {}} sidecarReady={true} />);
     });
-    expect(screen.getByRole("status")).toBeTruthy();
     expect(screen.getByText(/scanning/i)).toBeTruthy();
+    expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
   });
 });
 

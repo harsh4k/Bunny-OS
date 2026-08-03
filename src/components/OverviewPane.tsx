@@ -1,3 +1,7 @@
+/**
+ * Home — spatial voice stage (VisionOS depth + FundFlow widget presence).
+ * Local-only Bunny: atmosphere image is bundled, no remote assets.
+ */
 import type { ReactNode } from "react";
 import { friendlyError } from "../lib/voiceStatus";
 import {
@@ -10,7 +14,8 @@ import {
   IconTalk,
   IconWave,
 } from "./icons";
-import styles from "./CompactPanel.module.css";
+import homeAtmosphere from "../assets/home-atmosphere.png";
+import styles from "./OverviewPane.module.css";
 
 export type ServiceTone = "ok" | "warn" | "off" | "unknown";
 
@@ -28,7 +33,6 @@ interface Props {
   lastCrashAt: number | null;
   micMuted: boolean;
   voiceState: string;
-  /** Key combo bound to global push-to-talk, e.g. "F9". */
   pttKey: string;
   ready: boolean;
   canRecover: boolean;
@@ -60,7 +64,6 @@ export function OverviewPane({
   statusLabel,
   reason,
   crashCount,
-  lastCrashAt,
   micMuted,
   voiceState,
   pttKey,
@@ -78,181 +81,234 @@ export function OverviewPane({
   const showReason =
     (status === "degraded" || status === "error") && Boolean(reason);
   const appsLabel =
-    services.apps == null ? "Apps …" : `Apps ${services.apps}`;
+    services.apps == null ? "…" : String(services.apps);
 
   return (
-    <div className={styles.overview}>
-      <header className={styles.overviewHead}>
-        <h1 className={styles.headline}>
-          Talk to your computer. You know… <em>naturally</em>
-        </h1>
-        <div className={styles.statusLine} data-status={status} role="status">
-          <span className={styles.statusDot} aria-hidden="true" />
-          <div className={styles.statusCopy}>
-            <p className={styles.statusTitle}>{statusLabel}</p>
-            <p className={styles.statusDetail}>
-              Mic {micMuted ? "muted" : "live"}
-              <span aria-hidden="true"> · </span>
-              Voice {voiceState}
-              {crashCount > 0 ? (
-                <>
-                  <span aria-hidden="true"> · </span>
-                  {crashCount} restarts
-                </>
+    <div className={styles.home}>
+      <section className={styles.stage} aria-label="Voice stage">
+        <div className={styles.stageBezel}>
+          <div className={styles.stageInner}>
+            <img
+              className={styles.stagePhoto}
+              src={homeAtmosphere}
+              alt=""
+              draggable={false}
+            />
+            <div className={styles.stageShade} aria-hidden="true" />
+            <div className={styles.stageOrbs} aria-hidden="true">
+              <span className={styles.orbA} />
+              <span className={styles.orbB} />
+              <span className={styles.orbC} />
+            </div>
+
+            <div className={styles.stageTop}>
+              <span className={styles.eyebrow}>On this PC</span>
+              <div className={styles.statusPill} data-status={status} role="status">
+                <span className={styles.statusDot} aria-hidden="true" />
+                <span className={styles.statusLabel}>{statusLabel}</span>
+                <span className={styles.statusSep} aria-hidden="true">
+                  ·
+                </span>
+                <span className={styles.statusMeta}>
+                  Mic {micMuted ? "muted" : "live"} · {voiceState}
+                  {crashCount > 0 ? ` · ${crashCount} restarts` : ""}
+                </span>
+              </div>
+            </div>
+
+            <div className={styles.stageCopy}>
+              <h1 className={styles.headline}>
+                Talk to your computer.
+                <br />
+                You know… <em>naturally</em>
+              </h1>
+              {showReason ? (
+                <p className={styles.reason}>{friendlyError(reason!)}</p>
+              ) : (
+                <p className={styles.lede}>
+                  Hold {pttKey} anywhere — or press Talk on the stage.
+                </p>
+              )}
+            </div>
+
+            <div className={styles.stageActions}>
+              <button
+                type="button"
+                className={styles.talkBtn}
+                disabled={!ready}
+                aria-label="Push to talk"
+                title={
+                  micMuted
+                    ? `Hold to talk (unmutes for this hold). Or hold ${pttKey} anywhere.`
+                    : `Hold to talk (or hold ${pttKey} anywhere)`
+                }
+                onMouseDown={onTalkDown}
+                onMouseUp={onTalkUp}
+                onMouseLeave={onTalkUp}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  onTalkDown();
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  onTalkUp();
+                }}
+              >
+                <span className={styles.talkIcon} aria-hidden="true">
+                  <IconTalk size={16} />
+                </span>
+                Talk
+              </button>
+              <button
+                type="button"
+                className={styles.muteBtn}
+                onClick={onToggleMute}
+                aria-label={micMuted ? "Unmute microphone" : "Mute microphone"}
+              >
+                {micMuted ? <IconMicOff size={15} /> : <IconMic size={15} />}
+                {micMuted ? "Muted" : "Live"}
+              </button>
+              {canRecover ? (
+                <button
+                  type="button"
+                  className={styles.recoverBtn}
+                  onClick={onRecover}
+                >
+                  <IconRecover size={14} />
+                  Recover
+                </button>
               ) : null}
-              {lastCrashAt != null ? (
-                <>
-                  <span aria-hidden="true"> · </span>
-                  last {new Date(lastCrashAt).toLocaleTimeString()}
-                </>
-              ) : null}
-            </p>
-            {showReason ? (
-              <p className={styles.statusReason}>{friendlyError(reason!)}</p>
-            ) : null}
+            </div>
           </div>
         </div>
-
-        <p className={styles.serviceLine} aria-label="Local services">
-          <span data-tone={services.helper}>Helper {toneWord(services.helper)}</span>
-          <span aria-hidden="true">·</span>
-          <span data-tone={services.ollama}>Ollama {toneWord(services.ollama)}</span>
-          <span aria-hidden="true">·</span>
-          <button
-            type="button"
-            className={styles.serviceLink}
-            data-tone={
-              services.apps == null
-                ? "unknown"
-                : services.apps > 0
-                  ? "ok"
-                  : "warn"
-            }
-            onClick={() => onOpen("apps")}
-          >
-            {appsLabel}
-          </button>
-        </p>
-      </header>
-
-      <section className={styles.talkBlock} aria-label="Voice">
-        <p className={styles.talkHint}>
-          Hold {pttKey} anywhere, or hold Talk here.
-        </p>
-        <div className={styles.talkRow}>
-          <button
-            type="button"
-            className={styles.talkBtn}
-            disabled={!ready}
-            aria-label="Push to talk"
-            title={
-              micMuted
-                ? `Hold to talk (unmutes for this hold). Or hold ${pttKey} anywhere.`
-                : `Hold to talk (or hold ${pttKey} anywhere)`
-            }
-            onMouseDown={onTalkDown}
-            onMouseUp={onTalkUp}
-            onMouseLeave={onTalkUp}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              onTalkDown();
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              onTalkUp();
-            }}
-          >
-            <IconTalk size={18} />
-            Talk
-          </button>
-          <button
-            type="button"
-            className={styles.muteBtn}
-            onClick={onToggleMute}
-            aria-label={micMuted ? "Unmute microphone" : "Mute microphone"}
-          >
-            {micMuted ? <IconMicOff size={16} /> : <IconMic size={16} />}
-            {micMuted ? "Muted" : "Live"}
-          </button>
-        </div>
-        {canRecover ? (
-          <button type="button" className={styles.recoverBtn} onClick={onRecover}>
-            <IconRecover size={15} />
-            Recover helper
-          </button>
-        ) : null}
       </section>
 
-      <nav className={styles.destList} aria-label="Open settings">
-        <Dest
+      <section className={styles.metrics} aria-label="Local services">
+        <button
+          type="button"
+          className={styles.metric}
+          data-tone={services.helper}
+          onClick={() => onOpen("updates")}
+        >
+          <span className={styles.metricLabel}>Helper</span>
+          <span className={styles.metricValue}>{toneWord(services.helper)}</span>
+        </button>
+        <button
+          type="button"
+          className={styles.metric}
+          data-tone={services.ollama}
+          onClick={() => onOpen("advisor")}
+        >
+          <span className={styles.metricLabel}>Ollama</span>
+          <span className={styles.metricValue}>{toneWord(services.ollama)}</span>
+        </button>
+        <button
+          type="button"
+          className={styles.metric}
+          data-tone={
+            services.apps == null
+              ? "unknown"
+              : services.apps > 0
+                ? "ok"
+                : "warn"
+          }
+          onClick={() => onOpen("apps")}
+        >
+          <span className={styles.metricLabel}>Apps</span>
+          <span className={styles.metricValue}>{appsLabel}</span>
+        </button>
+        <button
+          type="button"
+          className={styles.metric}
+          data-tone={micMuted ? "warn" : "ok"}
+          onClick={onOpenMicPrivacy}
+        >
+          <span className={styles.metricLabel}>Mic</span>
+          <span className={styles.metricValue}>{micMuted ? "muted" : "live"}</span>
+        </button>
+      </section>
+
+      <nav className={styles.bento} aria-label="Open settings">
+        <Tile
+          tone="sky"
           label="Models"
-          hint="Local Ollama"
-          icon={<IconModels size={16} />}
+          hint="Local Ollama chat"
+          icon={<IconModels size={18} />}
           onClick={() => onOpen("advisor")}
         />
-        <Dest
+        <Tile
+          tone="sand"
           label="Learning"
-          hint="What Bunny picks up"
-          icon={<IconMemory size={16} />}
+          hint="What Bunny remembers"
+          icon={<IconMemory size={18} />}
           onClick={() => onOpen("learning")}
           disabled={!ready}
         />
-        <Dest
+        <Tile
+          tone="mint"
           label="Apps"
-          hint="Catalog & scan"
-          icon={<IconApps size={16} />}
+          hint="Catalog & nicknames"
+          icon={<IconApps size={18} />}
           onClick={() => onOpen("apps")}
         />
-        <Dest
-          label="Voice & wake"
-          hint={`Phrase + ${pttKey}`}
-          icon={<IconWave size={16} />}
+        <Tile
+          tone="ink"
+          label="Voice"
+          hint={`Wake + ${pttKey}`}
+          icon={<IconWave size={18} />}
           onClick={() => onOpen("wake")}
           disabled={!ready}
         />
       </nav>
 
-      <footer className={styles.overviewFoot}>
-        <button type="button" className={styles.footLink} onClick={onOpenMicPrivacy}>
-          Mic privacy settings
-        </button>
-        <span aria-hidden="true">·</span>
-        <button type="button" className={styles.footLinkDanger} onClick={onQuit}>
-          Quit
-        </button>
+      <footer className={styles.foot}>
+        <span className={styles.footNote}>No Bunny cloud. Everything stays here.</span>
+        <div className={styles.footLinks}>
+          <button type="button" className={styles.footLink} onClick={() => onOpen("updates")}>
+            Updates
+          </button>
+          <button type="button" className={styles.footLinkDanger} onClick={onQuit}>
+            Quit
+          </button>
+        </div>
       </footer>
     </div>
   );
 }
 
-function Dest({
+function Tile({
   label,
   hint,
   icon,
   onClick,
   disabled,
+  tone,
 }: {
   label: string;
   hint: string;
   icon: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  tone: "sky" | "sand" | "mint" | "ink";
 }) {
   return (
     <button
       type="button"
-      className={styles.dest}
+      className={styles.tile}
+      data-tone={tone}
       onClick={onClick}
       disabled={disabled}
     >
-      <span className={styles.destIcon} aria-hidden="true">
+      <span className={styles.tileIcon} aria-hidden="true">
         {icon}
       </span>
-      <span className={styles.destText}>
-        <span className={styles.destLabel}>{label}</span>
-        <span className={styles.destHint}>{hint}</span>
+      <span className={styles.tileCopy}>
+        <span className={styles.tileLabel}>{label}</span>
+        <span className={styles.tileHint}>{hint}</span>
       </span>
-      <span className={styles.destChevron} aria-hidden="true" />
+      <span className={styles.tileGo} aria-hidden="true">
+        →
+      </span>
     </button>
   );
 }

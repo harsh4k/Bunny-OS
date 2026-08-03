@@ -7,6 +7,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { AppEvent } from "~contracts/ipc";
 import { friendlyError, invokeErrorMessage } from "../lib/voiceStatus";
+import voiceAtmosphere from "../assets/voice-atmosphere.png";
+import { PageHero, type StatusTone } from "./PageHero";
+import { SelectMenu } from "./ui/dropdown-menu";
+import chrome from "./PageChrome.module.css";
 import styles from "./ChatPanel.module.css";
 
 interface WakeStatus {
@@ -27,9 +31,9 @@ interface WakeStatus {
 
 const STATE_LABEL: Record<WakeStatus["state"], string> = {
   off: "Off",
-  loading: "Loading model…",
-  listening: "Listening for the wake phrase",
-  error: "Error — see details below",
+  loading: "Loading",
+  listening: "Listening",
+  error: "Error",
 };
 
 function prettyPhrase(phrase: string): string {
@@ -38,6 +42,12 @@ function prettyPhrase(phrase: string): string {
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+function wakeStatusTone(state: WakeStatus["state"] | undefined): StatusTone {
+  if (state === "listening") return "ok";
+  if (state === "loading" || state === "error") return "warn";
+  return "off";
 }
 
 interface Props {
@@ -166,54 +176,86 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
   };
 
   const defaultPhrase = status?.default_phrase ?? "hey bunny";
+  const running =
+    status?.state === "listening" || status?.state === "loading";
+  const toggleLabel = running
+    ? "Disable wake word"
+    : status?.enabled
+      ? "Retry wake word"
+      : "Enable wake word";
 
   return (
     <div className={styles.overlay} role="dialog" aria-label="Wake word settings">
-      <div className={styles.header}>
-        <span className={styles.title}>Wake word</span>
-        <button className={styles.closeBtn} onClick={onClose} aria-label="Close wake settings">
-          ×
-        </button>
-      </div>
+      <PageHero
+        tone="ink"
+        atmosphere={voiceAtmosphere}
+        eyebrow="Voice"
+        title="Wake & talk"
+        lede="Say your phrase to start listening — local only, never approves actions. Push-to-talk always works."
+        statusLabel={status ? STATE_LABEL[status.state] : "…"}
+        statusTone={wakeStatusTone(status?.state)}
+        statusMeta={status ? prettyPhrase(status.phrase) : undefined}
+        onClose={onClose}
+        closeLabel="Close wake settings"
+        actions={
+          status ? (
+            <button
+              type="button"
+              className={running ? chrome.btnGlass : chrome.btnInk}
+              disabled={!sidecarReady || busy}
+              onClick={() => void toggle()}
+            >
+              {toggleLabel}
+            </button>
+          ) : null
+        }
+      />
+
+      <section className={chrome.metrics} data-cols="3" aria-label="Wake summary">
+        <div className={chrome.metric} data-tone={wakeStatusTone(status?.state)}>
+          <span className={chrome.metricLabel}>State</span>
+          <span className={chrome.metricValue}>
+            {status ? STATE_LABEL[status.state] : "…"}
+          </span>
+        </div>
+        <div className={chrome.metric}>
+          <span className={chrome.metricLabel}>Phrase</span>
+          <span className={chrome.metricValue}>
+            {status ? prettyPhrase(status.phrase) : "…"}
+          </span>
+        </div>
+        <div className={chrome.metric}>
+          <span className={chrome.metricLabel}>Profile</span>
+          <span className={chrome.metricValue}>
+            {status?.profile
+              ? status.profile.charAt(0).toUpperCase() + status.profile.slice(1)
+              : "…"}
+          </span>
+        </div>
+      </section>
+
       <div className={styles.body}>
-        <p className={styles.idleHint}>
-          Say your phrase (default “{prettyPhrase(defaultPhrase)}”) to start listening.
-          It runs on this machine only and never approves an action. Push-to-talk always
-          works as a fallback.
-        </p>
         {error && (
           <div className={styles.errorState} role="alert">
             <p className={styles.errorMsg}>{error}</p>
           </div>
         )}
         {status && (
-          <>
-            <p className={styles.idleHint}>
-              Status: {STATE_LABEL[status.state]} · “{prettyPhrase(status.phrase)}”
-              {status.mode ? ` · ${status.mode === "text" ? "custom phrase" : "model"}` : ""}
-              {status.enabled && status.state === "off" ? " · will retry on restart" : ""}
-            </p>
+          <div className={chrome.card} data-tone="ink">
+            {status.enabled && status.state === "off" ? (
+              <p className={styles.idleHint}>Will retry on restart.</p>
+            ) : null}
             {status.error ? (
               <div className={styles.errorState} role="alert">
                 <p className={styles.errorMsg}>{friendlyError(status.error)}</p>
               </div>
             ) : null}
-            <button
-              className={`${styles.btn} ${styles.btnPrimary}`}
-              disabled={!sidecarReady || busy}
-              onClick={() => void toggle()}
-            >
-              {status.state === "listening" || status.state === "loading"
-                ? "Disable wake word"
-                : status.enabled
-                  ? "Retry wake word"
-                  : "Enable wake word"}
-            </button>
             {status.enabled &&
             status.state !== "listening" &&
             status.state !== "loading" ? (
               <button
-                className={`${styles.btn} ${styles.btnSecondary}`}
+                type="button"
+                className={chrome.btnGhost}
                 disabled={!sidecarReady || busy}
                 onClick={() => void disableWake()}
               >
@@ -222,20 +264,21 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
             ) : null}
             <label className={styles.fieldLabel}>
               Sensitivity profile
-              <select
+              <SelectMenu
+                tone="light"
                 value={status.profile ?? "balanced"}
                 disabled={!sidecarReady || busy}
-                onChange={(e) => {
-                  if (e.target.value) void configure({ profile: e.target.value });
-                }}
                 aria-label="Wake sensitivity profile"
-              >
-                {(status.profiles ?? ["strict", "balanced", "sensitive"]).map((name) => (
-                  <option key={name} value={name}>
-                    {name.charAt(0).toUpperCase() + name.slice(1)}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => {
+                  if (value) void configure({ profile: value });
+                }}
+                options={(status.profiles ?? ["strict", "balanced", "sensitive"]).map(
+                  (name) => ({
+                    value: name,
+                    label: name.charAt(0).toUpperCase() + name.slice(1),
+                  }),
+                )}
+              />
             </label>
             <label className={styles.fieldLabel}>
               Custom wake phrase
@@ -258,7 +301,8 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
               />
             </label>
             <button
-              className={`${styles.btn} ${styles.btnSecondary}`}
+              type="button"
+              className={chrome.btnGhost}
               disabled={!sidecarReady || busy || draftPhrase.trim() === defaultPhrase}
               onClick={() => {
                 setDraftPhrase(defaultPhrase);
@@ -270,21 +314,25 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
             {status.phrases.length > 0 ? (
               <label className={styles.fieldLabel}>
                 Optional model phrase
-                <select
-                  value={status.phrases.includes(status.phrase) ? status.phrase : ""}
+                <SelectMenu
+                  tone="light"
+                  value={
+                    status.phrases.includes(status.phrase) ? status.phrase : ""
+                  }
                   disabled={!sidecarReady || busy}
-                  onChange={(e) => {
-                    if (e.target.value) void configure({ phrase: e.target.value });
-                  }}
                   aria-label="Optional model wake phrase"
-                >
-                  <option value="">Use custom text above</option>
-                  {status.phrases.map((phrase) => (
-                    <option key={phrase} value={phrase}>
-                      {prettyPhrase(phrase)}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Use custom text above"
+                  onChange={(value) => {
+                    if (value) void configure({ phrase: value });
+                  }}
+                  options={[
+                    { value: "", label: "Use custom text above" },
+                    ...status.phrases.map((phrase) => ({
+                      value: phrase,
+                      label: prettyPhrase(phrase),
+                    })),
+                  ]}
+                />
               </label>
             ) : null}
             <label className={styles.fieldLabel}>
@@ -300,7 +348,7 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
                 aria-label="Wake sensitivity"
               />
             </label>
-          </>
+          </div>
         )}
       </div>
     </div>

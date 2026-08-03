@@ -18,6 +18,9 @@ import { invoke } from "@tauri-apps/api/core";
 import type { AppEvent, GetAdvisorResponse } from "~contracts/ipc";
 import { Results } from "./AdvisorResults";
 import { OllamaGate } from "./OllamaGate";
+import modelsAtmosphere from "../assets/models-atmosphere.png";
+import { PageHero, type StatusTone } from "./PageHero";
+import chrome from "./PageChrome.module.css";
 import shell from "./ChatPanel.module.css";
 import styles from "./AdvisorPanel.module.css";
 
@@ -40,6 +43,21 @@ type PanelState =
   | { phase: "pulling"; model: string; requestId: string }
   | { phase: "error"; message: string }
   | { phase: "results"; data: GetAdvisorResponse };
+
+function advisorStatus(state: PanelState): { label: string; tone: StatusTone } {
+  switch (state.phase) {
+    case "loading":
+      return { label: "Loading", tone: "warn" };
+    case "pulling":
+      return { label: "Pulling", tone: "warn" };
+    case "results":
+      return { label: "Ready", tone: "ok" };
+    case "error":
+      return { label: "Error", tone: "warn" };
+    default:
+      return { label: "Idle", tone: "off" };
+  }
+}
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -163,27 +181,40 @@ export function AdvisorPanel({ onClose, sidecarReady }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const { label: statusLabel, tone: statusTone } = advisorStatus(state);
+  const showScanAction = state.phase === "idle" || state.phase === "results";
+
   return (
     <div className={shell.overlay} role="dialog" aria-label="Model Advisor">
-      <div className={shell.header}>
-        <span className={shell.title}>Model Advisor</span>
-        <button className={shell.closeBtn} onClick={onClose} aria-label="Close advisor">
-          ×
-        </button>
-      </div>
+      <PageHero
+        tone="sky"
+        atmosphere={modelsAtmosphere}
+        eyebrow="Local Ollama"
+        title="Models"
+        lede="Scan your hardware and Ollama install for local model recommendations."
+        statusLabel={statusLabel}
+        statusTone={statusTone}
+        onClose={onClose}
+        closeLabel="Close advisor"
+        actions={
+          showScanAction ? (
+            <button
+              type="button"
+              className={chrome.btnGlass}
+              onClick={scan}
+              disabled={!sidecarReady}
+            >
+              {state.phase === "results" ? "Rescan" : "Scan"}
+            </button>
+          ) : null
+        }
+      />
 
       <div className={shell.body}>
         <OllamaGate onReady={scan} />
         {state.phase === "idle" && (
           <div className={styles.emptyState}>
             <p>Scan hardware and Ollama to get model recommendations.</p>
-            <button
-              className={`${shell.btn} ${shell.btnPrimary}`}
-              onClick={scan}
-              disabled={!sidecarReady}
-            >
-              Scan
-            </button>
           </div>
         )}
 
@@ -204,7 +235,11 @@ export function AdvisorPanel({ onClose, sidecarReady }: Props) {
         {state.phase === "error" && (
           <div className={shell.errorState} role="alert">
             <p className={shell.errorMsg}>{state.message}</p>
-            <button className={`${shell.btn} ${shell.btnSecondary}`} onClick={scan}>
+            <button
+              type="button"
+              className={chrome.btnGhost}
+              onClick={scan}
+            >
               Retry
             </button>
           </div>

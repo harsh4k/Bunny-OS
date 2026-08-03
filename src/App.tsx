@@ -12,24 +12,26 @@ import type { PanelView } from "./components/CompactPanel";
 import { BrowserConfirmBanner } from "./components/BrowserConfirmBanner";
 import { VoicePill } from "./components/VoicePill";
 import {
+  ISLAND_H,
   ISLAND_WINDOW,
   LINE_HIT_H,
   PAD_TOP,
   PAD_X,
-  PILL_H,
-  PILL_W,
-  TOP_INSET,
   WINDOW_W,
+  TOP_INSET,
   applyIslandCssVars,
 } from "./lib/islandGeometry";
 import { useVoiceStatus } from "./lib/useVoiceStatus";
+import type { ShellMotion } from "./lib/shellMotion";
 import { ACTIVE_VOICE_STATES } from "./lib/voiceStatus";
 
-const DASHBOARD = { width: 920, height: 620 } as const;
+const DASHBOARD = { width: 980, height: 640 } as const;
 /** Poll while click-through so hover can re-arm the pill. */
 const HIT_POLL_MS = 80;
 const ONBOARDING_KEY = "bunnyos.onboarding.v1";
 const ONBOARDING_LEGACY = "bunnyos.firstRunAck.v1";
+/** Keep in sync with ExpandedDashboard.module.css shell-exit duration. */
+const SHELL_EXIT_MS = 280;
 
 /** Browser/Vite preview: `?ui=dashboard` skips island and opens the shell. */
 function forceDashboardPreview(): boolean {
@@ -52,10 +54,24 @@ function needsOnboarding(): boolean {
   }
 }
 
+function prefersReducedMotion(): boolean {
+  try {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+}
+
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
+
 function App() {
   const [onboardingPending, setOnboardingPending] = useState(needsOnboarding);
-  const [expanded, setExpanded] = useState(
-    () => needsOnboarding() || forceDashboardPreview()
+  const startOpen = () => needsOnboarding() || forceDashboardPreview();
+  const [expanded, setExpanded] = useState(startOpen);
+  const [shellMotion, setShellMotion] = useState<ShellMotion>(() =>
+    startOpen() && !prefersReducedMotion() ? "enter" : "idle"
   );
   const [activeView, setActiveView] = useState<PanelView>("overview");
   const [micMuted, setMicMuted] = useState(true);
@@ -65,58 +81,164 @@ function App() {
   const { state: voiceState, error: voiceError } = useVoiceStatus();
   const expandedRef = useRef(expanded);
   expandedRef.current = expanded;
+  const shellMotionRef = useRef(shellMotion);
+  shellMotionRef.current = shellMotion;
+  const exitTimerRef = useRef<number | null>(null);
+  const afterExitRef = useRef<"collapse" | "hide" | null>(null);
+  const exitDoneRef = useRef(false);
+  const sizeAnimRef = useRef(0);
 
   const voiceBusy =
     voiceError !== null || ACTIVE_VOICE_STATES.has(voiceState);
+  // Idle → tuck into the sleek bar; hover / voice pulls the pill back out.
   const pillDormant =
     !expanded && islandShown && !pillHovered && !voiceBusy;
 
-  const placeWindow = useCallback(async (nextExpanded: boolean) => {
+  const placeWindow = useCallback(async (nextExpanded: boolean, animate = false) => {
     try {
       const window = getCurrentWindow();
       document.documentElement.dataset.tauri = "1";
       applyIslandCssVars();
-      const size = nextExpanded
-        ? new LogicalSize(DASHBOARD.width, DASHBOARD.height)
-        : new LogicalSize(ISLAND_WINDOW.width, ISLAND_WINDOW.height);
-      await window.setSize(size);
-      await window.setShadow(nextExpanded);
 
+      const endW = nextExpanded ? DASHBOARD.width : ISLAND_WINDOW.width;
+      const endH = nextExpanded ? DASHBOARD.height : ISLAND_WINDOW.height;
       const monitor = await currentMonitor();
-      if (!monitor) return;
+      const scale = monitor ? monitor.scaleFactor : 1;
+      const monitorWidth = monitor ? monitor.size.width / scale : endW;
+      const monitorX = monitor ? monitor.position.x / scale : 0;
+      const monitorY = monitor ? monitor.position.y / scale : 0;
+      const endX = Math.round(monitorX + (monitorWidth - endW) / 2);
+      const endY = Math.round(monitorY + TOP_INSET);
 
-      const scale = monitor.scaleFactor;
-      const monitorWidth = monitor.size.width / scale;
-      const monitorX = monitor.position.x / scale;
-      const monitorY = monitor.position.y / scale;
-      const width = nextExpanded ? DASHBOARD.width : WINDOW_W;
+      const doAnimate = animate && !prefersReducedMotion();
+      if (!doAnimate) {
+        await window.setSize(new LogicalSize(endW, endH));
+        await window.setShadow(nextExpanded);
+        if (monitor) {
+          await window.setPosition(new LogicalPosition(endX, endY));
+        }
+        return;
+      }
 
-      await window.setPosition(
-        new LogicalPosition(
-          Math.round(monitorX + (monitorWidth - width) / 2),
-          Math.round(monitorY + TOP_INSET)
-        )
-      );
+      const outer = await window.outerSize();
+      const startW = outer.width / scale;
+      const startH = outer.height / scale;
+      const pos = await window.outerPosition();
+      const startX = pos.x / scale;
+      const startY = pos.y / scale;
+      const duration = nextExpanded ? 360 : 260;
+      const token = ++sizeAnimRef.current;
+      const t0 = performance.now();
+
+      await new Promise<void>((resolve) => {
+        const frame = (now: number) => {
+          if (token !== sizeAnimRef.current) {
+            resolve();
+            return;
+          }
+          const t = Math.min(1, (now - t0) / duration);
+          const e = easeOutCubic(t);
+          const w = Math.round(startW + (endW - startW) * e);
+          const h = Math.round(startH + (endH - startH) * e);
+          const x = Math.round(startX + (endX - startX) * e);
+          const y = Math.round(startY + (endY - startY) * e);
+          void Promise.all([
+            window.setSize(new LogicalSize(w, h)),
+            window.setPosition(new LogicalPosition(x, y)),
+          ]).finally(() => {
+            if (t < 1) {
+              requestAnimationFrame(frame);
+            } else {
+              resolve();
+            }
+          });
+        };
+        requestAnimationFrame(frame);
+      });
+
+      if (token !== sizeAnimRef.current) return;
+      await window.setSize(new LogicalSize(endW, endH));
+      await window.setShadow(nextExpanded);
+      if (monitor) {
+        await window.setPosition(new LogicalPosition(endX, endY));
+      }
     } catch {
       applyIslandCssVars();
     }
   }, []);
 
-  const handleClose = () => {
-    if (onboardingPending) return;
-    setExpanded(false);
-    setPillHovered(false);
-    setIslandShown(false);
-    void placeWindow(false).finally(() => {
-      invoke("hide_window").catch(console.error);
-    });
-  };
+  const openShell = useCallback(
+    (view: PanelView = "overview") => {
+      if (exitTimerRef.current != null) {
+        window.clearTimeout(exitTimerRef.current);
+        exitTimerRef.current = null;
+      }
+      afterExitRef.current = null;
+      setPillHovered(false);
+      setIslandShown(true);
+      setActiveView(view);
+      setShellMotion(prefersReducedMotion() ? "idle" : "enter");
+      setExpanded(true);
+      void invoke("show_window").catch(() => {});
+      void placeWindow(true, true);
+    },
+    [placeWindow]
+  );
 
-  const handleCollapse = () => {
-    if (onboardingPending) return;
+  const finishExit = useCallback(() => {
+    if (exitDoneRef.current) return;
+    exitDoneRef.current = true;
+    if (exitTimerRef.current != null) {
+      window.clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = null;
+    }
+    const after = afterExitRef.current;
+    afterExitRef.current = null;
     setExpanded(false);
+    setShellMotion("idle");
     setActiveView("overview");
-  };
+    void placeWindow(false, true).finally(() => {
+      if (after === "hide") {
+        invoke("hide_window").catch(console.error);
+      }
+    });
+  }, [placeWindow]);
+
+  const beginExit = useCallback(
+    (after: "collapse" | "hide") => {
+      if (onboardingPending) return;
+      if (!expanded || shellMotionRef.current === "exit") return;
+      exitDoneRef.current = false;
+      afterExitRef.current = after;
+      if (prefersReducedMotion()) {
+        finishExit();
+        return;
+      }
+      setShellMotion("exit");
+      if (exitTimerRef.current != null) {
+        window.clearTimeout(exitTimerRef.current);
+      }
+      // Fallback if animationend is missed (e.g. display:none mid-flight).
+      exitTimerRef.current = window.setTimeout(finishExit, SHELL_EXIT_MS + 40);
+    },
+    [expanded, finishExit, onboardingPending]
+  );
+
+  const handleClose = () => beginExit("hide");
+  const handleCollapse = () => beginExit("collapse");
+
+  const handleShellMotionEnd = useCallback(
+    (phase: ShellMotion) => {
+      if (phase === "enter") {
+        setShellMotion("idle");
+        return;
+      }
+      if (phase === "exit") {
+        finishExit();
+      }
+    },
+    [finishExit]
+  );
 
   const handleOnboardingDone = useCallback(() => {
     setOnboardingPending(false);
@@ -124,22 +246,33 @@ function App() {
 
   useEffect(() => {
     applyIslandCssVars();
+    if (expanded) {
+      void placeWindow(true, shellMotion === "enter");
+    }
+    return () => {
+      if (exitTimerRef.current != null) {
+        window.clearTimeout(exitTimerRef.current);
+      }
+    };
+    // Initial placement only — open/close paths call placeWindow themselves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!onboardingPending) return;
     setIslandShown(true);
     setExpanded(true);
+    setShellMotion(prefersReducedMotion() ? "idle" : "enter");
     void invoke("show_window").catch(() => {});
-  }, [onboardingPending]);
+    void placeWindow(true, true);
+  }, [onboardingPending, placeWindow]);
 
   useEffect(() => {
     const surface = expanded ? "dashboard" : "island";
     document.documentElement.dataset.surface = surface;
     document.body.dataset.surface = surface;
     if (!expanded) applyIslandCssVars();
-    void placeWindow(expanded);
-  }, [expanded, placeWindow]);
+  }, [expanded]);
 
   // Keep the island window visible — dormant line instead of hide-on-idle.
   useEffect(() => {
@@ -177,11 +310,14 @@ function App() {
         const cursor = await cursorPosition();
         const pillLeft = pos.x + PAD_X * scale;
         const pillTop = pos.y + PAD_TOP * scale;
-        const hitH = (busy || pillHovered ? PILL_H : LINE_HIT_H) * scale;
-        const pillRight = pillLeft + PILL_W * scale;
+        const hitH = (busy || pillHovered ? ISLAND_H : LINE_HIT_H) * scale;
+        const hitW = (busy || pillHovered ? WINDOW_W : 120) * scale;
+        const hitLeft =
+          pillLeft + ((WINDOW_W * scale - hitW) / 2);
+        const pillRight = hitLeft + hitW;
         const pillBottom = pillTop + hitH;
         const overPill =
-          cursor.x >= pillLeft &&
+          cursor.x >= hitLeft &&
           cursor.x <= pillRight &&
           cursor.y >= pillTop &&
           cursor.y <= pillBottom;
@@ -212,41 +348,32 @@ function App() {
         return;
       }
       if (payload.cmd === "ptt") {
-        setPillHovered(false);
-        setIslandShown(true);
-        setActiveView("overview");
-        setExpanded(true);
+        openShell("overview");
         return;
       }
       if (payload.cmd === "wake") {
-        setPillHovered(false);
-        setIslandShown(true);
-        setActiveView("wake");
-        setExpanded(true);
+        openShell("wake");
       }
     });
 
     const unlistenShown = listen("window-shown", () => {
       setPillHovered(false);
       setIslandShown(true);
-      void placeWindow(expandedRef.current);
+      void placeWindow(expandedRef.current, false);
     });
 
     return () => {
       void unlistenTray.then((dispose) => dispose());
       void unlistenShown.then((dispose) => dispose());
     };
-  }, [placeWindow]);
+  }, [placeWindow, openShell]);
 
   const handleBrowserPending = useCallback(
     (pending: { pendingId: string } | null) => {
       if (!pending) return;
-      setPillHovered(false);
-      setIslandShown(true);
-      setExpanded(true);
-      void invoke("show_window").catch(() => {});
+      openShell("overview");
     },
-    []
+    [openShell]
   );
 
   return (
@@ -259,15 +386,13 @@ function App() {
       {!expanded ? (
         <VoicePill
           dormant={pillDormant}
-          onExpand={() => {
-            setPillHovered(false);
-            setIslandShown(true);
-            setExpanded(true);
-          }}
+          onExpand={() => openShell("overview")}
           onHoverChange={setPillHovered}
         />
       ) : (
         <ExpandedDashboard
+          motion={shellMotion}
+          onMotionEnd={handleShellMotionEnd}
           activeView={activeView}
           onViewChange={setActiveView}
           onCollapse={handleCollapse}

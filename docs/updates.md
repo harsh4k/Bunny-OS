@@ -5,18 +5,19 @@
 Bunny OS private beta uses **manual updates**, with an in-app **Updates** panel:
 
 1. Dashboard → **Updates** shows the installed version.
-2. **Compare with latest** (optional, user click only) does one HTTPS GET to the public GitHub Releases API and compares tags. No background polling.
-3. **Open Releases** opens `https://github.com/harsh4k/Bunny-OS/releases` in the default browser.
-4. Download the new installer, verify `SHA256SUMS.txt` when published:
+2. **Download Windows** / **Download Mac** open the latest MSI/DMG from GitHub Releases (allowlisted HTTPS only).
+3. **Check for update** (optional) does one HTTPS GET to the public GitHub Releases API, compares tags, and refreshes asset URLs. No background polling.
+4. **All releases** opens `https://github.com/harsh4k/Bunny-OS/releases` in the default browser.
+5. Run the installer; verify `SHA256SUMS.txt` when published:
    ```powershell
-   Get-FileHash -Algorithm SHA256 .\BunnyOS_x.y.z_x64-setup.exe
+   Get-FileHash -Algorithm SHA256 .\Bunny.OS_x.y.z_x64_en-US.msi
    ```
-5. Install over the previous version (Windows installer upgrade / replace `.app` on Mac).
-6. Keep Ollama and models as **external** prerequisites — they are not replaced by the app installer.
+6. Install over the previous version (Windows installer upgrade / replace `.app` on Mac).
+7. Keep Ollama and models as **external** prerequisites — they are not replaced by the app installer.
 
 The Updates panel also shows a **status board**: Ollama installed/running/version, chat models (recommended present?), and voice (bundled with Bunny). Actions: Install/start Ollama, open Ollama download, pull recommended model via `ensure_ollama`. Refresh is user-triggered only.
 
-There is **no silent auto-update** and **no in-app download/install** in MVP. Tauri updater + code signing is planned post-beta and must never embed private signing keys in the repo.
+There is **no silent auto-update**. Opening an installer URL uses the system browser/download manager — Bunny does not write installers into app data. Tauri updater + code signing is planned post-beta and must never embed private signing keys in the repo.
 
 ## Signing
 

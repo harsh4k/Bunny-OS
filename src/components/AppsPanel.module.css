@@ -1,0 +1,250 @@
+/* Apps — catalog with Home-matching chrome */
+
+.root {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px 20px 20px;
+  background: var(--color-surface-solid);
+  overflow: hidden;
+  animation: apps-enter 300ms var(--ease-out) both;
+}
+
+@keyframes apps-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dockIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 510;
+  color: var(--color-text-secondary);
+}
+
+.toolbar {
+  flex-shrink: 0;
+}
+
+.search input {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  outline: none;
+  box-sizing: border-box;
+  color-scheme: light;
+  transition: border-color 120ms var(--ease-out), box-shadow 120ms var(--ease-out);
+}
+
+.search input:focus {
+  border-color: var(--color-brand);
+  background: var(--color-surface-solid);
+  box-shadow: 0 0 0 3px var(--color-brand-glow);
+}
+
+.composer {
+  flex-shrink: 0;
+  animation: apps-enter 220ms var(--ease-out) both;
+}
+
+.composerGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 510;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--color-text-muted);
+}
+
+.field input {
+  text-transform: none;
+  letter-spacing: normal;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  outline: none;
+  box-sizing: border-box;
+  color-scheme: light;
+}
+
+.field input:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-glow);
+}
+
+.composerRow {
+  display: flex;
+  gap: 8px;
+}
+
+.banner,
+.bannerError {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: var(--text-xs);
+  flex-shrink: 0;
+}
+
+.banner {
+  background: var(--state-ready-bg);
+  color: var(--state-ready-fg);
+}
+
+.bannerError {
+  background: var(--state-error-bg);
+  color: var(--state-error-fg);
+}
+
+.dockStage {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+
+.dockTray {
+  flex-shrink: 0;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 6px 4px;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(245, 245, 247, 0.92) 100%);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 10px 28px rgba(0, 0, 0, 0.06);
+  overflow: visible;
+}
+
+.appGlyph {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 18%;
+  color: #fff;
+  font-size: 1.15em;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 10px 22px rgba(0, 0, 0, 0.18);
+}
+
+.empty {
+  align-self: stretch;
+  align-items: flex-start;
+  max-width: 32em;
+  flex-shrink: 0;
+  margin: auto 0;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 590;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+.emptyHint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.dock {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-xl);
+  background: #1d1d1f;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+  color: #fff;
+}
+
+.dockHint {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dock .kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .composerGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root,
+  .composer {
+    animation: none !important;
+  }
+}

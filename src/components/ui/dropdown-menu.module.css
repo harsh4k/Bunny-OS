@@ -1,0 +1,169 @@
+/* Dropdown — trigger in-flow; menu portaled to body (never clipped) */
+
+.root {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 510;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(17, 17, 17, 0.72);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  transition: background 140ms var(--ease-out);
+}
+
+.trigger:hover:not(:disabled) {
+  background: rgba(17, 17, 17, 0.88);
+}
+
+.trigger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.triggerLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.chevronIcon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Portaled panel — fixed to viewport, above all panel overflow */
+.menuPortal {
+  position: fixed;
+  z-index: 10000;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(17, 17, 17, 0.92);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 16px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(280px, calc(100vh - 24px));
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.menuPortal[data-tone="light"] {
+  background: var(--color-surface-solid);
+  border: 1px solid var(--color-border);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 16px 40px rgba(15, 23, 42, 0.14);
+  backdrop-filter: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms var(--ease-out);
+}
+
+.item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.item:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.menuPortal[data-tone="light"] .item {
+  color: var(--color-text-primary);
+}
+
+.menuPortal[data-tone="light"] .item:hover:not(:disabled) {
+  background: var(--color-selection);
+}
+
+.itemIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.empty {
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+}
+
+.menuPortal[data-tone="light"] .empty {
+  color: var(--color-text-muted);
+}
+
+/* Light tone trigger — form selects */
+.root[data-tone="light"] .trigger {
+  width: 100%;
+  color: var(--color-text-primary);
+  background: var(--color-surface-solid);
+  border: 1px solid var(--color-border);
+  box-shadow: none;
+  backdrop-filter: none;
+  border-radius: var(--radius-control);
+}
+
+.root[data-tone="light"] .trigger:hover:not(:disabled) {
+  background: var(--color-bg);
+  border-color: rgba(37, 99, 235, 0.35);
+}
+
+.selectWrap {
+  display: block;
+  width: 100%;
+}
+
+.selectWrap .trigger {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item:active:not(:disabled) {
+    transform: none;
+  }
+}

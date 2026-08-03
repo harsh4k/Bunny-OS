@@ -256,7 +256,6 @@ export function CompactPanel({
         <LearningPanel
           onClose={() => setView("overview")}
           sidecarReady={ready}
-          onTypeInstead={() => setView("chat")}
         />
       )}
       {view === "wake" && (

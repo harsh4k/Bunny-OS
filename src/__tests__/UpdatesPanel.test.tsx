@@ -4,6 +4,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { UpdatesPanel } from "../components/UpdatesPanel";
+import { WIN_MSI, MAC_DMG } from "../lib/updateLinks";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
@@ -52,7 +53,19 @@ describe("UpdatesPanel", () => {
     );
   });
 
-  it("Compare with latest shows GitHub result", async () => {
+  it("Download Windows / Mac open installer URLs", async () => {
+    render(<UpdatesPanel onClose={() => {}} />);
+    fireEvent.click(await screen.findByTestId("download-windows"));
+    await waitFor(() => {
+      expect(invoke).toHaveBeenCalledWith("open_trusted_https", { url: WIN_MSI });
+    });
+    fireEvent.click(screen.getByTestId("download-mac"));
+    await waitFor(() => {
+      expect(invoke).toHaveBeenCalledWith("open_trusted_https", { url: MAC_DMG });
+    });
+  });
+
+  it("Check for update shows GitHub result", async () => {
     vi.mocked(invoke).mockImplementation(async (cmd: string) => {
       if (cmd === "get_dependency_board") return board;
       if (cmd === "check_github_release") {
@@ -61,12 +74,14 @@ describe("UpdatesPanel", () => {
           latest: "0.2.0",
           newer: true,
           message: "A newer release is available: 0.2.0.",
+          win_msi_url: WIN_MSI,
+          mac_dmg_url: MAC_DMG,
         };
       }
       return undefined;
     });
     render(<UpdatesPanel onClose={() => {}} />);
-    fireEvent.click(screen.getByRole("button", { name: /Compare with latest/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Check for update/i }));
     await waitFor(() => {
       expect(screen.getByTestId("update-check-result")).toHaveTextContent(
         /Update available/i
@@ -83,7 +98,7 @@ describe("UpdatesPanel", () => {
     render(<UpdatesPanel onClose={() => {}} />);
     fireEvent.click(
       await screen.findByRole("button", {
-        name: /Install \/ start & refresh models/i,
+        name: /Install \/ start/i,
       })
     );
     await waitFor(() => {
