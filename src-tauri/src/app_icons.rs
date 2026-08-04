@@ -279,26 +279,19 @@ mod macos {
 
     pub fn extract_png(path: &Path) -> Result<Vec<u8>, String> {
         let icns_path = find_icns(path).ok_or("no icns in app bundle")?;
-        let file =
-            fs::File::open(&icns_path).map_err(|e| format!("open icns: {e}"))?;
-        let icon_file =
-            icns::IconFile::read(BufReader::new(file)).map_err(|e| format!("read icns: {e}"))?;
-        let kinds = icon_file.available_icons();
-        let kind = kinds
-            .iter()
-            .max_by_key(|k| k.pixel_width())
+        let file = fs::File::open(&icns_path).map_err(|e| format!("open icns: {e}"))?;
+        let icon_family = icns::IconFamily::read(BufReader::new(file))
+            .map_err(|e| format!("read icns: {e}"))?;
+        let kind = icon_family
+            .available_icons()
+            .into_iter()
+            .max_by_key(|k| k.pixel_width().saturating_mul(k.pixel_height()))
             .ok_or("empty icns")?;
-        let img = icon_file
-            .decode_icon(kind)
+        let img = icon_family
+            .get_icon_with_type(kind)
             .map_err(|e| format!("decode icns: {e}"))?;
-        let rgba = img.rgba_data().ok_or("icns has no rgba")?;
-        let w = img.width();
-        let h = img.height();
-        let buffer = image::RgbaImage::from_raw(w, h, rgba.to_vec())
-            .ok_or("invalid icns dimensions")?;
         let mut out = Vec::new();
-        buffer
-            .write_to(&mut Cursor::new(&mut out), ImageFormat::Png)
+        img.write_png(Cursor::new(&mut out))
             .map_err(|e| format!("encode png: {e}"))?;
         Ok(out)
     }
