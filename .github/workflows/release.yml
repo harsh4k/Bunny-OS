@@ -47,8 +47,18 @@ jobs:
           python -m pip install pillow
           python scripts/gen-icons.py
 
+      - name: Cache Whisper base weights
+        uses: actions/cache@v4
+        with:
+          path: build/sidecar/whisper_models
+          key: whisper-base-v1-${{ hashFiles('sidecar/requirements-bundle.txt') }}
+          restore-keys: |
+            whisper-base-v1-
+
       - name: Package frozen sidecar (+ Whisper weights)
         shell: pwsh
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           $env:BUNNY_PYTHON = (Get-Command python).Source
           $env:BUNNY_PREFETCH_WHISPER = "1"
@@ -103,7 +113,17 @@ jobs:
           python3 -m pip install pillow
           python3 scripts/gen-icons.py
 
+      - name: Cache Whisper base weights
+        uses: actions/cache@v4
+        with:
+          path: build/sidecar/whisper_models
+          key: whisper-base-v1-${{ hashFiles('sidecar/requirements-bundle.txt') }}
+          restore-keys: |
+            whisper-base-v1-
+
       - name: Package frozen sidecar (+ Whisper weights)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           chmod +x scripts/package-sidecar.sh
           export BUNNY_PYTHON="$(command -v python3)"
