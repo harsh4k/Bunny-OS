@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use crate::user_apps;
 
 fn marker_path() -> PathBuf {
-    user_apps::app_data_dir().join("onboarding.complete")
+    user_apps::app_data_dir().join("onboarding.v2.complete")
 }
 
 pub fn is_complete() -> bool {

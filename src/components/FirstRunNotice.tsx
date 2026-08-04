@@ -9,7 +9,6 @@ import { friendlyError, invokeErrorMessage } from "../lib/voiceStatus";
 import styles from "./Onboarding.module.css";
 
 const KEY = "bunnyos.onboarding.v1";
-const LEGACY_KEY = "bunnyos.firstRunAck.v1";
 
 type Step = "welcome" | "scan" | "permissions" | "ollama" | "done";
 
@@ -41,15 +40,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
       try {
         const complete = await invoke<boolean>("get_onboarding_complete");
         if (cancelled) return;
-        if (complete) return;
-        if (
-          localStorage.getItem(KEY) === "1" ||
-          localStorage.getItem(LEGACY_KEY) === "1"
-        ) {
-          await invoke("complete_onboarding");
-          return;
-        }
-        setVisible(true);
+        if (!complete) setVisible(true);
       } catch {
         if (!cancelled) setVisible(true);
       }

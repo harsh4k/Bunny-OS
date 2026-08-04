@@ -4,7 +4,7 @@
  * Icons browse in a macOS-style magnifying dock (left → right).
  */
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { friendlyError, invokeErrorMessage } from "../lib/voiceStatus";
 import { DropdownMenu } from "./ui/dropdown-menu";
 import { DockNav, type DockNavItem } from "./ui/dock-nav";
@@ -100,8 +100,9 @@ export function AppsPanel({ onClose }: Props) {
     let cancelled = false;
     for (const app of apps) {
       if (!app.path || app.source === "alias") continue;
-      void invoke<string | null>("get_app_icon", { path: app.path }).then((url) => {
-        if (cancelled || !url) return;
+      void invoke<string | null>("get_app_icon", { path: app.path }).then((filePath) => {
+        if (cancelled || !filePath) return;
+        const url = convertFileSrc(filePath);
         setIconUrls((prev) =>
           prev[app.path] ? prev : { ...prev, [app.path]: url },
         );

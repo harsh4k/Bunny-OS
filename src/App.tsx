@@ -60,11 +60,7 @@ function needsOnboarding(): boolean {
 async function resolveOnboardingPending(): Promise<boolean> {
   if (forceDashboardPreview()) return false;
   try {
-    let complete = await invoke<boolean>("get_onboarding_complete");
-    if (!complete && localOnboardingDone()) {
-      await invoke("complete_onboarding");
-      complete = true;
-    }
+    const complete = await invoke<boolean>("get_onboarding_complete");
     return !complete;
   } catch {
     return needsOnboarding();
@@ -318,7 +314,10 @@ function App() {
     const surface = expanded ? "dashboard" : "island";
     document.documentElement.dataset.surface = surface;
     document.body.dataset.surface = surface;
-    if (!expanded) applyIslandCssVars();
+    if (!expanded) {
+      applyIslandCssVars();
+      void ensureIslandTransparency();
+    }
   }, [expanded, onboardingReady]);
 
   // Resize island window when bar tuck/open changes (smaller window when notched).

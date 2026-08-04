@@ -160,8 +160,9 @@ pub async fn complete_onboarding() -> Result<(), String> {
 #[tauri::command]
 pub async fn get_app_icon(path: String) -> Option<String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let p = std::path::PathBuf::from(path);
-        crate::app_icons::icon_data_url(&p).ok()
+        crate::app_icons::icon_cache_path(std::path::Path::new(&path))
+            .ok()
+            .map(|p| p.to_string_lossy().into_owned())
     })
     .await
     .ok()

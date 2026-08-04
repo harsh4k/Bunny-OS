@@ -6,7 +6,6 @@ use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-use base64::{engine::general_purpose::STANDARD, Engine as _};
 use image::ImageFormat;
 
 use crate::user_apps;
@@ -23,20 +22,16 @@ fn cache_path_for(app_path: &Path) -> PathBuf {
     icons_dir().join(format!("{key:016x}.png"))
 }
 
-fn png_data_url(bytes: &[u8]) -> String {
-    format!("data:image/png;base64,{}", STANDARD.encode(bytes))
-}
-
-/// Return a PNG data URL for the given app path (.lnk / .exe / .app), cached on disk.
-pub fn icon_data_url(app_path: &Path) -> Result<String, String> {
+/// Cached PNG path for an app (.lnk / .exe / .app). Extracts on first request.
+pub fn icon_cache_path(app_path: &Path) -> Result<PathBuf, String> {
     if app_path.as_os_str().is_empty() {
         return Err("empty path".into());
     }
     let cache = cache_path_for(app_path);
     if cache.is_file() {
-        let bytes = fs::read(&cache).map_err(|e| format!("read icon cache: {e}"))?;
-        if !bytes.is_empty() {
-            return Ok(png_data_url(&bytes));
+        let meta = fs::metadata(&cache).map_err(|e| format!("read icon cache: {e}"))?;
+        if meta.len() > 0 {
+            return Ok(cache);
         }
     }
 
@@ -45,7 +40,7 @@ pub fn icon_data_url(app_path: &Path) -> Result<String, String> {
     let tmp = cache.with_extension("png.tmp");
     fs::write(&tmp, &png).map_err(|e| format!("write icon cache: {e}"))?;
     fs::rename(&tmp, &cache).map_err(|e| format!("commit icon cache: {e}"))?;
-    Ok(png_data_url(&png))
+    Ok(cache)
 }
 
 fn extract_png(app_path: &Path) -> Result<Vec<u8>, String> {
