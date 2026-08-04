@@ -10,10 +10,6 @@
 </p>
 
 <p align="center">
-  <img src="island-ui.png" alt="Bunny OS top-edge voice island — expanded and idle bar" width="720" />
-</p>
-
-<p align="center">
   <a href="https://github.com/harsh4k/Bunny-OS/releases/download/v0.3.2/Bunny.OS_0.3.2_x64_en-US.msi"><img src="https://img.shields.io/badge/Windows-0.3.2_MSI-0e0f12?style=for-the-badge&labelColor=d4bc94" alt="Download Windows MSI 0.3.2" /></a>
   <a href="https://github.com/harsh4k/Bunny-OS/releases/download/v0.3.2/Bunny.OS_0.3.2_aarch64.dmg"><img src="https://img.shields.io/badge/macOS-0.3.2_DMG-0e0f12?style=for-the-badge&labelColor=d4bc94" alt="Download Mac DMG 0.3.2" /></a>
   <a href="https://harsh4k.github.io/Bunny-OS/"><img src="https://img.shields.io/badge/Website-harsh4k.github.io-0e0f12?style=for-the-badge&labelColor=9aa1ad" alt="Bunny OS website" /></a>
