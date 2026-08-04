@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Bunny OS",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "identifier": "dev.bunnyos.app",
   "build": {
     "beforeDevCommand": "npm run dev:frontend",
@@ -23,7 +23,13 @@
         "transparent": true,
         "skipTaskbar": true,
         "alwaysOnTop": true,
-        "shadow": false
+        "shadow": false,
+        "backgroundColor": {
+          "red": 0,
+          "green": 0,
+          "blue": 0,
+          "alpha": 0
+        }
       }
     ],
     "security": {

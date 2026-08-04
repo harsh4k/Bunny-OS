@@ -1,6 +1,6 @@
 [package]
 name = "bunny-os"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 description = "Bunny OS — local-only privacy-first desktop automation suite"
 license = "UNLICENSED"
@@ -22,6 +22,11 @@ anyhow                   = "1"
 open                     = "5"
 rfd                      = "0.15"
 tauri-plugin-global-shortcut = "2"
+image                    = { version = "0.25", default-features = false, features = ["png"] }
+base64                   = "0.22"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+icns                     = "0.3"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

@@ -7,6 +7,8 @@ import { FirstRunNotice } from "../components/FirstRunNotice";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(async (cmd: string) => {
+    if (cmd === "get_onboarding_complete") return false;
+    if (cmd === "complete_onboarding") return;
     if (cmd === "onboarding_scan") {
       return {
         os: "Windows",
@@ -55,11 +57,19 @@ describe("FirstRunNotice onboarding", () => {
       screen.getByLabelText(/finish onboarding/i).click();
     });
     expect(localStorage.getItem("bunnyos.onboarding.v1")).toBe("1");
+    const { invoke } = await import("@tauri-apps/api/core");
+    expect(invoke).toHaveBeenCalledWith("complete_onboarding");
     expect(screen.queryByLabelText(/bunny os onboarding/i)).toBeNull();
   });
 
   it("stays hidden after acknowledge", async () => {
     localStorage.setItem("bunnyos.onboarding.v1", "1");
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+      if (cmd === "get_onboarding_complete") return true;
+      if (cmd === "complete_onboarding") return;
+      return null;
+    });
     await act(async () => {
       render(<FirstRunNotice />);
     });

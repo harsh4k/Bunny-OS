@@ -1,8 +1,8 @@
 /** Single source for public installer links (GitHub Releases).
  * Pin to the latest *published* tag — bump only after CI publishes assets.
  */
-export const RELEASE_TAG = "v0.3.2";
-export const RELEASE_VERSION = "0.3.2";
+export const RELEASE_TAG = "v0.3.3";
+export const RELEASE_VERSION = "0.3.3";
 
 const BASE = `https://github.com/harsh4k/Bunny-OS/releases/download/${RELEASE_TAG}`;
 

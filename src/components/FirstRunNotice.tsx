@@ -36,14 +36,27 @@ export function FirstRunNotice({ onDismiss }: Props) {
   const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   useEffect(() => {
-    try {
-      if (localStorage.getItem(KEY) === "1" || localStorage.getItem(LEGACY_KEY) === "1") {
-        return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const complete = await invoke<boolean>("get_onboarding_complete");
+        if (cancelled) return;
+        if (complete) return;
+        if (
+          localStorage.getItem(KEY) === "1" ||
+          localStorage.getItem(LEGACY_KEY) === "1"
+        ) {
+          await invoke("complete_onboarding");
+          return;
+        }
+        setVisible(true);
+      } catch {
+        if (!cancelled) setVisible(true);
       }
-      setVisible(true);
-    } catch {
-      setVisible(true);
-    }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const finish = useCallback(() => {
@@ -52,6 +65,7 @@ export function FirstRunNotice({ onDismiss }: Props) {
     } catch {
       /* ignore */
     }
+    void invoke("complete_onboarding").catch(() => {});
     setVisible(false);
     onDismiss?.();
   }, [onDismiss]);

@@ -145,6 +145,30 @@ pub async fn onboarding_scan() -> Result<OnboardingScan, String> {
 }
 
 #[tauri::command]
+pub fn get_onboarding_complete() -> bool {
+    crate::onboarding::is_complete()
+}
+
+#[tauri::command]
+pub async fn complete_onboarding() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(crate::onboarding::mark_complete)
+        .await
+        .map_err(|e| format!("complete_onboarding task failed: {e}"))?
+}
+
+/// PNG data URL for an installed app (.lnk / .exe / .app). Cached under app-data/icons/.
+#[tauri::command]
+pub async fn get_app_icon(path: String) -> Option<String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let p = std::path::PathBuf::from(path);
+        crate::app_icons::icon_data_url(&p).ok()
+    })
+    .await
+    .ok()
+    .flatten()
+}
+
+#[tauri::command]
 pub async fn list_apps() -> Result<Vec<crate::user_apps::AppListEntry>, String> {
     tauri::async_runtime::spawn_blocking(|| crate::user_apps::list_apps(false))
         .await

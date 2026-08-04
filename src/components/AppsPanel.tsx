@@ -60,6 +60,7 @@ function tint(name: string): string {
 
 export function AppsPanel({ onClose }: Props) {
   const [apps, setApps] = useState<AppRow[]>([]);
+  const [iconUrls, setIconUrls] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +96,22 @@ export function AppsPanel({ onClose }: Props) {
     void load(false);
   }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+    for (const app of apps) {
+      if (!app.path || app.source === "alias") continue;
+      void invoke<string | null>("get_app_icon", { path: app.path }).then((url) => {
+        if (cancelled || !url) return;
+        setIconUrls((prev) =>
+          prev[app.path] ? prev : { ...prev, [app.path]: url },
+        );
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [apps]);
+
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
     if (!q) return apps;
@@ -126,27 +143,31 @@ export function AppsPanel({ onClose }: Props) {
 
   const dockItems: DockNavItem[] = useMemo(
     () =>
-      filtered.map((app) => ({
-        id: `${app.source}:${app.id ?? app.name}`,
-        label: app.name,
-        alt: `${app.name} — ${sourceLabel(app.source)}`,
-        icon: (
-          <span
-            className={styles.appGlyph}
-            style={{ background: tint(app.name) }}
-            aria-hidden="true"
-          >
-            {initials(app.name)}
-          </span>
-        ),
-        onRemove:
-          app.removable && app.id
-            ? () => {
-                void remove(app.id!);
-              }
-            : undefined,
-      })),
-    [filtered, remove],
+      filtered.map((app) => {
+        const iconSrc = app.path ? iconUrls[app.path] : undefined;
+        return {
+          id: `${app.source}:${app.id ?? app.name}`,
+          label: app.name,
+          alt: `${app.name} — ${sourceLabel(app.source)}`,
+          iconSrc,
+          icon: iconSrc ? undefined : (
+            <span
+              className={styles.appGlyph}
+              style={{ background: tint(app.name) }}
+              aria-hidden="true"
+            >
+              {initials(app.name)}
+            </span>
+          ),
+          onRemove:
+            app.removable && app.id
+              ? () => {
+                  void remove(app.id!);
+                }
+              : undefined,
+        };
+      }),
+    [filtered, iconUrls, remove],
   );
 
   const addAlias = async () => {

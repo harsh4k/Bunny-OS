@@ -70,7 +70,7 @@ pub struct AppListEntry {
     pub removable: bool,
 }
 
-fn app_data_dir() -> PathBuf {
+pub fn app_data_dir() -> PathBuf {
     if let Ok(override_dir) = std::env::var("BUNNY_APP_DATA") {
         return PathBuf::from(override_dir);
     }

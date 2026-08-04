@@ -4,6 +4,7 @@
 #![deny(unsafe_code)]
 
 pub mod applog;
+pub mod app_icons;
 pub mod audit;
 mod brand_icon;
 pub mod broker;
@@ -14,6 +15,7 @@ pub mod ipc;
 pub mod media_keys;
 pub mod ollama;
 pub mod ollama_bootstrap;
+pub mod onboarding;
 pub mod proc;
 pub mod protocol;
 pub mod sidecar;
@@ -82,6 +84,9 @@ pub fn run() {
             commands::open_sound_settings,
             commands::open_accessibility_settings,
             commands::onboarding_scan,
+            commands::get_onboarding_complete,
+            commands::complete_onboarding,
+            commands::get_app_icon,
             commands::quit_app,
             commands::restart_sidecar,
             commands::send_action,

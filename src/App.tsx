@@ -41,15 +41,33 @@ function forceDashboardPreview(): boolean {
   }
 }
 
-function needsOnboarding(): boolean {
-  if (forceDashboardPreview()) return false;
+function localOnboardingDone(): boolean {
   try {
     return (
-      localStorage.getItem(ONBOARDING_KEY) !== "1" &&
-      localStorage.getItem(ONBOARDING_LEGACY) !== "1"
+      localStorage.getItem(ONBOARDING_KEY) === "1" ||
+      localStorage.getItem(ONBOARDING_LEGACY) === "1"
     );
   } catch {
-    return true;
+    return false;
+  }
+}
+
+function needsOnboarding(): boolean {
+  if (forceDashboardPreview()) return false;
+  return !localOnboardingDone();
+}
+
+async function resolveOnboardingPending(): Promise<boolean> {
+  if (forceDashboardPreview()) return false;
+  try {
+    let complete = await invoke<boolean>("get_onboarding_complete");
+    if (!complete && localOnboardingDone()) {
+      await invoke("complete_onboarding");
+      complete = true;
+    }
+    return !complete;
+  } catch {
+    return needsOnboarding();
   }
 }
 
@@ -66,11 +84,11 @@ function easeOutCubic(t: number): number {
 }
 
 function App() {
-  const [onboardingPending, setOnboardingPending] = useState(needsOnboarding);
-  const startOpen = () => needsOnboarding() || forceDashboardPreview();
-  const [expanded, setExpanded] = useState(startOpen);
+  const [onboardingPending, setOnboardingPending] = useState(true);
+  const [onboardingReady, setOnboardingReady] = useState(false);
+  const [expanded, setExpanded] = useState(() => forceDashboardPreview());
   const [shellMotion, setShellMotion] = useState<ShellMotion>(() =>
-    startOpen() && !prefersReducedMotion() ? "enter" : "idle"
+    forceDashboardPreview() && !prefersReducedMotion() ? "enter" : "idle"
   );
   const [activeView, setActiveView] = useState<PanelView>("overview");
   const [micMuted, setMicMuted] = useState(true);
@@ -120,6 +138,9 @@ function App() {
         if (monitor) {
           await window.setPosition(new LogicalPosition(endX, endY));
         }
+        if (!nextExpanded) {
+          await ensureIslandTransparency();
+        }
         return;
       }
 
@@ -164,6 +185,9 @@ function App() {
       await window.setShadow(nextExpanded);
       if (monitor) {
         await window.setPosition(new LogicalPosition(endX, endY));
+      }
+      if (!nextExpanded) {
+        await ensureIslandTransparency();
       }
     } catch {
       applyIslandCssVars();
@@ -250,8 +274,34 @@ function App() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const pending = await resolveOnboardingPending();
+      if (cancelled) return;
+      setOnboardingPending(pending);
+      setOnboardingReady(true);
+      if (pending) {
+        setIslandShown(true);
+        setIslandOpen(true);
+        setExpanded(true);
+        setShellMotion(prefersReducedMotion() ? "idle" : "enter");
+        void invoke("show_window").catch(() => {});
+        void placeWindow(true, true);
+      } else if (!forceDashboardPreview()) {
+        setExpanded(false);
+        setShellMotion("idle");
+        void placeWindow(false, false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [placeWindow]);
+
+  useEffect(() => {
     applyIslandCssVars();
     void ensureIslandTransparency();
+    if (!onboardingReady) return;
     const open = expandedRef.current;
     void placeWindow(open, open && shellMotion === "enter");
     return () => {
@@ -261,30 +311,21 @@ function App() {
     };
     // Initial placement only — open/close paths call placeWindow themselves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [onboardingReady]);
 
   useEffect(() => {
-    if (!onboardingPending) return;
-    setIslandShown(true);
-    setIslandOpen(true);
-    setExpanded(true);
-    setShellMotion(prefersReducedMotion() ? "idle" : "enter");
-    void invoke("show_window").catch(() => {});
-    void placeWindow(true, true);
-  }, [onboardingPending, placeWindow]);
-
-  useEffect(() => {
+    if (!onboardingReady) return;
     const surface = expanded ? "dashboard" : "island";
     document.documentElement.dataset.surface = surface;
     document.body.dataset.surface = surface;
     if (!expanded) applyIslandCssVars();
-  }, [expanded]);
+  }, [expanded, onboardingReady]);
 
   // Resize island window when bar tuck/open changes (smaller window when notched).
   useEffect(() => {
-    if (expanded || !islandShown) return;
+    if (!onboardingReady || expanded || !islandShown) return;
     void placeWindow(false, !prefersReducedMotion());
-  }, [expanded, islandShown, pillOpen, placeWindow]);
+  }, [onboardingReady, expanded, islandShown, pillOpen, placeWindow]);
 
   // Idle tuck: collapse to the thin notch (window shrinks to NOTCH_WINDOW).
   useEffect(() => {
@@ -408,7 +449,7 @@ function App() {
         visible={expanded}
         onPendingChange={handleBrowserPending}
       />
-      {!expanded ? (
+      {!onboardingReady ? null : !expanded ? (
         <VoicePill
           open={pillOpen}
           onExpand={() => openShell("overview")}
