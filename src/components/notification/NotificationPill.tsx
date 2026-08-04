@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+﻿import type { ReactNode } from "react";
 import {
   NOTIFICATION_BLUR_PX,
   NOTIFICATION_COLOR,
@@ -6,11 +6,28 @@ import {
   NOTIFICATION_SIZE,
   NOTIFICATION_SPACING,
 } from "./constants";
-import type { NotificationContentProps } from "./NotificationContent";
 import { NotificationQueue } from "./NotificationQueue";
 import styles from "./NotificationPill.module.css";
 
-export type { NotificationContentProps, NotificationTone, NotificationVariant } from "./NotificationContent";
+export type NotificationTone = "idle" | "active" | "hearing" | "error";
+export type NotificationVariant = "compact" | "media";
+
+export interface MediaProgress {
+  /** 0–1 playback progress. */
+  value: number;
+}
+
+export interface NotificationContentProps {
+  variant?: NotificationVariant;
+  title: string;
+  subtitle?: string;
+  tone?: NotificationTone;
+  leading?: ReactNode;
+  trailing?: ReactNode;
+  artworkSrc?: string;
+  artworkAlt?: string;
+  progress?: MediaProgress;
+}
 
 export interface NotificationPillProps extends NotificationContentProps {
   open?: boolean;
@@ -22,6 +39,8 @@ export interface NotificationPillProps extends NotificationContentProps {
   onActivate?: () => void;
   activateLabel?: string;
   activateTitle?: string;
+  /** Voice pill: center status text + trailing dots as one cluster. */
+  statusCenter?: boolean;
 }
 
 export function applyNotificationCssVars(
@@ -33,6 +52,10 @@ export function applyNotificationCssVars(
   el.style.setProperty("--notification-border-hover", NOTIFICATION_COLOR.borderHover);
   el.style.setProperty("--notification-title", NOTIFICATION_COLOR.title);
   el.style.setProperty("--notification-subtitle", NOTIFICATION_COLOR.subtitle);
+  el.style.setProperty("--notification-accent", NOTIFICATION_COLOR.accent);
+  el.style.setProperty("--notification-accent-dim", NOTIFICATION_COLOR.accentDim);
+  el.style.setProperty("--notification-glow", NOTIFICATION_COLOR.glow);
+  el.style.setProperty("--notification-glow-cool", NOTIFICATION_COLOR.glowCool);
   el.style.setProperty("--notification-shadow", NOTIFICATION_SHADOW.rest);
   el.style.setProperty("--notification-shadow-hover", NOTIFICATION_SHADOW.hover);
   el.style.setProperty("--notification-shadow-bar", NOTIFICATION_SHADOW.bar);
@@ -51,8 +74,8 @@ export function applyNotificationCssVars(
 }
 
 /**
- * Floating Dynamic Island–style notification shell.
- * Presentation only — open/hover still driven by App / VoicePill.
+ * Floating Dynamic Islandâ€“style notification shell.
+ * Presentation only â€” open/hover still driven by App / VoicePill.
  */
 export function NotificationPill({
   open = true,
@@ -62,6 +85,7 @@ export function NotificationPill({
   onActivate,
   activateLabel,
   activateTitle,
+  statusCenter = false,
   leading,
   trailing,
   title,
@@ -88,6 +112,7 @@ export function NotificationPill({
           onActivate={onActivate}
           activateLabel={activateLabel}
           activateTitle={activateTitle}
+          statusCenter={statusCenter}
           leading={leading}
           trailing={trailing}
           title={title}
@@ -108,6 +133,7 @@ function PillFace({
   onActivate,
   activateLabel,
   activateTitle,
+  statusCenter = false,
   leading,
   trailing,
   title,
@@ -122,6 +148,7 @@ function PillFace({
   onActivate?: () => void;
   activateLabel?: string;
   activateTitle?: string;
+  statusCenter?: boolean;
 }) {
   const isMedia = variant === "media";
   const resolvedLeading =
@@ -136,7 +163,7 @@ function PillFace({
     ) : null);
 
   const textBlock = (
-    <>
+    <div className={styles.body} data-lines={subtitle ? "2" : "1"}>
       <span className={styles.title}>{title}</span>
       {subtitle ? <span className={styles.subtitle}>{subtitle}</span> : null}
       {isMedia && progress ? (
@@ -149,35 +176,46 @@ function PillFace({
           />
         </div>
       ) : null}
-    </>
+    </div>
   );
 
   return (
-    <div className={styles.content} data-variant={variant} data-tone={tone}>
+    <div
+      className={styles.content}
+      data-variant={variant}
+      data-tone={tone}
+      data-center={statusCenter ? "true" : undefined}
+    >
       {onActivate ? (
         <button
           type="button"
           className={styles.activate}
+          data-center={statusCenter ? "true" : undefined}
           onClick={onActivate}
           aria-label={activateLabel ?? title}
           title={activateTitle}
-          aria-expanded="false"
+          aria-expanded={open}
           tabIndex={open ? 0 : -1}
         >
           {resolvedLeading ? (
             <span className={styles.leading}>{resolvedLeading}</span>
           ) : null}
-          <span className={styles.body}>{textBlock}</span>
+          {textBlock}
+          {statusCenter && trailing ? (
+            <span className={styles.trailing}>{trailing}</span>
+          ) : null}
         </button>
       ) : (
         <>
           {resolvedLeading ? (
             <div className={styles.leading}>{resolvedLeading}</div>
           ) : null}
-          <div className={styles.body}>{textBlock}</div>
+          {textBlock}
         </>
       )}
-      {trailing ? <div className={styles.trailing}>{trailing}</div> : null}
+      {!statusCenter && trailing ? (
+        <div className={styles.trailing}>{trailing}</div>
+      ) : null}
     </div>
   );
 }

@@ -16,6 +16,8 @@
     "core:window:allow-set-shadow",
     "core:window:allow-current-monitor",
     "core:window:allow-set-ignore-cursor-events",
+    "core:window:allow-set-background-color",
+    "core:webview:allow-set-webview-background-color",
     "core:app:allow-app-show",
     "core:app:allow-version"
   ]

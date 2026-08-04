@@ -106,8 +106,8 @@ pub async fn open_accessibility_settings() -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn show_window(app: AppHandle) -> Result<(), String> {
-    crate::tray::show_main(&app);
+pub async fn show_window(app: AppHandle, focus: Option<bool>) -> Result<(), String> {
+    crate::tray::show_main_with_focus(&app, focus.unwrap_or(true));
     Ok(())
 }
 

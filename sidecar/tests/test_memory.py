@@ -12,6 +12,7 @@ class TestMemoryStore(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.store = MemoryStore(Path(self.tmp.name) / "m.db")
+        self.store.set_enabled(True)
 
     def tearDown(self):
         # Windows can briefly keep the SQLite file handle after close.

@@ -63,6 +63,21 @@ class TestBrowserActions(unittest.TestCase):
             focus.assert_called_once()
             self.assertIn("address", out.lower())
 
+    def test_confirm_restores_foreground_before_type(self) -> None:
+        with (
+            patch("browser_actions.foreground_handle", return_value=0xABC),
+            patch("browser_actions.restore_foreground") as restore,
+            patch("browser_actions.browser_type_text") as type_fn,
+        ):
+            browser_actions.handle_browser_action(
+                {"action": "browser_type", "text": "hi"}
+            )
+            pid = browser_actions.pending_snapshot()[0]["pending_id"]
+            result = browser_actions.confirm(pid)
+            self.assertTrue(result["ok"])
+            restore.assert_called_once_with(0xABC)
+            type_fn.assert_called_once_with("hi")
+
     def test_click_role_confirm_then_execute(self) -> None:
         with patch("browser_actions.browser_click_role") as click:
             browser_actions.handle_browser_action(

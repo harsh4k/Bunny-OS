@@ -87,8 +87,8 @@ export function UpdatesPanel({ onClose }: Props) {
       await invoke("open_trusted_https", { url });
     });
 
-  const winUrl = check?.win_msi_url || WIN_MSI;
-  const macUrl = check?.mac_dmg_url || MAC_DMG;
+  const winUrl = check?.win_msi_url || (!check?.newer ? WIN_MSI : null);
+  const macUrl = check?.mac_dmg_url || (!check?.newer ? MAC_DMG : null);
 
   const statusLabel = check
     ? check.newer
@@ -166,22 +166,31 @@ export function UpdatesPanel({ onClose }: Props) {
             <button
               type="button"
               className={chrome.btnInk}
-              disabled={busy}
+              disabled={busy || !winUrl}
               data-testid="download-windows"
-              onClick={() => void openUrl(winUrl)}
+              onClick={() => {
+                if (winUrl) void openUrl(winUrl);
+              }}
             >
               Download Windows
             </button>
             <button
               type="button"
               className={chrome.btnInk}
-              disabled={busy}
+              disabled={busy || !macUrl}
               data-testid="download-mac"
-              onClick={() => void openUrl(macUrl)}
+              onClick={() => {
+                if (macUrl) void openUrl(macUrl);
+              }}
             >
               Download Mac
             </button>
           </div>
+          {check?.newer && !check.win_msi_url && !check.mac_dmg_url ? (
+            <p className={styles.idleHint}>
+              Update listed on GitHub — use All releases to download (installer URL not in the API response).
+            </p>
+          ) : null}
           <div className={styles.btnRow} style={{ justifyContent: "flex-start" }}>
             <button
               type="button"

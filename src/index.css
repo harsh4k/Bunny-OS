@@ -16,15 +16,15 @@
   --color-window-rim:       rgba(0, 0, 0, 0.12);
 
   /* Island — floating Dynamic Island pill */
-  --color-island:           rgba(15, 15, 15, 0.92);
-  --color-island-hover:     rgba(28, 28, 28, 0.94);
-  --color-island-rim:       rgba(255, 255, 255, 0.08);
-  --color-island-rim-hover: rgba(255, 255, 255, 0.14);
-  --color-island-sheen:     rgba(255, 255, 255, 0.08);
-  --color-island-glow:      rgba(255, 255, 255, 0.06);
+  --color-island:           rgba(14, 12, 22, 0.82);
+  --color-island-hover:     rgba(22, 19, 34, 0.88);
+  --color-island-rim:       rgba(232, 200, 150, 0.18);
+  --color-island-rim-hover: rgba(232, 200, 150, 0.32);
+  --color-island-sheen:     rgba(255, 255, 255, 0.1);
+  --color-island-glow:      rgba(196, 165, 116, 0.22);
   --color-inner-highlight:  rgba(255, 255, 255, 0.55);
-  --color-island-text:      #ffffff;
-  --color-island-text-muted:rgba(255, 255, 255, 0.65);
+  --color-island-text:      #f7f4ef;
+  --color-island-text-muted:rgba(196, 188, 176, 0.72);
   --color-island-divider:   rgba(255, 255, 255, 0.1);
 
   /* Text — SF-like contrast */
@@ -47,8 +47,9 @@
   /* Elevation — quiet macOS window */
   --shadow-island-inset: inset 0 1px 0 rgba(255, 255, 255, 0.12);
   --shadow-island-float:
-    0 8px 28px rgba(0, 0, 0, 0.38),
-    0 2px 6px rgba(0, 0, 0, 0.22);
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 14px 36px rgba(0, 0, 0, 0.48),
+    0 0 28px rgba(196, 165, 116, 0.14);
   --shadow-island: var(--shadow-island-float);
   --shadow-island-focus: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
   --shadow-window:
@@ -103,7 +104,7 @@
   --text-xl:    22px;
 
   /* Island geometry — MUST match src/lib/islandGeometry.ts + tauri.conf.json */
-  --island-pill-w: 300px;
+  --island-pill-w: 220px;
   --island-pill-h: 38px;
   --island-pill-radius: 12px;
   --island-notch-w: 160px;
@@ -112,7 +113,7 @@
   --island-pad-top: 0px;
   --island-pad-bottom: 16px;
   --island-pad-y: 0px;
-  --island-window-w: 324px;
+  --island-window-w: 244px;
   --island-window-h: 54px;
 }
 
@@ -134,6 +135,12 @@ body,
   box-shadow: none;
   background: transparent;
   overflow: hidden;
+}
+
+html[data-tauri="1"],
+html[data-tauri="1"] body,
+html[data-tauri="1"] #root {
+  background: transparent !important;
 }
 
 html[data-surface="island"],

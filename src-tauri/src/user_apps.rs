@@ -238,10 +238,7 @@ pub fn list_apps(force_rescan: bool) -> Result<Vec<AppListEntry>, String> {
                     return Err(err);
                 }
                 // Keep prior scan; caller can still show apps.
-                crate::applog::info(
-                    "user_apps",
-                    &format!("rescan failed, using cache: {err}"),
-                );
+                crate::applog::info("user_apps", &format!("rescan failed, using cache: {err}"));
             }
         }
     }
@@ -262,11 +259,8 @@ fn entries_from_file(file: &UserAppsFile) -> Vec<AppListEntry> {
         });
     }
 
-    let custom_keys: std::collections::HashSet<String> = file
-        .custom
-        .iter()
-        .map(|c| c.name.to_lowercase())
-        .collect();
+    let custom_keys: std::collections::HashSet<String> =
+        file.custom.iter().map(|c| c.name.to_lowercase()).collect();
 
     for s in &file.scanned {
         if custom_keys.contains(&s.name.to_lowercase()) {
@@ -315,7 +309,11 @@ pub fn add_custom(name: &str, path: &Path) -> Result<CustomApp, String> {
         return Err(format!("custom app limit is {MAX_CUSTOM}"));
     }
     let key = name.to_lowercase();
-    if file.custom.iter().any(|c| c.name.eq_ignore_ascii_case(&name)) {
+    if file
+        .custom
+        .iter()
+        .any(|c| c.name.eq_ignore_ascii_case(&name))
+    {
         return Err("an app with that name already exists".to_string());
     }
     // Prefer custom over colliding scanned display later; also clear alias with same key.

@@ -67,6 +67,7 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
     if (!sidecarReady) return;
     const id = crypto.randomUUID();
     let unlisten: UnlistenFn | null = null;
+    let cancelled = false;
     void listen<AppEvent>("app-event", (e) => {
       const ev = e.payload;
       if (ev.event !== "sidecar-message") return;
@@ -80,13 +81,22 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
       } catch {
         /* keep the fallback default */
       }
-    }).then((fn) => {
-      unlisten = fn;
-    });
-    invoke("send_action", { id, payload: { action: "get_default_model" } }).catch(
-      () => unlisten?.()
-    );
-    return () => unlisten?.();
+    })
+      .then((fn) => {
+        if (cancelled) {
+          fn();
+          return;
+        }
+        unlisten = fn;
+        return invoke("send_action", { id, payload: { action: "get_default_model" } });
+      })
+      .catch(() => {
+        unlisten?.();
+      });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
   }, [sidecarReady]);
 
   useEffect(() => {
@@ -115,6 +125,15 @@ export function ChatPanel({ onClose, sidecarReady }: Props) {
       if ("id" in msg && msg.id !== requestId) return;
 
       if (msg.type === "stream" && msg.id === requestId) {
+        // Risky browser tools stream confirm JSON on the chat id — don't paint it.
+        if (
+          msg.chunk.startsWith("{") &&
+          msg.chunk.includes("browser_confirm_pending")
+        ) {
+          if (msg.finished) clearWatchdog();
+          else armWatchdog();
+          return;
+        }
         setPhase((prev) => {
           if (prev.phase !== "streaming") return prev;
           return { ...prev, text: prev.text + msg.chunk };

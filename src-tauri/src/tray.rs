@@ -35,9 +35,16 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
 
 /// Show the main window without forcing island size — React owns expand/collapse sizing.
 pub(crate) fn show_main(app: &AppHandle) {
+    show_main_with_focus(app, true);
+}
+
+/// Reveal the main window; `focus` false keeps the previous foreground app (browser confirm).
+pub(crate) fn show_main_with_focus(app: &AppHandle, focus: bool) {
     if let Some(win) = app.get_webview_window("main") {
         let _ = win.show();
-        let _ = win.set_focus();
+        if focus {
+            let _ = win.set_focus();
+        }
         let _ = app.emit("window-shown", ());
     }
 }

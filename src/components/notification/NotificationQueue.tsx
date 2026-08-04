@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
+import { applyIslandCssVars } from "../../lib/islandGeometry";
 import styles from "./NotificationPill.module.css";
 
 export interface NotificationQueueProps {
@@ -30,6 +31,10 @@ export function NotificationQueue({
 }: NotificationQueueProps) {
   const leaveTimer = useRef<number | null>(null);
 
+  useEffect(() => {
+    applyIslandCssVars();
+  }, []);
+
   const clearLeaveTimer = useCallback(() => {
     if (leaveTimer.current !== null) {
       window.clearTimeout(leaveTimer.current);
@@ -54,9 +59,10 @@ export function NotificationQueue({
 
   return (
     <section className={styles.stage} aria-label="Bunny voice notification">
-      {/* Stable hit pad — always pill-sized so hover doesn't flicker during morph */}
+      {/* Hit pad tracks visible shell — App polls the same bounds for click-through. */}
       <div
         className={styles.hit}
+        data-open={open ? "true" : "false"}
         onMouseEnter={handleEnter}
         onMouseLeave={handleLeave}
       >

@@ -4,8 +4,8 @@
  * Window is always the expanded-bar size; CSS morphs sleek top bar ↔ pill.
  */
 
-/** Max content width — pill uses fit-content up to this. */
-export const PILL_W = 300;
+/** Fixed open pill width — one size for all status phrases. */
+export const PILL_W = 220;
 export const PILL_H = 38;
 /** Bottom-corner radius when hanging from the top edge (not a capsule). */
 export const PILL_RADIUS = 12;
@@ -28,8 +28,18 @@ export const WINDOW_H = PILL_H + PAD_TOP + PAD_BOTTOM;
 /** Stick to the monitor top edge. */
 export const TOP_INSET = 0;
 
-/** 324 × 54 with current constants — keep tauri.conf.json initial size in sync. */
+/** 244 × 54 with current constants — keep tauri.conf.json initial size in sync. */
 export const ISLAND_WINDOW = { width: WINDOW_W, height: WINDOW_H } as const;
+
+/** Tucked notch — minimal window so transparent chrome doesn't block other apps. */
+export const NOTCH_WINDOW = {
+  width: NOTCH_W + PAD_X * 2,
+  height: NOTCH_H + PAD_BOTTOM,
+} as const;
+
+export function islandBarWindow(barOpen: boolean): typeof ISLAND_WINDOW | typeof NOTCH_WINDOW {
+  return barOpen ? ISLAND_WINDOW : NOTCH_WINDOW;
+}
 
 export function applyIslandCssVars(
   el: HTMLElement = document.documentElement

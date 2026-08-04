@@ -21,7 +21,7 @@ Bunny OS: local-only privacy-first desktop automation suite for Windows 10/11 an
 - Chat: Ollama (auto-installed on first run from official ollama.com build if missing; default model `llama3.2:1b`)
 - Local DB: SQLite under `%LOCALAPPDATA%\BunnyOS\` (Windows) or `~/Library/Application Support/BunnyOS/` (macOS)
 - No shell execution (cmd.exe/powershell/osascript forbidden); Win32 / LaunchServices / Tauri APIs allowed
-- Allowlisted MVP actions only: `open_app`, `open_url`, `youtube_search`, `youtube_play`, `spotify_open`, `spotify_search`, `spotify_play`, `media_play`, `media_next`, `media_prev`, `show_system_summary`, `get_local_time`, `get_local_date`, `respond`, `browser_scroll`, `browser_type`, `browser_click_role`, `browser_focus_search` (type/click need confirm)
+- Allowlisted MVP actions only: `open_app`, `open_url`, `youtube_search`, `youtube_play`, `spotify_open`, `spotify_search`, `spotify_play`, `media_play`, `media_next`, `media_prev`, `show_system_summary`, `respond`, `browser_scroll`, `browser_type`, `browser_click_role`, `browser_focus_search` (type/click need confirm). Time/date answered in-process by the sidecar (not host-brokered IPC actions).
 - Voice fast-path: time/date/open/youtube/spotify/media matched locally before Ollama; errors are spoken aloud
 - Wake word: custom text phrase (default **hey bunny**), persisted under app-data `wake/`; optional openWakeWord models; never authorizes actions
 - No LLM-invented tools — new capabilities must be added to the typed allowlist

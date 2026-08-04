@@ -103,6 +103,8 @@ pub fn run() {
             // brand artwork on the live window (and tray) at runtime.
             if let Some(win) = app.get_webview_window("main") {
                 let _ = win.set_icon(brand_icon::brand_icon());
+                use tauri::webview::Color;
+                let _ = win.set_background_color(Some(Color(0, 0, 0, 0)));
             }
             tray::setup_tray(app.handle())?;
             hotkey::register(app.handle());

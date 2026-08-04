@@ -34,7 +34,7 @@ interface Props {
 }
 
 export function LearningPanel({ onClose, sidecarReady }: Props) {
-  const [enabled, setEnabled] = useState(true);
+  const [enabled, setEnabled] = useState(false);
   const [screenOn, setScreenOn] = useState(false);
   const [facts, setFacts] = useState<Fact[]>([]);
   const [session, setSession] = useState<SessionTurn[]>([]);

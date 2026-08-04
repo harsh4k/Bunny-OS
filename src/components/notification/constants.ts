@@ -8,12 +8,12 @@ export const NOTIFICATION_RADIUS = 12;
 export const NOTIFICATION_BLUR_PX = 40;
 
 export const NOTIFICATION_SPACING = {
-  padX: 12,
-  padY: 4,
+  padX: 20,
+  padY: 0,
   gap: 8,
   artSize: 26,
   artRadius: 6,
-  controlSize: 24,
+  controlSize: 22,
   progressH: 2,
   notchGap: 0,
 } as const;
@@ -25,12 +25,16 @@ export const NOTIFICATION_SHADOW = {
 } as const;
 
 export const NOTIFICATION_COLOR = {
-  bg: "#0a0a0a",
-  bgHover: "#161616",
-  border: "rgba(255, 255, 255, 0.1)",
-  borderHover: "rgba(255, 255, 255, 0.16)",
-  title: "#FFFFFF",
-  subtitle: "rgba(255, 255, 255, 0.58)",
+  bg: "rgba(12, 12, 12, 0.94)",
+  bgHover: "rgba(20, 20, 20, 0.96)",
+  border: "rgba(255, 255, 255, 0.08)",
+  borderHover: "rgba(255, 255, 255, 0.12)",
+  title: "#f5f5f5",
+  subtitle: "rgba(255, 255, 255, 0.55)",
+  accent: "#ffffff",
+  accentDim: "#a3a3a3",
+  glow: "rgba(255, 255, 255, 0.08)",
+  glowCool: "rgba(255, 255, 255, 0.04)",
 } as const;
 
 /**
@@ -71,7 +75,7 @@ export const NOTIFICATION_MOTION = {
 /** Keep in sync with islandGeometry.ts */
 export const NOTIFICATION_SIZE = {
   minWidth: 188,
-  maxWidth: 300,
+  maxWidth: 220,
   height: 38,
   mediaHeight: 44,
   notchWidth: 160,

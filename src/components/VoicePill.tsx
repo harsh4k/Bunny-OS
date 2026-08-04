@@ -1,18 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   NotificationPill,
   applyNotificationCssVars,
 } from "./notification";
 import type { NotificationTone } from "./notification";
 import { applyIslandCssVars } from "../lib/islandGeometry";
+import { spinnerIntervalMs, voicePillCopy } from "../lib/voicePillPhrases";
 import { useVoiceStatus } from "../lib/useVoiceStatus";
-import {
-  ACTIVE_VOICE_STATES,
-  levelBars,
-  shortErrorLabel,
-} from "../lib/voiceStatus";
-import { IconStop } from "./icons";
+import { ACTIVE_VOICE_STATES, shortErrorLabel } from "../lib/voiceStatus";
 import styles from "./notification/NotificationPill.module.css";
 
 interface Props {
@@ -23,60 +18,44 @@ interface Props {
   open?: boolean;
 }
 
-const BAR_COUNT = 7;
+const DOT_COUNT = 4;
 
 export function VoicePill({ onExpand, onHoverChange, open = true }: Props) {
-  const { state: voiceState, error, level, hearing } = useVoiceStatus();
-  const [pttKey, setPttKey] = useState("F9");
+  const { state: voiceState, error, hearing } = useVoiceStatus();
+  const [spinnerTick, setSpinnerTick] = useState(0);
+  const prevStateRef = useRef(voiceState);
 
   useEffect(() => {
     applyIslandCssVars();
     applyNotificationCssVars();
-    invoke<string>("get_ptt_label")
-      .then((key) => {
-        if (typeof key === "string" && key) setPttKey(key);
-      })
-      .catch(() => {});
   }, []);
 
-  const title = useMemo(() => {
-    if (error) return shortErrorLabel(error);
-    switch (voiceState) {
-      case "listening":
-        return hearing ? "Hearing you" : "Listening…";
-      case "transcribing":
-        return "Transcribing";
-      case "thinking":
-        return "Thinking";
-      case "speaking":
-        return "Speaking";
-      default:
-        return "Bunny";
+  useEffect(() => {
+    if (prevStateRef.current !== voiceState) {
+      prevStateRef.current = voiceState;
+      setSpinnerTick(0);
     }
-  }, [error, voiceState, hearing]);
+  }, [voiceState]);
 
-  const subtitle = useMemo(() => {
-    if (error) return "Tap to open";
-    switch (voiceState) {
-      case "listening":
-        return hearing ? "Go ahead" : "Say something";
-      case "transcribing":
-        return "Almost there";
-      case "thinking":
-        return "Working on it";
-      case "speaking":
-        return "Playing reply";
-      default:
-        return `Hold ${pttKey} to talk`;
-    }
-  }, [error, voiceState, hearing, pttKey]);
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setInterval(() => {
+      setSpinnerTick((t) => t + 1);
+    }, spinnerIntervalMs());
+    return () => window.clearInterval(id);
+  }, [open, voiceState]);
 
-  const stop = useCallback(async () => {
-    await invoke("send_action", {
-      id: crypto.randomUUID(),
-      payload: { action: "cancel_voice" },
-    });
-  }, []);
+  const { title } = useMemo(
+    () =>
+      voicePillCopy({
+        voiceState,
+        hearing,
+        error,
+        spinnerTick,
+        shortError: shortErrorLabel,
+      }),
+    [voiceState, hearing, error, spinnerTick]
+  );
 
   const active = ACTIVE_VOICE_STATES.has(voiceState);
   const listening = voiceState === "listening";
@@ -87,7 +66,6 @@ export function VoicePill({ onExpand, onHoverChange, open = true }: Props) {
       : active
         ? "active"
         : "idle";
-  const bars = listening ? levelBars(level, BAR_COUNT) : null;
 
   return (
     <NotificationPill
@@ -95,65 +73,28 @@ export function VoicePill({ onExpand, onHoverChange, open = true }: Props) {
       active={active}
       tone={tone}
       title={title}
-      subtitle={subtitle}
       onHoverChange={onHoverChange}
       onActivate={onExpand}
       activateLabel={`${title}. Open Bunny OS`}
       activateTitle={error ? title : undefined}
-      leading={
-        <span className={styles.dot} data-active={active} data-tone={tone} aria-hidden="true" />
-      }
-      trailing={
-        <>
-          <MicrophoneIcon active={active || listening} />
-          <span
-            className={styles.waveform}
-            data-active={active}
-            data-live={listening}
-            aria-hidden="true"
-          >
-            {Array.from({ length: BAR_COUNT }, (_, index) => (
-              <i
-                key={index}
-                style={
-                  {
-                    "--bar-index": index,
-                    "--bar-level": bars ? bars[index] : undefined,
-                  } as React.CSSProperties
-                }
-              />
-            ))}
-          </span>
-          <button
-            type="button"
-            className={styles.control}
-            data-accent={active ? "true" : undefined}
-            aria-label="Stop voice session"
-            disabled={!active}
-            tabIndex={open ? 0 : -1}
-            onClick={(e) => {
-              e.stopPropagation();
-              void stop();
-            }}
-          >
-            <IconStop size={10} />
-          </button>
-        </>
-      }
+      statusCenter
+      trailing={<SpinnerDots active={active || listening || !error} tone={tone} />}
     />
   );
 }
 
-function MicrophoneIcon({ active }: { active: boolean }) {
+function SpinnerDots({
+  active,
+  tone,
+}: {
+  active: boolean;
+  tone: NotificationTone;
+}) {
   return (
-    <svg
-      className={styles.mic}
-      data-active={active}
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <rect x="8" y="2.5" width="8" height="13" rx="4" />
-      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5M8.5 21.5h7" />
-    </svg>
+    <span className={styles.dots} data-active={active ? "true" : "false"} data-tone={tone} aria-hidden="true">
+      {Array.from({ length: DOT_COUNT }, (_, index) => (
+        <i key={index} style={{ "--dot-i": index } as React.CSSProperties} />
+      ))}
+    </span>
   );
 }

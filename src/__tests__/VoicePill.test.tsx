@@ -1,11 +1,9 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { invoke } from "@tauri-apps/api/core";
 import { VoicePill } from "../components/VoicePill";
 
 type Handler = (event: { payload: unknown }) => void;
 
-// The pill subscribes to more than one channel, so handlers are keyed by name.
 const handlers = new Map<string, Handler>();
 const appEventHandler = (payload: unknown) =>
   handlers.get("app-event")?.({ payload });
@@ -37,7 +35,7 @@ describe("VoicePill", () => {
     expect(onExpand).toHaveBeenCalledOnce();
   });
 
-  it("shows listening state and allows cancellation", async () => {
+  it("shows rotating Claude-style status while listening", async () => {
     await act(async () => {
       render(<VoicePill onExpand={() => {}} />);
     });
@@ -54,38 +52,9 @@ describe("VoicePill", () => {
       });
     });
 
-    expect(screen.getByText("Listening…")).toBeTruthy();
-    const stop = screen.getByLabelText("Stop voice session");
-    expect(stop).not.toBeDisabled();
-    await act(async () => {
-      fireEvent.click(stop);
-    });
-    expect(invoke).toHaveBeenCalledWith(
-      "send_action",
-      expect.objectContaining({
-        payload: { action: "cancel_voice" },
-      })
-    );
-  });
-
-  it("switches to Hearing you when the mic picks up sound", async () => {
-    await act(async () => {
-      render(<VoicePill onExpand={() => {}} />);
-    });
-
-    act(() => {
-      appEventHandler({
-        event: "sidecar-message",
-        message: {
-          type: "stream",
-          id: "voice-1",
-          chunk: '{"voice_state":"listening","level":0.6,"hearing":true}',
-          finished: false,
-        },
-      });
-    });
-
-    expect(screen.getByText("Hearing you")).toBeTruthy();
+    expect(screen.getByText(/\w+/)).toBeTruthy();
+    expect(screen.queryByLabelText("Stop voice session")).toBeNull();
+    expect(screen.queryByText(/Hold/i)).toBeNull();
   });
 
   it("condenses a sidecar failure into a label that fits the capsule", async () => {
@@ -108,7 +77,6 @@ describe("VoicePill", () => {
     });
 
     expect(screen.getByText("Ollama is offline")).toBeTruthy();
-    // Tooltip / aria must NOT leak WinError paths or "ollama serve" to users.
     expect(screen.getByTitle("Ollama is offline")).toBeTruthy();
     expect(screen.queryByTitle(/WinError 10061/)).toBeNull();
   });
@@ -128,7 +96,7 @@ describe("VoicePill", () => {
     expect(screen.queryByText("Voice error")).toBeNull();
   });
 
-  it("morphs to the thin top notch when closed", async () => {
+  it("morphs to the compact tuck when closed", async () => {
     await act(async () => {
       render(<VoicePill open={false} onExpand={() => {}} />);
     });

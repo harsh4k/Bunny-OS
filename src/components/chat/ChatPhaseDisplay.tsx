@@ -105,13 +105,13 @@ function describeAction(action: AssistantAction): string {
     case "youtube_search":
       return `YouTube search: ${action.query}`;
     case "youtube_play":
-      return `Play on YouTube: ${action.query}`;
+      return `Open YouTube results: ${action.query}`;
     case "spotify_open":
       return "Open Spotify";
     case "spotify_search":
       return `Spotify search: ${action.query}`;
     case "spotify_play":
-      return `Spotify search: ${action.query}`;
+      return `Open Spotify search (does not start playback): ${action.query}`;
     case "media_play":
       return "Play / pause media";
     case "media_next":

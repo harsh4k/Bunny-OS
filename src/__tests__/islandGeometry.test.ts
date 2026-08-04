@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import tauriConf from "../../src-tauri/tauri.conf.json";
 import {
   ISLAND_WINDOW,
+  NOTCH_WINDOW,
   NOTCH_H,
   NOTCH_W,
   PAD_BOTTOM,
@@ -14,6 +15,7 @@ import {
   WINDOW_H,
   WINDOW_W,
   applyIslandCssVars,
+  islandBarWindow,
 } from "../lib/islandGeometry";
 
 describe("islandGeometry", () => {
@@ -26,7 +28,10 @@ describe("islandGeometry", () => {
     expect(NOTCH_H).toBeLessThanOrEqual(5);
     expect(PAD_TOP).toBe(0);
     expect(TOP_INSET).toBe(0);
-    expect(ISLAND_WINDOW).toEqual({ width: 324, height: 54 });
+    expect(ISLAND_WINDOW).toEqual({ width: 244, height: 54 });
+    expect(NOTCH_WINDOW).toEqual({ width: 184, height: 20 });
+    expect(islandBarWindow(true)).toEqual(ISLAND_WINDOW);
+    expect(islandBarWindow(false)).toEqual(NOTCH_WINDOW);
   });
 
   it("keeps tauri.conf.json initial size in sync", () => {
@@ -38,7 +43,7 @@ describe("islandGeometry", () => {
   it("applies CSS vars used by VoicePill", () => {
     applyIslandCssVars();
     const style = document.documentElement.style;
-    expect(style.getPropertyValue("--island-pill-w")).toBe("300px");
+    expect(style.getPropertyValue("--island-pill-w")).toBe("220px");
     expect(style.getPropertyValue("--island-pill-h")).toBe("38px");
     expect(style.getPropertyValue("--island-pill-radius")).toBe("12px");
     expect(style.getPropertyValue("--island-notch-w")).toBe("160px");
@@ -46,7 +51,7 @@ describe("islandGeometry", () => {
     expect(style.getPropertyValue("--island-pad-x")).toBe("12px");
     expect(style.getPropertyValue("--island-pad-top")).toBe("0px");
     expect(style.getPropertyValue("--island-pad-bottom")).toBe("16px");
-    expect(style.getPropertyValue("--island-window-w")).toBe("324px");
+    expect(style.getPropertyValue("--island-window-w")).toBe("244px");
     expect(style.getPropertyValue("--island-window-h")).toBe("54px");
   });
 });

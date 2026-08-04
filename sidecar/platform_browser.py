@@ -51,23 +51,49 @@ def browser_focus_search() -> None:
 
 def browser_click_role(role: str, name: str) -> None:
     """
-    Click an accessible control by role + name when the OS bridge is available.
-    MVP: Windows UI Automation via comtypes when installed; otherwise clear error.
+    Click a visible top-level window whose title contains `name` (MVP).
+    `role` is accepted for schema compatibility but not used for matching yet.
     """
     role_c = (role or "").strip().lower()
     name_c = (name or "").strip()
     if not name_c:
-        raise ValueError("Click by role needs a control name.")
+        raise ValueError("Click needs a window or control name.")
     if len(name_c) > 120:
         raise ValueError("Control name is too long.")
-    if role_c and role_c not in {"button", "link", "tab", "menuitem", "checkbox"}:
+    if role_c and role_c not in {"button", "link", "tab", "menuitem", "checkbox", "window"}:
         raise ValueError(f"Role '{role_c}' is not allowlisted.")
     if sys.platform == "win32":
         _win_click_by_name(name_c)
         return
     raise RuntimeError(
-        "Click by role needs UI Automation on this OS. Use scroll, type, or focus search."
+        "Click by window title needs UI Automation on this OS. Use scroll, type, or focus search."
     )
+
+
+def foreground_handle() -> int | None:
+    """Opaque handle for the current foreground window (Windows HWND). None if unavailable."""
+    if sys.platform == "win32":
+        import ctypes
+
+        hwnd = int(ctypes.windll.user32.GetForegroundWindow() or 0)
+        return hwnd or None
+    return None
+
+
+def restore_foreground(handle: int | None) -> bool:
+    """Best-effort restore of a previously captured foreground window. Returns True if attempted."""
+    if not handle:
+        return False
+    if sys.platform == "win32":
+        import ctypes
+
+        user32 = ctypes.windll.user32
+        if not user32.IsWindow(handle):
+            return False
+        user32.SetForegroundWindow(handle)
+        time.sleep(0.05)
+        return True
+    return False
 
 
 def _win_scroll(direction: Direction, steps: int) -> None:

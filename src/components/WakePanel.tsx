@@ -79,14 +79,16 @@ export function WakePanel({ onClose, sidecarReady }: Props) {
         if (msg.type === "error") reject(new Error(msg.error));
         else if (msg.type === "response") resolve(msg.result);
         else reject(new Error("unexpected message"));
-      }).then((fn) => {
-        unlisten = fn;
-      });
-      invoke("send_action", { id, payload }).catch((err) => {
-        clearTimeout(timer);
-        unlisten?.();
-        reject(err);
-      });
+      })
+        .then((fn) => {
+          unlisten = fn;
+          return invoke("send_action", { id, payload });
+        })
+        .catch((err) => {
+          clearTimeout(timer);
+          unlisten?.();
+          reject(err);
+        });
     });
   }, []);
 

@@ -12,13 +12,12 @@ import type { PanelView } from "./components/CompactPanel";
 import { BrowserConfirmBanner } from "./components/BrowserConfirmBanner";
 import { VoicePill } from "./components/VoicePill";
 import {
-  ISLAND_WINDOW,
-  PAD_TOP,
-  PILL_H,
-  PILL_W,
   TOP_INSET,
   applyIslandCssVars,
+  islandBarWindow,
 } from "./lib/islandGeometry";
+import { cursorInHitRect, hitRectInWindow } from "./lib/islandHitTest";
+import { ensureIslandTransparency } from "./lib/islandTransparency";
 import { useVoiceStatus } from "./lib/useVoiceStatus";
 import type { ShellMotion } from "./lib/shellMotion";
 import { ACTIVE_VOICE_STATES } from "./lib/voiceStatus";
@@ -89,15 +88,23 @@ function App() {
   const afterExitRef = useRef<"collapse" | "hide" | null>(null);
   const exitDoneRef = useRef(false);
   const sizeAnimRef = useRef(0);
+  const islandBarOpenRef = useRef(true);
+
+  const voiceBusy = voiceError !== null || ACTIVE_VOICE_STATES.has(voiceState);
+  const pillOpen = islandOpen || pillHovered || voiceBusy;
+  islandBarOpenRef.current = pillOpen;
 
   const placeWindow = useCallback(async (nextExpanded: boolean, animate = false) => {
     try {
       const window = getCurrentWindow();
       document.documentElement.dataset.tauri = "1";
       applyIslandCssVars();
+      void ensureIslandTransparency();
 
-      const endW = nextExpanded ? DASHBOARD.width : ISLAND_WINDOW.width;
-      const endH = nextExpanded ? DASHBOARD.height : ISLAND_WINDOW.height;
+      const barOpen = islandBarOpenRef.current;
+      const islandFrame = nextExpanded ? null : islandBarWindow(barOpen);
+      const endW = nextExpanded ? DASHBOARD.width : islandFrame!.width;
+      const endH = nextExpanded ? DASHBOARD.height : islandFrame!.height;
       const monitor = await currentMonitor();
       const scale = monitor ? monitor.scaleFactor : 1;
       const monitorWidth = monitor ? monitor.size.width / scale : endW;
@@ -164,7 +171,7 @@ function App() {
   }, []);
 
   const openShell = useCallback(
-    (view: PanelView = "overview") => {
+    (view: PanelView = "overview", opts?: { focus?: boolean }) => {
       if (exitTimerRef.current != null) {
         window.clearTimeout(exitTimerRef.current);
         exitTimerRef.current = null;
@@ -176,7 +183,8 @@ function App() {
       setActiveView(view);
       setShellMotion(prefersReducedMotion() ? "idle" : "enter");
       setExpanded(true);
-      void invoke("show_window").catch(() => {});
+      const focus = opts?.focus !== false;
+      void invoke("show_window", { focus }).catch(() => {});
       void placeWindow(true, true);
     },
     [placeWindow]
@@ -243,6 +251,7 @@ function App() {
 
   useEffect(() => {
     applyIslandCssVars();
+    void ensureIslandTransparency();
     const open = expandedRef.current;
     void placeWindow(open, open && shellMotion === "enter");
     return () => {
@@ -271,10 +280,13 @@ function App() {
     if (!expanded) applyIslandCssVars();
   }, [expanded]);
 
-  const voiceBusy = voiceError !== null || ACTIVE_VOICE_STATES.has(voiceState);
-  const pillOpen = islandOpen || pillHovered || voiceBusy;
+  // Resize island window when bar tuck/open changes (smaller window when notched).
+  useEffect(() => {
+    if (expanded || !islandShown) return;
+    void placeWindow(false, !prefersReducedMotion());
+  }, [expanded, islandShown, pillOpen, placeWindow]);
 
-  // Idle tuck: collapse to the thin notch (window stays at the top edge).
+  // Idle tuck: collapse to the thin notch (window shrinks to NOTCH_WINDOW).
   useEffect(() => {
     if (onboardingPending || expanded || pillHovered || !islandShown) return;
     if (voiceBusy) return;
@@ -290,7 +302,7 @@ function App() {
     if (voiceBusy && islandShown) setIslandOpen(true);
   }, [voiceBusy, islandShown]);
 
-  // Idle island: pass clicks through; poll notch/bar hit-box so hover re-opens.
+  // Idle island: click-through everywhere except the visible notch/bar hit target.
   useEffect(() => {
     const apply = (ignore: boolean) => {
       try {
@@ -307,32 +319,32 @@ function App() {
       return;
     }
 
+    // Default pass-through until cursor is over the island.
+    apply(true);
+
     let cancelled = false;
     const tick = async () => {
       if (cancelled) return;
       try {
         const window = getCurrentWindow();
-        const [pos, scale] = await Promise.all([
+        const [pos, outer, scale] = await Promise.all([
           window.outerPosition(),
+          window.outerSize(),
           window.scaleFactor(),
         ]);
         const cursor = await cursorPosition();
-        // Always use expanded footprint for hover — notch-sized hit box thrash-opens.
-        const hitW = PILL_W * scale;
-        const hitH = PILL_H * scale;
-        const pillLeft = pos.x + ((ISLAND_WINDOW.width * scale - hitW) / 2);
-        const pillTop = pos.y + PAD_TOP * scale;
-        const pillRight = pillLeft + hitW;
-        const pillBottom = pillTop + hitH;
-        const overPill =
-          cursor.x >= pillLeft &&
-          cursor.x <= pillRight &&
-          cursor.y >= pillTop &&
-          cursor.y <= pillBottom;
-        setPillHovered(overPill);
-        if (overPill) setIslandOpen(true);
-        // Click-through only outside the expanded footprint (not the tiny bar).
-        await window.setIgnoreCursorEvents(!(overPill || voiceBusy));
+        const barOpen = islandBarOpenRef.current;
+        const rect = hitRectInWindow({
+          windowX: pos.x,
+          windowY: pos.y,
+          windowW: outer.width,
+          scale,
+          barOpen,
+        });
+        const overIsland = cursorInHitRect(cursor.x, cursor.y, rect);
+        setPillHovered(overIsland);
+        if (overIsland) setIslandOpen(true);
+        await window.setIgnoreCursorEvents(!overIsland);
       } catch {
         /* web / missing API */
       }
@@ -344,6 +356,7 @@ function App() {
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      apply(true);
     };
   }, [expanded, voiceBusy, islandShown]);
 
@@ -382,7 +395,8 @@ function App() {
   const handleBrowserPending = useCallback(
     (pending: { pendingId: string } | null) => {
       if (!pending) return;
-      openShell("overview");
+      // Show confirm UI without stealing focus from the browser (type/click target).
+      openShell("overview", { focus: false });
     },
     [openShell]
   );

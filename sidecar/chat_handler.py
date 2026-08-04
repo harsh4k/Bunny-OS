@@ -297,7 +297,8 @@ TOOL_DEFINITIONS: list[dict] = [
         "function": {
             "name": "browser_click_role",
             "description": (
-                "Click a control by allowlisted role and name (requires user confirm)"
+                "Click a visible top-level window whose title contains the name "
+                "(MVP — not full UI Automation role matching; requires user confirm)"
             ),
             "parameters": {
                 "type": "object",

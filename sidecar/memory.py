@@ -73,7 +73,7 @@ class MemoryStore:
     def __init__(self, db_path: Path) -> None:
         self._path = db_path
         self._lock = threading.Lock()
-        self._enabled = True
+        self._enabled = False
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 

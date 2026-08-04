@@ -1,13 +1,11 @@
 export { NotificationPill, applyNotificationCssVars } from "./NotificationPill";
-export type { NotificationPillProps } from "./NotificationPill";
-export { NotificationContent } from "./NotificationContent";
 export type {
+  NotificationPillProps,
   NotificationContentProps,
   NotificationTone,
   NotificationVariant,
   MediaProgress,
-} from "./NotificationContent";
-export { NotificationAnimation } from "./NotificationAnimation";
+} from "./NotificationPill";
 export { NotificationQueue } from "./NotificationQueue";
 export type { NotificationQueueProps } from "./NotificationQueue";
 export {

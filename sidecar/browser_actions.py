@@ -18,6 +18,8 @@ from platform_browser import (
     browser_focus_search,
     browser_scroll,
     browser_type_text,
+    foreground_handle,
+    restore_foreground,
 )
 
 _WriteFn = Callable[[dict], None]
@@ -44,7 +46,7 @@ def summarize(action: dict[str, Any]) -> str:
         preview = text if len(text) <= 40 else text[:37] + "…"
         return f"Type “{preview}” into the focused window"
     if kind == "browser_click_role":
-        return f"Click {action.get('role') or 'control'} “{action.get('name') or ''}”"
+        return f"Click window matching “{action.get('name') or ''}”"
     if kind == "browser_focus_search":
         return "Focus the browser address bar"
     return "Browser action"
@@ -86,21 +88,24 @@ def handle_browser_action(
 
 
 def confirm(pending_id: str) -> dict[str, Any]:
-    action = _take(pending_id)
-    if action is None:
+    body = _take_body(pending_id)
+    if body is None:
         return {"ok": False, "error": "That confirm expired or was already handled."}
+    # Restore the window that was focused when the action was queued so type/click
+    # land in the browser, not Bunny (user click focuses the confirm UI).
+    restore_foreground(body.get("foreground"))
     try:
-        result = _execute(action)
+        result = _execute(body["action"])
         return {"ok": True, "result": result}
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "error": str(exc)}
 
 
 def cancel(pending_id: str) -> dict[str, Any]:
-    action = _take(pending_id)
-    if action is None:
+    body = _take_body(pending_id)
+    if body is None:
         return {"ok": False, "error": "Nothing to cancel."}
-    return {"ok": True, "result": f"Cancelled: {summarize(action)}."}
+    return {"ok": True, "result": f"Cancelled: {summarize(body['action'])}."}
 
 
 def pending_snapshot() -> list[dict[str, Any]]:
@@ -120,17 +125,18 @@ def _queue(action: dict[str, Any]) -> str:
     _sweep()
     pending_id = str(uuid.uuid4())
     with _lock:
-        _pending[pending_id] = {"action": dict(action), "created": time.time()}
+        _pending[pending_id] = {
+            "action": dict(action),
+            "created": time.time(),
+            "foreground": foreground_handle(),
+        }
     return pending_id
 
 
-def _take(pending_id: str) -> dict[str, Any] | None:
+def _take_body(pending_id: str) -> dict[str, Any] | None:
     _sweep()
     with _lock:
-        body = _pending.pop(pending_id, None)
-    if body is None:
-        return None
-    return body["action"]
+        return _pending.pop(pending_id, None)
 
 
 def _sweep() -> None:

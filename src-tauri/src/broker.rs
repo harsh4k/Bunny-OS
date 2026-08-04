@@ -138,9 +138,7 @@ fn resolve_installed_app(app_name: &str) -> Result<PathBuf, String> {
     let builtin = app_alias(&key);
     match user_apps::resolve_path(app_name) {
         Ok(path) => Ok(path),
-        Err(err) if builtin != key.as_str() => {
-            user_apps::resolve_path(builtin).map_err(|_| err)
-        }
+        Err(err) if builtin != key.as_str() => user_apps::resolve_path(builtin).map_err(|_| err),
         Err(err) => Err(err),
     }
 }

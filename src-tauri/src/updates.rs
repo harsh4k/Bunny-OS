@@ -12,10 +12,8 @@ pub const RELEASES_PAGE: &str = "https://github.com/harsh4k/Bunny-OS/releases";
 pub const OLLAMA_DOWNLOAD_PAGE: &str = "https://ollama.com/download";
 pub const PRIVACY_PAGE: &str = "https://harsh4k.github.io/Bunny-OS/privacy/";
 pub const TERMS_PAGE: &str = "https://harsh4k.github.io/Bunny-OS/terms/";
-pub const RELEASE_DOWNLOAD_PREFIX: &str =
-    "https://github.com/harsh4k/Bunny-OS/releases/download/";
-pub const LATEST_API: &str =
-    "https://api.github.com/repos/harsh4k/Bunny-OS/releases/latest";
+pub const RELEASE_DOWNLOAD_PREFIX: &str = "https://github.com/harsh4k/Bunny-OS/releases/download/";
+pub const LATEST_API: &str = "https://api.github.com/repos/harsh4k/Bunny-OS/releases/latest";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -132,49 +130,46 @@ pub fn dependency_board(bunny_version: &str) -> DependencyBoard {
         )
     };
 
-    let (models, models_state, models_detail, models_attn, recommended_present) =
-        if !running {
-            (
-                Vec::new(),
-                "Unknown".to_string(),
-                "Start Ollama to see installed chat models.".to_string(),
-                true,
-                false,
-            )
-        } else {
-            match ollama::list_chat_models() {
-                Ok(list) => {
-                    let present = list
-                        .iter()
-                        .any(|m| m == DEFAULT_MODEL || m.starts_with("llama3.2:1b"));
-                    let detail = if list.is_empty() {
-                        format!(
-                            "No chat models installed. Pull recommended ({DEFAULT_MODEL})."
-                        )
-                    } else if present {
-                        format!(
-                            "{} model(s) installed. Recommended {DEFAULT_MODEL} is present.",
-                            list.len()
-                        )
-                    } else {
-                        format!(
-                            "{} model(s) installed, but recommended {DEFAULT_MODEL} is missing.",
-                            list.len()
-                        )
-                    };
-                    let attn = list.is_empty() || !present;
-                    let state = if list.is_empty() {
-                        "None installed".to_string()
-                    } else if present {
-                        "Ready".to_string()
-                    } else {
-                        "Recommended missing".to_string()
-                    };
-                    (list, state, detail, attn, present)
-                }
-                Err(e) => (Vec::new(), "Error".to_string(), e, true, false),
+    let (models, models_state, models_detail, models_attn, recommended_present) = if !running {
+        (
+            Vec::new(),
+            "Unknown".to_string(),
+            "Start Ollama to see installed chat models.".to_string(),
+            true,
+            false,
+        )
+    } else {
+        match ollama::list_chat_models() {
+            Ok(list) => {
+                let present = list
+                    .iter()
+                    .any(|m| m == DEFAULT_MODEL || m.starts_with("llama3.2:1b"));
+                let detail = if list.is_empty() {
+                    format!("No chat models installed. Pull recommended ({DEFAULT_MODEL}).")
+                } else if present {
+                    format!(
+                        "{} model(s) installed. Recommended {DEFAULT_MODEL} is present.",
+                        list.len()
+                    )
+                } else {
+                    format!(
+                        "{} model(s) installed, but recommended {DEFAULT_MODEL} is missing.",
+                        list.len()
+                    )
+                };
+                let attn = list.is_empty() || !present;
+                let state = if list.is_empty() {
+                    "None installed".to_string()
+                } else if present {
+                    "Ready".to_string()
+                } else {
+                    "Recommended missing".to_string()
+                };
+                (list, state, detail, attn, present)
             }
-        };
+            Err(e) => (Vec::new(), "Error".to_string(), e, true, false),
+        }
+    };
 
     DependencyBoard {
         bunny_version: bunny_version.to_string(),
