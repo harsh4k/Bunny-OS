@@ -29,3 +29,4 @@ Always use:
 
 - `public/bunny-os.jpg` — hero / wordmark companion
 - `public/icon.png` — favicon / small marks (from `src-tauri/icons/128x128.png`)
+- `public/island-open.png` / `island-bar.png` / `island-ui.png` — top-edge voice island product shots

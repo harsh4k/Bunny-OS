@@ -1,35 +1,37 @@
-/**
- * Dynamic Island — VoiceOS-style notch pill.
- * Flat top flush to the display; large bottom radii; pops out / auto-hides.
- */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import {
+  NotificationPill,
+  applyNotificationCssVars,
+} from "./notification";
+import type { NotificationTone } from "./notification";
 import { applyIslandCssVars } from "../lib/islandGeometry";
 import { useVoiceStatus } from "../lib/useVoiceStatus";
 import {
   ACTIVE_VOICE_STATES,
+  levelBars,
   shortErrorLabel,
 } from "../lib/voiceStatus";
 import { IconStop } from "./icons";
-import styles from "./VoicePill.module.css";
+import styles from "./notification/NotificationPill.module.css";
 
 interface Props {
   onExpand: () => void;
+  /** Kept in sync with App so the auto-hide timer pauses while pointed at. */
   onHoverChange?: (hovered: boolean) => void;
-  dormant?: boolean;
+  /** When false, morphs to the compact top notch. */
+  open?: boolean;
 }
 
-const AUTO_HIDE_MS = 900;
-const INTRO_MS = 2000;
+const BAR_COUNT = 7;
 
-export function VoicePill({ onExpand, onHoverChange, dormant = false }: Props) {
-  const { state: voiceState, error, hearing } = useVoiceStatus();
+export function VoicePill({ onExpand, onHoverChange, open = true }: Props) {
+  const { state: voiceState, error, level, hearing } = useVoiceStatus();
   const [pttKey, setPttKey] = useState("F9");
-  const [hovered, setHovered] = useState(false);
-  const [introOpen, setIntroOpen] = useState(true);
 
   useEffect(() => {
     applyIslandCssVars();
+    applyNotificationCssVars();
     invoke<string>("get_ptt_label")
       .then((key) => {
         if (typeof key === "string" && key) setPttKey(key);
@@ -37,40 +39,35 @@ export function VoicePill({ onExpand, onHoverChange, dormant = false }: Props) {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    const t = window.setTimeout(() => setIntroOpen(false), INTRO_MS);
-    return () => window.clearTimeout(t);
-  }, []);
-
-  const active = ACTIVE_VOICE_STATES.has(voiceState);
-  const speaking = voiceState === "speaking";
-  const busy = active || Boolean(error);
-
-  const wantOpen = introOpen || hovered || busy || !dormant;
-  const [open, setOpen] = useState(true);
-  useEffect(() => {
-    if (wantOpen) {
-      setOpen(true);
-      return;
-    }
-    const t = window.setTimeout(() => setOpen(false), AUTO_HIDE_MS);
-    return () => window.clearTimeout(t);
-  }, [wantOpen]);
-
-  // Single-line label — matches the VoiceOS “Hello.” compact hang.
-  const label = useMemo(() => {
+  const title = useMemo(() => {
     if (error) return shortErrorLabel(error);
     switch (voiceState) {
       case "listening":
-        return hearing ? "Hearing you." : "Listening…";
+        return hearing ? "Hearing you" : "Listening…";
       case "transcribing":
-        return "Transcribing…";
+        return "Transcribing";
       case "thinking":
-        return "Thinking…";
+        return "Thinking";
       case "speaking":
-        return "Speaking.";
+        return "Speaking";
       default:
-        return `Hold ${pttKey}.`;
+        return "Bunny";
+    }
+  }, [error, voiceState, hearing]);
+
+  const subtitle = useMemo(() => {
+    if (error) return "Tap to open";
+    switch (voiceState) {
+      case "listening":
+        return hearing ? "Go ahead" : "Say something";
+      case "transcribing":
+        return "Almost there";
+      case "thinking":
+        return "Working on it";
+      case "speaking":
+        return "Playing reply";
+      default:
+        return `Hold ${pttKey} to talk`;
     }
   }, [error, voiceState, hearing, pttKey]);
 
@@ -81,80 +78,82 @@ export function VoicePill({ onExpand, onHoverChange, dormant = false }: Props) {
     });
   }, []);
 
-  const tone = error
+  const active = ACTIVE_VOICE_STATES.has(voiceState);
+  const listening = voiceState === "listening";
+  const tone: NotificationTone = error
     ? "error"
-    : voiceState === "listening" && hearing
+    : listening && hearing
       ? "hearing"
       : active
         ? "active"
         : "idle";
-
-  const setHover = (next: boolean) => {
-    setHovered(next);
-    onHoverChange?.(next);
-  };
-
-  const onPrimaryClick = () => {
-    if (!open) {
-      setHover(true);
-      return;
-    }
-    if (speaking) {
-      void stop();
-      return;
-    }
-    onExpand();
-  };
-
-  const ariaPrimary = !open
-    ? "Show Bunny"
-    : speaking
-      ? `${label} Stop`
-      : `${label} Open Bunny OS`;
+  const bars = listening ? levelBars(level, BAR_COUNT) : null;
 
   return (
-    <section
-      className={styles.stage}
-      aria-label="Bunny voice notification"
-      data-open={open}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      {/* Collapsed: thin sleek bar. Expanded: same surface becomes the notch pill. */}
-      <div
-        className={styles.pill}
-        data-open={open}
-        data-tone={tone}
-        data-active={active}
-      >
-        <button
-          type="button"
-          className={styles.hit}
-          onClick={onPrimaryClick}
-          aria-label={ariaPrimary}
-          title={error ? label : undefined}
-          aria-expanded={open}
-        >
-          <span className={styles.dots} aria-hidden="true">
-            <i data-on={active || open} />
-            <i data-on={active || open} />
-            <i data-on={active || open} />
-            <i data-on={active || open} />
+    <NotificationPill
+      open={open}
+      active={active}
+      tone={tone}
+      title={title}
+      subtitle={subtitle}
+      onHoverChange={onHoverChange}
+      onActivate={onExpand}
+      activateLabel={`${title}. Open Bunny OS`}
+      activateTitle={error ? title : undefined}
+      leading={
+        <span className={styles.dot} data-active={active} data-tone={tone} aria-hidden="true" />
+      }
+      trailing={
+        <>
+          <MicrophoneIcon active={active || listening} />
+          <span
+            className={styles.waveform}
+            data-active={active}
+            data-live={listening}
+            aria-hidden="true"
+          >
+            {Array.from({ length: BAR_COUNT }, (_, index) => (
+              <i
+                key={index}
+                style={
+                  {
+                    "--bar-index": index,
+                    "--bar-level": bars ? bars[index] : undefined,
+                  } as React.CSSProperties
+                }
+              />
+            ))}
           </span>
-          <span className={styles.label}>{label}</span>
-        </button>
-        <button
-          type="button"
-          className={styles.stop}
-          aria-label="Stop voice session"
-          disabled={!active}
-          data-visible={active && open}
-          tabIndex={active && open ? 0 : -1}
-          onClick={() => void stop()}
-        >
-          <IconStop size={9} />
-        </button>
-      </div>
-    </section>
+          <button
+            type="button"
+            className={styles.control}
+            data-accent={active ? "true" : undefined}
+            aria-label="Stop voice session"
+            disabled={!active}
+            tabIndex={open ? 0 : -1}
+            onClick={(e) => {
+              e.stopPropagation();
+              void stop();
+            }}
+          >
+            <IconStop size={10} />
+          </button>
+        </>
+      }
+    />
+  );
+}
+
+function MicrophoneIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      className={styles.mic}
+      data-active={active}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <rect x="8" y="2.5" width="8" height="13" rx="4" />
+      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5M8.5 21.5h7" />
+    </svg>
   );
 }

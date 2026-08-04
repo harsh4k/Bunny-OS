@@ -85,7 +85,7 @@ describe("VoicePill", () => {
       });
     });
 
-    expect(screen.getByText("Hearing you.")).toBeTruthy();
+    expect(screen.getByText("Hearing you")).toBeTruthy();
   });
 
   it("condenses a sidecar failure into a label that fits the capsule", async () => {
@@ -126,5 +126,14 @@ describe("VoicePill", () => {
     });
 
     expect(screen.queryByText("Voice error")).toBeNull();
+  });
+
+  it("morphs to the thin top notch when closed", async () => {
+    await act(async () => {
+      render(<VoicePill open={false} onExpand={() => {}} />);
+    });
+
+    const pill = document.querySelector("[data-open]") as HTMLElement | null;
+    expect(pill?.getAttribute("data-open")).toBe("false");
   });
 });

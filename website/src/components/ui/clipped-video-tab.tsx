@@ -19,9 +19,8 @@ const items = [
     label: "Voice",
     title: "Hold F9 to talk",
     description:
-      "Push-to-talk stays on your PC. Speech is transcribed in memory — raw audio is never written to disk.",
-    image:
-      "https://images.unsplash.com/photo-1589903308904-1010c2294adc?auto=format&fit=crop&w=1600&q=80",
+      "Push-to-talk stays on your PC. A sleek top-edge island expands while Bunny listens — speech is transcribed in memory, raw audio never hits disk.",
+    image: asset("/island-open.png"),
     card: {
       heading: "Push-to-talk",
       badge: "Local",

@@ -6,6 +6,7 @@ import { SwirlPlayground } from "@/components/ui/midjourney-ascii";
 import ClippedFeatureTabs from "@/components/ui/clipped-video-tab";
 import { SiteHeader } from "@/components/site-header";
 import { BrandMark } from "@/components/brand-mark";
+import { IslandPreview } from "@/components/island-preview";
 import { asset } from "@/lib/base-path";
 import {
   MAC_DMG,
@@ -55,7 +56,7 @@ export default function HomePage() {
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-[#9aa1ad] sm:text-xl">
             A voice helper for your computer. Hold F9, speak, and Bunny can open
             apps, search YouTube, or chat — all on your PC. No account. No Bunny
-            cloud.
+            cloud. Lives in a sleek top-edge island that expands when you talk.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a className={btnPrimary} href={WIN_MSI}>
@@ -87,6 +88,33 @@ export default function HomePage() {
 
       <ClippedFeatureTabs />
 
+      <section className="bg-[#0e0f12] px-6 py-20">
+        <div className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-2 md:gap-14">
+          <div>
+            <p className="text-xs font-semibold tracking-[0.16em] text-[#d4bc94] uppercase">
+              New in the app
+            </p>
+            <h2
+              className="mt-3 text-3xl font-semibold tracking-tight text-[#eef0f4] sm:text-4xl"
+              style={{ fontFamily: "var(--font-display), system-ui, sans-serif" }}
+            >
+              Top-edge voice island
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-[#9aa1ad]">
+              A thin sleek bar sits at the top of your screen. When Bunny listens
+              or speaks, it expands into a hanging status panel — flat to the
+              edge, soft bottom, no floating toast.
+            </p>
+            <ul className="mt-6 space-y-2 text-[#9aa1ad]">
+              <li>· Idle: hairline bar flush to the display edge</li>
+              <li>· Active: expands with title, mic, and waveform</li>
+              <li>· Click the island to open the full Bunny window</li>
+            </ul>
+          </div>
+          <IslandPreview />
+        </div>
+      </section>
+
       <section id="install" className="bg-[#0e0f12] px-6 py-24">
         <div className="mx-auto max-w-3xl">
           <div className="mb-6 flex items-center gap-3">
@@ -113,8 +141,9 @@ export default function HomePage() {
             </li>
             <li>3. Follow the short setup (mic + optional chat helper).</li>
             <li>
-              4. Hold <strong className="text-[#eef0f4]">F9</strong> and talk — or
-              click the Bunny icon near the clock.
+              4. Hold <strong className="text-[#eef0f4]">F9</strong> and talk —
+              watch the top island expand — or click the Bunny icon near the
+              clock.
             </li>
           </ol>
           <div className="mt-10 flex flex-wrap gap-3">

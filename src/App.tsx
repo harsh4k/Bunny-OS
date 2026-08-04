@@ -12,12 +12,10 @@ import type { PanelView } from "./components/CompactPanel";
 import { BrowserConfirmBanner } from "./components/BrowserConfirmBanner";
 import { VoicePill } from "./components/VoicePill";
 import {
-  ISLAND_H,
   ISLAND_WINDOW,
-  LINE_HIT_H,
   PAD_TOP,
-  PAD_X,
-  WINDOW_W,
+  PILL_H,
+  PILL_W,
   TOP_INSET,
   applyIslandCssVars,
 } from "./lib/islandGeometry";
@@ -26,6 +24,8 @@ import type { ShellMotion } from "./lib/shellMotion";
 import { ACTIVE_VOICE_STATES } from "./lib/voiceStatus";
 
 const DASHBOARD = { width: 980, height: 640 } as const;
+/** Idle pill lingers this long before tucking itself away. */
+const AUTO_HIDE_MS = 6_000;
 /** Poll while click-through so hover can re-arm the pill. */
 const HIT_POLL_MS = 80;
 const ONBOARDING_KEY = "bunnyos.onboarding.v1";
@@ -76,7 +76,9 @@ function App() {
   const [activeView, setActiveView] = useState<PanelView>("overview");
   const [micMuted, setMicMuted] = useState(true);
   const [pillHovered, setPillHovered] = useState(false);
-  /** False only after explicit hide — island line stays up otherwise. */
+  /** False after idle tuck — collapses to the thin top notch (window stays). */
+  const [islandOpen, setIslandOpen] = useState(true);
+  /** False after explicit close — tray / PTT shows island again. */
   const [islandShown, setIslandShown] = useState(true);
   const { state: voiceState, error: voiceError } = useVoiceStatus();
   const expandedRef = useRef(expanded);
@@ -87,12 +89,6 @@ function App() {
   const afterExitRef = useRef<"collapse" | "hide" | null>(null);
   const exitDoneRef = useRef(false);
   const sizeAnimRef = useRef(0);
-
-  const voiceBusy =
-    voiceError !== null || ACTIVE_VOICE_STATES.has(voiceState);
-  // Idle → tuck into the sleek bar; hover / voice pulls the pill back out.
-  const pillDormant =
-    !expanded && islandShown && !pillHovered && !voiceBusy;
 
   const placeWindow = useCallback(async (nextExpanded: boolean, animate = false) => {
     try {
@@ -176,6 +172,7 @@ function App() {
       afterExitRef.current = null;
       setPillHovered(false);
       setIslandShown(true);
+      setIslandOpen(true);
       setActiveView(view);
       setShellMotion(prefersReducedMotion() ? "idle" : "enter");
       setExpanded(true);
@@ -246,9 +243,8 @@ function App() {
 
   useEffect(() => {
     applyIslandCssVars();
-    if (expanded) {
-      void placeWindow(true, shellMotion === "enter");
-    }
+    const open = expandedRef.current;
+    void placeWindow(open, open && shellMotion === "enter");
     return () => {
       if (exitTimerRef.current != null) {
         window.clearTimeout(exitTimerRef.current);
@@ -261,6 +257,7 @@ function App() {
   useEffect(() => {
     if (!onboardingPending) return;
     setIslandShown(true);
+    setIslandOpen(true);
     setExpanded(true);
     setShellMotion(prefersReducedMotion() ? "idle" : "enter");
     void invoke("show_window").catch(() => {});
@@ -274,13 +271,26 @@ function App() {
     if (!expanded) applyIslandCssVars();
   }, [expanded]);
 
-  // Keep the island window visible — dormant line instead of hide-on-idle.
-  useEffect(() => {
-    if (onboardingPending || expanded || !islandShown) return;
-    void invoke("show_window").catch(() => {});
-  }, [onboardingPending, expanded, islandShown]);
+  const voiceBusy = voiceError !== null || ACTIVE_VOICE_STATES.has(voiceState);
+  const pillOpen = islandOpen || pillHovered || voiceBusy;
 
-  // Idle island: pass clicks through; poll hit-box so hover wakes the line.
+  // Idle tuck: collapse to the thin notch (window stays at the top edge).
+  useEffect(() => {
+    if (onboardingPending || expanded || pillHovered || !islandShown) return;
+    if (voiceBusy) return;
+    const timer = setTimeout(() => {
+      setPillHovered(false);
+      setIslandOpen(false);
+    }, AUTO_HIDE_MS);
+    return () => clearTimeout(timer);
+  }, [onboardingPending, expanded, pillHovered, voiceBusy, islandShown]);
+
+  // Re-open the bar while voice is active or after tray shows the window.
+  useEffect(() => {
+    if (voiceBusy && islandShown) setIslandOpen(true);
+  }, [voiceBusy, islandShown]);
+
+  // Idle island: pass clicks through; poll notch/bar hit-box so hover re-opens.
   useEffect(() => {
     const apply = (ignore: boolean) => {
       try {
@@ -300,7 +310,6 @@ function App() {
     let cancelled = false;
     const tick = async () => {
       if (cancelled) return;
-      const busy = voiceError !== null || ACTIVE_VOICE_STATES.has(voiceState);
       try {
         const window = getCurrentWindow();
         const [pos, scale] = await Promise.all([
@@ -308,21 +317,22 @@ function App() {
           window.scaleFactor(),
         ]);
         const cursor = await cursorPosition();
-        const pillLeft = pos.x + PAD_X * scale;
+        // Always use expanded footprint for hover — notch-sized hit box thrash-opens.
+        const hitW = PILL_W * scale;
+        const hitH = PILL_H * scale;
+        const pillLeft = pos.x + ((ISLAND_WINDOW.width * scale - hitW) / 2);
         const pillTop = pos.y + PAD_TOP * scale;
-        const hitH = (busy || pillHovered ? ISLAND_H : LINE_HIT_H) * scale;
-        const hitW = (busy || pillHovered ? WINDOW_W : 120) * scale;
-        const hitLeft =
-          pillLeft + ((WINDOW_W * scale - hitW) / 2);
-        const pillRight = hitLeft + hitW;
+        const pillRight = pillLeft + hitW;
         const pillBottom = pillTop + hitH;
         const overPill =
-          cursor.x >= hitLeft &&
+          cursor.x >= pillLeft &&
           cursor.x <= pillRight &&
           cursor.y >= pillTop &&
           cursor.y <= pillBottom;
         setPillHovered(overPill);
-        await window.setIgnoreCursorEvents(!(overPill || busy));
+        if (overPill) setIslandOpen(true);
+        // Click-through only outside the expanded footprint (not the tiny bar).
+        await window.setIgnoreCursorEvents(!(overPill || voiceBusy));
       } catch {
         /* web / missing API */
       }
@@ -335,7 +345,7 @@ function App() {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [expanded, voiceState, voiceError, islandShown, pillHovered]);
+  }, [expanded, voiceBusy, islandShown]);
 
   useEffect(() => {
     invoke<boolean>("get_mic_muted")
@@ -359,6 +369,7 @@ function App() {
     const unlistenShown = listen("window-shown", () => {
       setPillHovered(false);
       setIslandShown(true);
+      setIslandOpen(true);
       void placeWindow(expandedRef.current, false);
     });
 
@@ -385,7 +396,7 @@ function App() {
       />
       {!expanded ? (
         <VoicePill
-          dormant={pillDormant}
+          open={pillOpen}
           onExpand={() => openShell("overview")}
           onHoverChange={setPillHovered}
         />
