@@ -25,16 +25,16 @@ export const NOTIFICATION_SHADOW = {
 } as const;
 
 export const NOTIFICATION_COLOR = {
-  bg: "rgba(12, 12, 12, 0.94)",
-  bgHover: "rgba(20, 20, 20, 0.96)",
-  border: "rgba(255, 255, 255, 0.08)",
-  borderHover: "rgba(255, 255, 255, 0.12)",
-  title: "#f5f5f5",
-  subtitle: "rgba(255, 255, 255, 0.55)",
-  accent: "#ffffff",
-  accentDim: "#a3a3a3",
-  glow: "rgba(255, 255, 255, 0.08)",
-  glowCool: "rgba(255, 255, 255, 0.04)",
+  bg: "var(--color-island)",
+  bgHover: "var(--color-island-hover)",
+  border: "var(--color-island-rim)",
+  borderHover: "var(--color-island-rim-hover)",
+  title: "var(--color-island-text)",
+  subtitle: "var(--color-island-text-muted)",
+  accent: "var(--color-brand-soft)",
+  accentDim: "var(--color-text-muted)",
+  glow: "var(--color-inner-highlight)",
+  glowCool: "var(--color-island-glow)",
 } as const;
 
 /**

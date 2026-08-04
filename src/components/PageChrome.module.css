@@ -1,4 +1,4 @@
-/* Shared page chrome — macOS Settings–quiet surfaces */
+/* Shared page chrome — macOS-inspired graphite surfaces */
 
 .hero {
   flex-shrink: 0;
@@ -17,16 +17,17 @@
   overflow: hidden;
   min-height: 108px;
   border-radius: var(--radius-xl);
-  background: #1d1d1f;
-  box-shadow:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.12),
-    0 0 0 0.5px rgba(0, 0, 0, 0.08);
+  background:
+    radial-gradient(84% 82% at 100% 0%, var(--hero-glow, var(--color-brand-glow)), transparent 62%),
+    linear-gradient(145deg, var(--color-surface-elevated), var(--color-bg));
+  border: 0.5px solid var(--color-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--shadow-card);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 12px;
   padding: 16px 18px;
-  color: #f5f5f7;
+  color: var(--color-text-primary);
 }
 
 .heroPhoto {
@@ -38,7 +39,7 @@
   object-position: center 35%;
   z-index: 0;
   transform: scale(1.05);
-  opacity: 0.92;
+  opacity: 0.12;
 }
 
 .heroShade {
@@ -46,9 +47,7 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background:
-    linear-gradient(105deg, rgba(29, 29, 31, 0.88) 0%, rgba(29, 29, 31, 0.55) 52%, rgba(29, 29, 31, 0.32) 100%),
-    radial-gradient(90% 80% at 92% 20%, var(--hero-glow, rgba(10, 132, 255, 0.28)), transparent 55%);
+  background: linear-gradient(105deg, rgba(13, 14, 16, 0.48) 0%, rgba(13, 14, 16, 0.12) 100%);
 }
 
 .hero[data-tone="sky"] { --hero-glow: rgba(10, 132, 255, 0.32); }
@@ -213,11 +212,11 @@
   padding: 14px 14px;
   border-radius: var(--radius-lg);
   border: 0.5px solid var(--color-border);
-  background: var(--color-bg);
+  background: var(--color-card);
   text-align: left;
   font: inherit;
   min-width: 0;
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
 .metricButton {
@@ -228,8 +227,8 @@
 }
 
 .metricButton:hover {
-  background: var(--color-surface-solid);
-  border-color: rgba(0, 122, 255, 0.28);
+  background: var(--color-control);
+  border-color: var(--color-selection-strong);
 }
 
 .metricLabel {
@@ -275,15 +274,15 @@
   padding: 16px;
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-xl);
-  background: var(--color-bg);
-  box-shadow: none;
+  background: var(--color-card);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
 .card[data-tone="sky"],
 .card[data-tone="sand"],
 .card[data-tone="mint"],
 .card[data-tone="ink"] {
-  background: var(--color-bg);
+  background: var(--color-card);
 }
 
 .btnInk,
@@ -319,24 +318,24 @@
 }
 
 .btnGlass {
-  border: 0.5px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  border: 0.5px solid var(--color-border);
+  background: var(--color-control);
+  color: var(--color-text-primary);
   backdrop-filter: blur(12px);
 }
 
 .btnGlass:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-control-hover);
 }
 
 .btnGhost {
   border: 0.5px solid var(--color-border);
-  background: var(--color-surface-solid);
+  background: var(--color-control);
   color: var(--color-text-secondary);
 }
 
 .btnGhost:hover:not(:disabled) {
-  background: var(--color-bg);
+  background: var(--color-control-hover);
   color: var(--color-text-primary);
 }
 

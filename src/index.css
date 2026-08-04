@@ -1,79 +1,91 @@
-/* Bunny OS — design tokens (macOS Settings–finished light shell) */
+/* Bunny OS — graphite desktop design tokens */
 
 :root {
-  /* Surfaces — opaque so desktop never ghosts through */
-  --color-bg:               #f5f5f7;
-  --color-surface:          #ffffff;
-  --color-surface-solid:    #ffffff;
-  --color-surface-elevated: #ffffff;
-  --color-border:           rgba(0, 0, 0, 0.1);
-  --color-border-soft:      rgba(0, 0, 0, 0.06);
-  --color-sidebar:          #ececef;
-  --color-selection:        rgba(0, 122, 255, 0.12);
-  --color-selection-strong: rgba(0, 122, 255, 0.18);
-  --color-shell-glow:       transparent;
-  --color-window-neutral:   #c7c7cc;
-  --color-window-rim:       rgba(0, 0, 0, 0.12);
+  /* Graphite surfaces — only the visible shell is opaque. */
+  --color-bg:               #0d0e10;
+  --color-surface:          #16171a;
+  --color-surface-solid:    #1b1c20;
+  --color-surface-elevated: #25272c;
+  --color-sidebar:          #141518;
+  --color-control:          #2a2c31;
+  --color-control-hover:    #34363d;
+  --color-card:             #202227;
+  --color-preview-mid:      #15171b;
+  --color-preview-deep:     #090a0c;
+  --color-preview-glow:     rgba(100, 181, 255, 0.2);
+  --color-border:           rgba(255, 255, 255, 0.12);
+  --color-border-soft:      rgba(255, 255, 255, 0.07);
+  --color-selection:        rgba(10, 132, 255, 0.19);
+  --color-selection-strong: rgba(10, 132, 255, 0.28);
+  --color-shell-glow:       rgba(100, 181, 255, 0.12);
+  --color-window-neutral:   #6e7179;
+  --color-window-rim:       rgba(255, 255, 255, 0.1);
+  --color-window-close:     #ff6259;
+  --color-window-minimize:  #ffc24b;
+  --color-window-maximize:  #40d46c;
 
   /* Island — floating Dynamic Island pill */
-  --color-island:           rgba(14, 12, 22, 0.82);
-  --color-island-hover:     rgba(22, 19, 34, 0.88);
-  --color-island-rim:       rgba(232, 200, 150, 0.18);
-  --color-island-rim-hover: rgba(232, 200, 150, 0.32);
+  --color-island:           rgba(20, 21, 24, 0.96);
+  --color-island-hover:     rgba(38, 40, 46, 0.98);
+  --color-island-rim:       rgba(255, 255, 255, 0.13);
+  --color-island-rim-hover: rgba(100, 181, 255, 0.42);
   --color-island-sheen:     rgba(255, 255, 255, 0.1);
-  --color-island-glow:      rgba(196, 165, 116, 0.22);
-  --color-inner-highlight:  rgba(255, 255, 255, 0.55);
-  --color-island-text:      #f7f4ef;
-  --color-island-text-muted:rgba(196, 188, 176, 0.72);
+  --color-island-glow:      rgba(10, 132, 255, 0.18);
+  --color-inner-highlight:  rgba(255, 255, 255, 0.1);
+  --color-island-text:      #f5f6f8;
+  --color-island-text-muted:rgba(216, 219, 225, 0.66);
   --color-island-divider:   rgba(255, 255, 255, 0.1);
 
   /* Text — SF-like contrast */
-  --color-text-primary:     #1d1d1f;
-  --color-text-secondary:   #6e6e73;
-  --color-text-muted:       #86868b;
+  --color-text-primary:     #f4f5f7;
+  --color-text-secondary:   #b7b9c0;
+  --color-text-muted:       #858891;
 
   /* Brand / accent — Apple system blue family */
-  --color-brand:            #007aff;
-  --color-brand-dim:        #0066d6;
-  --color-brand-soft:       #0a84ff;
-  --color-brand-glow:       rgba(0, 122, 255, 0.22);
-  --color-accent-warm:      #c4a574;
-  --color-accent-warm-glow: rgba(196, 165, 116, 0.35);
-  --color-wave-muted:       #8e8e93;
-  --color-sky-top:          #f5f5f7;
-  --color-sky-mid:          #e8e8ed;
-  --color-sky-deep:         #d2d2d7;
+  --color-brand:            #0a84ff;
+  --color-brand-dim:        #0073e6;
+  --color-brand-soft:       #6ab7ff;
+  --color-brand-glow:       rgba(10, 132, 255, 0.28);
+  --color-brand-ink:        #1d3654;
+  --color-brand-deep:       #15202e;
+  --color-on-brand:         #ffffff;
+  --color-accent-warm:      #e6b978;
+  --color-accent-warm-glow: rgba(230, 185, 120, 0.24);
+  --color-wave-muted:       #a4a7ae;
+  --color-sky-top:          #252b36;
+  --color-sky-mid:          #1b2028;
+  --color-sky-deep:         #12151a;
 
   /* Elevation — quiet macOS window */
   --shadow-island-inset: inset 0 1px 0 rgba(255, 255, 255, 0.12);
   --shadow-island-float:
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 14px 36px rgba(0, 0, 0, 0.48),
-    0 0 28px rgba(196, 165, 116, 0.14);
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 14px 36px rgba(0, 0, 0, 0.5),
+    0 0 28px rgba(10, 132, 255, 0.12);
   --shadow-island: var(--shadow-island-float);
   --shadow-island-focus: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
   --shadow-window:
-    0 0 0 0.5px rgba(0, 0, 0, 0.12),
-    0 22px 70px rgba(0, 0, 0, 0.18),
-    0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-card: 0 0.5px 0 rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.04);
+    0 0 0 0.5px rgba(255, 255, 255, 0.09),
+    0 28px 70px rgba(0, 0, 0, 0.44),
+    0 8px 24px rgba(0, 0, 0, 0.24);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 18px rgba(0, 0, 0, 0.14);
   --shadow-btn: none;
   --ease-island: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Lifecycle */
-  --state-starting-bg:      #eaf2ff;
-  --state-starting-fg:      #007aff;
-  --state-ready-bg:         #e8f8ef;
-  --state-ready-fg:         #248a3d;
-  --state-ready-ring:       rgba(36, 138, 61, 0.16);
-  --state-degraded-bg:      #fff6e5;
-  --state-degraded-fg:      #9a6700;
-  --state-error-bg:         #ffecec;
-  --state-error-fg:         #d70015;
-  --state-stopped-bg:       #f2f2f7;
-  --state-stopped-fg:       #8e8e93;
+  --state-starting-bg:      rgba(10, 132, 255, 0.18);
+  --state-starting-fg:      #6ab7ff;
+  --state-ready-bg:         rgba(48, 209, 88, 0.16);
+  --state-ready-fg:         #63d98a;
+  --state-ready-ring:       rgba(99, 217, 138, 0.18);
+  --state-degraded-bg:      rgba(255, 214, 10, 0.15);
+  --state-degraded-fg:      #ffd86b;
+  --state-error-bg:         rgba(255, 69, 58, 0.16);
+  --state-error-fg:         #ff837b;
+  --state-stopped-bg:       rgba(142, 142, 147, 0.16);
+  --state-stopped-fg:       #a4a7ae;
 
   /* Spacing */
   --sp-1: 4px;
@@ -191,7 +203,7 @@ body[data-surface="island"]:not([data-tauri]) {
   align-items: flex-start;
   justify-content: center;
   padding: 0;
-  background: #ebebef;
+  background: transparent;
 }
 
 html[data-surface="island"]:not([data-tauri]) #root,
@@ -220,8 +232,8 @@ body[data-surface="dashboard"] #root {
 html[data-surface="dashboard"]:not([data-tauri]),
 html[data-surface="dashboard"]:not([data-tauri]) body {
   background:
-    radial-gradient(90% 70% at 50% 0%, #dfe3ea 0%, transparent 55%),
-    linear-gradient(180deg, #e8e9ed 0%, #f5f5f7 45%, #ececf1 100%);
+    radial-gradient(80% 64% at 50% 0%, var(--color-preview-glow) 0%, transparent 62%),
+    linear-gradient(180deg, var(--color-bg) 0%, var(--color-preview-mid) 52%, var(--color-preview-deep) 100%);
 }
 
 html[data-surface="dashboard"]:not([data-tauri]) #root {

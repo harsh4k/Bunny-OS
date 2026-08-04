@@ -5,14 +5,13 @@
   height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-columns: 212px minmax(0, 1fr);
+  grid-template-columns: 224px minmax(0, 1fr);
   overflow: hidden;
   color: var(--color-text-primary);
-  background: var(--color-bg);
+  background: var(--color-surface-solid);
   border: 0.5px solid var(--color-window-rim);
   border-radius: var(--radius-shell);
   box-shadow: var(--shadow-window);
-  backdrop-filter: none;
   transform-origin: 50% 0%;
   will-change: transform, opacity;
 }
@@ -120,13 +119,14 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  padding: 14px 10px 12px;
+  padding: 18px 12px 14px;
   background: var(--color-sidebar);
   border-right: 0.5px solid var(--color-border-soft);
+  box-shadow: inset -1px 0 rgba(255, 255, 255, 0.015);
 }
 
 .brand {
-  min-height: 36px;
+  min-height: 42px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -141,7 +141,7 @@
   object-fit: cover;
   border-radius: 7px;
   background: var(--color-surface-solid);
-  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 0 0.5px var(--color-border), var(--shadow-card);
 }
 
 .brandText {
@@ -170,7 +170,7 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  margin-top: 10px;
+  margin-top: 14px;
 }
 
 .navItem {
@@ -179,7 +179,7 @@
   grid-template-columns: 18px 1fr;
   align-items: center;
   gap: 10px;
-  padding: 7px 10px;
+  padding: 9px 10px;
   border: 0;
   border-radius: var(--radius-control);
   color: var(--color-text-primary);
@@ -201,13 +201,14 @@
 }
 
 .navItem:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--color-control);
 }
 
 .navItem[data-active="true"] {
   color: var(--color-text-primary);
   background: var(--color-selection);
   font-weight: 510;
+  box-shadow: inset 0 0 0 0.5px rgba(106, 183, 255, 0.14);
 }
 
 .navItem[data-active="true"] .navIcon {
@@ -267,18 +268,21 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--color-surface-solid);
+  background:
+    radial-gradient(74% 56% at 100% 0%, var(--color-shell-glow), transparent 62%),
+    var(--color-surface-solid);
 }
 
 .windowBar {
-  min-height: 44px;
+  min-height: 50px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
   padding: 0 14px 0 14px;
   border-bottom: 0.5px solid var(--color-border-soft);
-  background: linear-gradient(180deg, #fafafa 0%, #f5f5f7 100%);
+  background: color-mix(in srgb, var(--color-surface-elevated) 90%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
   cursor: move;
 }
 
@@ -315,8 +319,8 @@
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-control);
   color: var(--color-text-secondary);
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: none;
+  background: var(--color-control);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   font: inherit;
   font-size: 12px;
   font-weight: 510;
@@ -331,7 +335,7 @@
 .collapse:hover,
 .hideBtn:hover {
   color: var(--color-text-primary);
-  background: #fff;
+  background: var(--color-control-hover);
 }
 
 .collapse:active,
@@ -351,9 +355,9 @@
   width: 12px;
   height: 12px;
   padding: 0;
-  border: 0.5px solid rgba(0, 0, 0, 0.12);
+  border: 0.5px solid rgba(0, 0, 0, 0.28);
   border-radius: 50%;
-  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.28);
 }
 
 .traffic button {
@@ -361,24 +365,24 @@
 }
 
 .trafficClose {
-  background: #ff5f57;
+  background: var(--color-window-close);
 }
 
 .trafficCollapse {
-  background: #febc2e;
+  background: var(--color-window-minimize);
 }
 
 .trafficIdle {
   display: block;
-  background: #28c840;
+  background: var(--color-window-maximize);
 }
 
 .traffic:hover .trafficClose {
-  background: #ff5147;
+  filter: brightness(1.08);
 }
 
 .traffic:hover .trafficCollapse {
-  background: #f5b01b;
+  filter: brightness(1.08);
 }
 
 .content {
@@ -386,7 +390,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 18px 20px 20px;
+  padding: 20px 24px 24px;
   overflow: hidden;
   background: var(--color-surface-solid);
 }
