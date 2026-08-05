@@ -18,6 +18,7 @@ function Step($name, $scriptBlock) {
 $failures = @()
 
 try {
+  Step "release version consistency" { npm run check:version }
   Step "npm test" { npm test -- --run }
   Step "npm run lint" { npm run lint }
   Step "npm run build:frontend" { npm run build:frontend }

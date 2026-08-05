@@ -17,14 +17,33 @@ if ($errs -and $errs.Count -gt 0) {
 }
 Write-Host "OK: parse"
 
-Write-Host "==> WhatIf against GitHub API (expects missing installer until a release exists)"
 $installPs1 = Join-Path $root "install.ps1"
-& pwsh -NoProfile -File $installPs1 -WhatIf -SkipLaunch
-$code = $LASTEXITCODE
-# Exit 0 = release+asset found (WhatIf), exit 1 = no release/asset yet (still a valid gate).
-if ($code -notin 0, 1) {
-  throw "install.ps1 -WhatIf exited unexpectedly: $code"
+
+Write-Host "==> Local WhatIf (no network / install)"
+$fakeMsi = Join-Path $env:TEMP "Bunny.OS_0.3.4_x64_en-US.msi"
+Set-Content -LiteralPath $fakeMsi -Value "test only" -Encoding ASCII
+try {
+  & pwsh -NoProfile -File $installPs1 -LocalMsi $fakeMsi -WhatIf -SkipLaunch
+  if ($LASTEXITCODE -ne 0) {
+    throw "Local WhatIf failed: $LASTEXITCODE"
+  }
+} finally {
+  Remove-Item -LiteralPath $fakeMsi -Force -ErrorAction SilentlyContinue
 }
-Write-Host "OK: WhatIf exit=$code (0=asset ready, 1=waiting on release — both acceptable pre-release)"
+Write-Host "OK: local WhatIf"
+
+Write-Host "==> Failure propagates a non-zero exit"
+& pwsh -NoProfile -File $installPs1 -LocalMsi (Join-Path $env:TEMP "missing-bunny.msi") -WhatIf -SkipLaunch 2>$null
+if ($LASTEXITCODE -eq 0) {
+  throw "install.ps1 swallowed a fatal error"
+}
+Write-Host "OK: failure exit=$LASTEXITCODE"
+
+Write-Host "==> Older release metadata remains selectable"
+& pwsh -NoProfile -File $installPs1 -Version "v0.3.3" -WhatIf -SkipLaunch
+if ($LASTEXITCODE -ne 0) {
+  throw "Older release WhatIf failed: $LASTEXITCODE"
+}
+Write-Host "OK: v0.3.3 metadata"
 
 Write-Host "P1 install.ps1 TESTS PASS"

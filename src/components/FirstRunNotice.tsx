@@ -1,6 +1,6 @@
 /**
  * First-run onboarding: privacy → system scan → permissions → Ollama → done.
- * Dismissal is localStorage only (no cloud).
+ * Completion writes localStorage and disk marker via `complete_onboarding`.
  */
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
@@ -249,6 +249,13 @@ export function FirstRunNotice({ onDismiss }: Props) {
                   ? `Saved ${scan.app_count} apps on ${scan.os}. Open system settings for Bunny, then continue.`
                   : "You can scan apps later. First, give Bunny mic and speaker access."}
               </p>
+              {scan && scan.sample_apps.length > 0 ? (
+                <ul className={styles.list}>
+                  {scan.sample_apps.map((name) => (
+                    <li key={name}>{name}</li>
+                  ))}
+                </ul>
+              ) : null}
               <div className={styles.permCards}>
                 <button
                   type="button"

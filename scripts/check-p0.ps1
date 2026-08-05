@@ -32,7 +32,7 @@ if (-not $msvc) {
   Write-Host "Options:"
   Write-Host "  1. Install VS Build Tools + Desktop C++ workload, then:"
   Write-Host "       pwsh -File scripts/prepare-release.ps1"
-  Write-Host "  2. Push to GitHub and use .github/workflows/release-windows.yml"
+  Write-Host "  2. Push to GitHub and use .github/workflows/release.yml"
   Write-Host "     (windows-latest has MSVC)."
   Write-Host ""
   Write-Host "P0.2 DONE locally. P0.1/P0.3/P0.4 → CI or MSVC machine."

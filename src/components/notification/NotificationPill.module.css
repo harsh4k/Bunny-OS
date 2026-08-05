@@ -47,10 +47,10 @@
   margin: 0;
   padding: 0;
   color: var(--notification-title, #f5f5f5);
-  background: var(--notification-bg, var(--color-island));
+  background: transparent;
   border: 0;
   border-radius: 0 0 12px 12px;
-  box-shadow: var(--notification-shadow-bar, 0 1px 6px rgba(0, 0, 0, 0.4));
+  box-shadow: none;
   overflow: hidden;
   pointer-events: none;
   transform-origin: top center;
@@ -67,9 +67,8 @@
   width: var(--island-pill-w, 220px);
   height: var(--island-pill-h, 38px);
   border-radius: 0 0 12px 12px;
-  border: 1px solid var(--notification-border, var(--color-island-rim));
-  border-top-color: transparent;
-  box-shadow: var(--notification-shadow);
+  border: 0;
+  box-shadow: none;
 }
 
 .shell[data-media="true"][data-open="true"] {
@@ -77,38 +76,17 @@
 }
 
 .hit:hover .shell[data-open="true"] {
-  background: var(--notification-bg-hover, var(--color-island-hover));
-  border-color: var(--notification-border-hover, var(--color-island-rim-hover));
-  border-top-color: transparent;
-  box-shadow: var(--notification-shadow-hover);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .shell:focus-within {
-  border-color: rgba(255, 255, 255, 0.16);
+  border: 0;
 }
 
 .shell[data-tone="error"] {
-  border-color: rgba(255, 99, 88, 0.45);
   color: #ffb4ab;
-}
-
-.shell::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.06) 0%,
-    transparent 48%
-  );
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 180ms ease;
-}
-
-.shell[data-open="true"]::before {
-  opacity: 1;
 }
 
 .face {
@@ -247,6 +225,7 @@
   line-height: 1.35;
   padding: 1px 0;
   color: var(--notification-title, #f5f5f5);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.72), 0 0 1px rgba(0, 0, 0, 0.5);
 }
 
 .subtitle {
@@ -262,6 +241,7 @@
   font-weight: 400;
   line-height: 1.2;
   color: var(--notification-subtitle, rgba(255, 255, 255, 0.55));
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
 }
 
 .shell[data-tone="error"] .title {

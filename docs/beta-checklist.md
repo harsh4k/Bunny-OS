@@ -14,7 +14,7 @@ If `link.exe` is present, `cargo test` also runs.
 ## B. Packaging
 
 - [ ] `pwsh -File scripts/package-sidecar.ps1` (Windows) / `bash scripts/package-sidecar.sh` (macOS)
-- [ ] Tag `v*` → `.github/workflows/release.yml` publishes MSI + arm64/x64 DMGs + `SHA256SUMS.txt`
+- [ ] Tag `v*` → `.github/workflows/release.yml` publishes MSI + arm64 DMG + `SHA256SUMS.txt`
 - [ ] Installer is code-signed / notarized (see [`SHIPPING.md`](SHIPPING.md) — certs not in repo)
 - [ ] `install.ps1 -WhatIf` / `install.sh --what-if` resolve assets and checksums
 
@@ -66,6 +66,13 @@ See also [`docs/uninstall.md`](uninstall.md).
 - [ ] Non-HTTPS / file / javascript URLs rejected
 - [ ] Diagnostics export contains no transcripts/audio/memory text by default
 - [ ] Logs under `%LOCALAPPDATA%\BunnyOS\logs\` contain lifecycle only (no chat bodies)
+
+## I. Island & Apps stability (P0)
+
+- [ ] Expand island → dashboard fully clickable (no stuck click-through)
+- [ ] Notification pill: no white/black plate behind text
+- [ ] Apps → Rescan lists Start Menu / Applications entries
+- [ ] App dock shows PNG icons when OS extract succeeds; glyph fallback shows status if not
 
 ## H. Daily-drive sign-off (human)
 

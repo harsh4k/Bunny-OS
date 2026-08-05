@@ -160,9 +160,17 @@ pub async fn complete_onboarding() -> Result<(), String> {
 #[tauri::command]
 pub async fn get_app_icon(path: String) -> Option<String> {
     tauri::async_runtime::spawn_blocking(move || {
-        crate::app_icons::icon_cache_path(std::path::Path::new(&path))
-            .ok()
-            .map(|p| p.to_string_lossy().into_owned())
+        let app_path = std::path::Path::new(&path);
+        match crate::app_icons::icon_cache_path(app_path) {
+            Ok(p) => Some(p.to_string_lossy().into_owned()),
+            Err(err) => {
+                crate::applog::info(
+                    "app_icons",
+                    &format!("get_app_icon failed for {}: {err}", app_path.display()),
+                );
+                None
+            }
+        }
     })
     .await
     .ok()

@@ -1,7 +1,7 @@
 # Compute SHA256 checksums for release artifacts (Windows + macOS).
 # Usage:
 #   pwsh -File scripts/checksum-release.ps1 -Path path\to\bundle
-#   pwsh -File scripts/checksum-release.ps1 -Path .\BunnyOS_0.1.0_x64.msi
+#   pwsh -File scripts/checksum-release.ps1 -Path .\Bunny.OS_0.3.4_x64_en-US.msi
 
 param(
   [Parameter(Mandatory = $true)]
@@ -29,8 +29,9 @@ $out = Join-Path $outDir "SHA256SUMS.txt"
 $lines = @()
 foreach ($item in $items) {
   $hash = (Get-FileHash -Algorithm SHA256 $item.FullName).Hash.ToLowerInvariant()
-  $lines += "$hash  $($item.Name)"
-  Write-Host "$hash  $($item.Name)"
+  $assetName = $item.Name -replace ' ', '.'
+  $lines += "$hash  $assetName"
+  Write-Host "$hash  $assetName"
 }
 $lines | Set-Content -Path $out -Encoding ASCII
 Write-Host "Wrote $out"

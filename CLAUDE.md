@@ -86,6 +86,7 @@ pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSV
 - Done: Next-update W3 — opt-in screen context (focused-window UIA/AX text; default Off)
 - Done: Next-update W4 — allowlisted browser tools + confirm UX
 - Done: Updates panel — version + Open Releases + optional GitHub compare (manual install)
+- In progress: P0 stability — click-through, clear island pill, app scan/icons, PRD + tests (`docs/PRD.md`)
 - Next: soak / tag as needed (`docs/beta-checklist.md`)
 - Human gates: soak on Win + Mac after CI artifacts (`docs/beta-checklist.md`); unsigned beta OK (no paid certs)
 - Tag release: `git tag v0.3.4 && git push origin v0.3.4` → MSI + Mac DMGs + `SHA256SUMS.txt`

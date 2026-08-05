@@ -136,3 +136,26 @@ Build commands will reference once toolchain is scaffolded:
 cargo build --release  # Compiles sidecar + Tauri main
 npm run build:sidecar  # (when Cargo.toml exists)
 ```
+
+## Island input & transparency
+
+- **Click-through:** `src/lib/islandCursorController.ts` — generation-guarded `setIgnoreCursorEvents` while idle island; dashboard always interactive.
+- **Hit geometry:** `src/lib/islandHitTest.ts` must match `NotificationPill.module.css` notch/bar sizes.
+- **Transparency:** `src/lib/islandTransparency.ts` clears WebView/window alpha after resize settle and surface switches.
+- **Pill presentation:** Fully clear shell (no plate/shadow); text-shadow for contrast. Spec: `docs/superpowers/specs/2026-08-05-stability-island-apps-design.md`.
+
+## App catalog ownership
+
+| Path | Role |
+|------|------|
+| Rust `user_apps` + `start_menu` + `app_icons` | Dashboard, onboarding scan, chat `open_app` — paths + icons |
+| Python `app_catalog` | Voice name inventory only (dual path KEEP) |
+| `user_apps.json` | Shared persistence under BunnyOS app-data |
+
+Onboarding (`onboarding_scan`, `ensure_ollama`) lives on the **Tauri host**, not the sidecar.
+
+## Docs source of truth
+
+- Product roadmap: `docs/PRD.md`
+- Maintenance map: `docs/MAINTENANCE.md`
+- Test matrix: `docs/TESTING.md`

@@ -17,9 +17,13 @@ Distribution is checksum-verified + clear SmartScreen / Gatekeeper instructions.
 ## Tag a beta release
 
 ```powershell
-git tag v0.1.1
-git push origin v0.1.1
+npm run check:version
+git tag v0.3.4
+git push origin v0.3.4
 ```
+
+The release workflow fails if the tag does not match the versions in
+`package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml`.
 
 Watch **Actions → release**. When green, the GitHub Release page has the installers.
 

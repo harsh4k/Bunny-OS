@@ -2,7 +2,7 @@
 # Usage:
 #   irm https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.ps1 | iex
 #   pwsh -File install.ps1 -WhatIf
-#   pwsh -File install.ps1 -LocalMsi .\BunnyOS_0.1.0_x64_en-US.msi
+#   pwsh -File install.ps1 -LocalMsi .\Bunny.OS_0.3.4_x64_en-US.msi
 #
 # Downloads the GitHub Release installer, REQUIRES SHA256SUMS.txt verify, installs, launches.
 
@@ -88,7 +88,7 @@ function Save-Url {
   if (Test-Path $curl) {
     & $curl -L --fail --retry 3 --retry-delay 2 --retry-connrefused -o $OutFile $Url
     if ($LASTEXITCODE -eq 0 -and (Test-Path $OutFile)) { return }
-    Write-Warn "curl exited $LASTEXITCODE — retrying the download in PowerShell"
+    Write-Warn "curl exited $LASTEXITCODE; retrying the download in PowerShell"
   }
   Save-UrlDotNet -Url $Url -OutFile $OutFile
   if (-not (Test-Path $OutFile)) { Write-Fail "Download produced no file: $Url" }
@@ -110,9 +110,9 @@ function Get-Release {
     } catch {
       $listUrl = "https://api.github.com/repos/$Repo/releases?per_page=10"
       $list = Invoke-RestMethod -Uri $listUrl -Headers $headers -Method Get
-      $pick = @($list) | Where-Object { -not $_.draft } | Select-Object -First 1
+      $pick = @($list) | Where-Object { -not $_.draft -and -not $_.prerelease } | Select-Object -First 1
       if (-not $pick) {
-        Write-Fail "Could not fetch release from $url — $($_.Exception.Message). Publish v0.1.0 after CI, or pass -LocalMsi."
+        Write-Fail "Could not fetch a published release from ${url}: $($_.Exception.Message). Pass -Version TAG or -LocalMsi PATH."
       }
       return $pick
     }
@@ -122,7 +122,7 @@ function Get-Release {
     try {
       return Invoke-RestMethod -Uri $url -Headers $headers -Method Get
     } catch {
-      Write-Fail "Could not fetch release from $url — $($_.Exception.Message)."
+      Write-Fail "Could not fetch release from ${url}: $($_.Exception.Message)."
     }
   }
 }
@@ -138,11 +138,7 @@ function Find-InstallerAsset($release) {
 
 function Find-ChecksumAsset($release) {
   $assets = @($release.assets)
-  $exact = $assets | Where-Object { $_.name -eq "SHA256SUMS.txt" } | Select-Object -First 1
-  if ($exact) { return $exact }
-  return $assets | Where-Object {
-    $_.name -match '(?i)(sha256|checksums)'
-  } | Select-Object -First 1
+  return $assets | Where-Object { $_.name -eq "SHA256SUMS.txt" } | Select-Object -First 1
 }
 
 # GitHub rewrites spaces in asset names to dots ("Bunny OS_x.msi" is served as
@@ -168,17 +164,28 @@ function Test-Sha256([string]$Path, [string]$Expected) {
   Write-Host "OK: SHA256 verified"
 }
 
-function Install-Msi([string]$Path) {
+function Install-Installer([string]$Path) {
   Write-Step "Running installer: $Path"
+  $extension = [System.IO.Path]::GetExtension($Path).ToLowerInvariant()
+  if ($extension -notin ".msi", ".exe") {
+    Write-Fail "Unsupported Windows installer type: $extension"
+  }
   if ($WhatIf) {
-    Write-Host "[WhatIf] msiexec /i `"$Path`""
+    if ($extension -eq ".msi") {
+      Write-Host "[WhatIf] msiexec /i `"$Path`""
+    } else {
+      Write-Host "[WhatIf] `"$Path`""
+    }
     return
   }
-  # Prefer interactive so UAC / SmartScreen prompts are visible on first install.
-  $p = Start-Process -FilePath "msiexec.exe" -ArgumentList @("/i", "`"$Path`"") -Wait -PassThru
-  if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) {
-    Write-Warn "msiexec exited $($p.ExitCode); launching installer UI directly."
-    Start-Process -FilePath $Path -Wait | Out-Null
+  if ($extension -eq ".msi") {
+    # Interactive so UAC / SmartScreen prompts are visible on first install.
+    $p = Start-Process -FilePath "msiexec.exe" -ArgumentList @("/i", "`"$Path`"") -Wait -PassThru
+  } else {
+    $p = Start-Process -FilePath $Path -Wait -PassThru
+  }
+  if ($p.ExitCode -notin 0, 1641, 3010) {
+    Write-Fail "Installer exited with code $($p.ExitCode)."
   }
 }
 
@@ -195,7 +202,7 @@ function Invoke-BunnyInstall {
 
 Write-Host "Bunny OS installer (Windows)"
 Write-Host "Repo: $Repo  Version: $Version"
-if ($WhatIf) { Write-Host "(WhatIf — no download / install)" }
+if ($WhatIf) { Write-Host "(WhatIf - no download / install)" }
 
 $installerPath = $null
 
@@ -206,7 +213,7 @@ if ($LocalMsi) {
 } else {
   Write-Step "Fetching release metadata"
   $release = Get-Release -Repo $Repo -Version $Version
-  Write-Host "Release: $($release.tag_name) — $($release.name)"
+  Write-Host "Release: $($release.tag_name) - $($release.name)"
 
   $asset = Find-InstallerAsset $release
   if (-not $asset) {
@@ -215,7 +222,7 @@ if ($LocalMsi) {
 
   $sumAsset = Find-ChecksumAsset $release
   if (-not $sumAsset) {
-    Write-Fail "Release $($release.tag_name) has no SHA256SUMS.txt — refusing to install unverified software."
+    Write-Fail "Release $($release.tag_name) has no SHA256SUMS.txt; refusing to install unverified software."
   }
 
   $tmp = Join-Path $env:TEMP "bunny-os-install"
@@ -223,7 +230,7 @@ if ($LocalMsi) {
   $installerPath = Join-Path $tmp $asset.name
 
   if ($WhatIf) {
-    Write-Host "[WhatIf] would download $($asset.browser_download_url) → $installerPath"
+    Write-Host "[WhatIf] would download $($asset.browser_download_url) -> $installerPath"
     Write-Host "[WhatIf] would verify against $($sumAsset.browser_download_url)"
   } else {
     $sizeText = if ($asset.size) { " (" + (Format-Bytes $asset.size) + ")" } else { "" }
@@ -240,13 +247,15 @@ if ($LocalMsi) {
   }
 }
 
-Install-Msi -Path $installerPath
+Install-Installer -Path $installerPath
 
-Write-Step "Checking Ollama"
-if (Test-Ollama) {
-  Write-Host "OK: Ollama is reachable on 127.0.0.1:11434"
-} else {
-  Write-Warn "Ollama not running yet — Bunny will offer Install & start Ollama on first launch."
+if (-not $WhatIf) {
+  Write-Step "Checking Ollama"
+  if (Test-Ollama) {
+    Write-Host "OK: Ollama is reachable on 127.0.0.1:11434"
+  } else {
+    Write-Warn "Ollama not running yet; Bunny will offer Install & start Ollama on first launch."
+  }
 }
 
 if (-not $SkipLaunch -and -not $WhatIf) {
@@ -259,14 +268,14 @@ if (-not $SkipLaunch -and -not $WhatIf) {
     Write-Step "Launching $app"
     Start-Process $app | Out-Null
   } else {
-    Write-Warn "Installed app not found at the usual paths — launch Bunny OS from the Start Menu."
+    Write-Warn "Installed app not found at the usual paths; launch Bunny OS from the Start Menu."
   }
 }
 
-Write-Host "DONE — complete onboarding in the app (mic + Install Ollama if offered)."
+Write-Host "DONE - complete onboarding in the app (mic + Install Ollama if offered)."
 Write-Host "Uninstall: https://github.com/harsh4k/Bunny-OS/blob/main/docs/uninstall.md"
 Write-Host ""
-Write-Host "UNSIGNED BETA: If SmartScreen says Windows protected your PC → More info → Run anyway."
+Write-Host "UNSIGNED BETA: If SmartScreen says Windows protected your PC -> More info -> Run anyway."
 
 }
 
@@ -275,6 +284,7 @@ try {
 } catch {
   Write-Host ""
   Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
-  Write-Host "Bunny OS was not installed. Nothing was changed on this PC." -ForegroundColor Red
+  Write-Host "Bunny OS installation did not complete. Review the error before retrying." -ForegroundColor Red
   Write-Host "Report it: https://github.com/harsh4k/Bunny-OS/issues"
+  throw
 }

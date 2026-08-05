@@ -36,7 +36,10 @@
       "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: https://asset.localhost http://asset.localhost",
       "assetProtocol": {
         "enable": true,
-        "scope": ["$LOCALAPPDATA/BunnyOS/icons/**"]
+        "scope": [
+          "$LOCALAPPDATA/BunnyOS/icons/**",
+          "$HOME/Library/Application Support/BunnyOS/icons/**"
+        ]
       }
     }
   },

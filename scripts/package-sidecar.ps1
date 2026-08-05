@@ -44,8 +44,9 @@ $workDir = Join-Path $root "build\sidecar"
 $bundleReqs = Join-Path $root "sidecar\requirements-bundle.txt"
 
 Write-Host "==> Installing bundle dependencies (PyInstaller + voice runtime)"
-& $python -m pip install --upgrade pip | Out-Host
-& $python -m pip install -r $bundleReqs | Out-Host
+& $python -m pip install --upgrade pip
+if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
+& $python -m pip install -r $bundleReqs
 if ($LASTEXITCODE -ne 0) { throw "pip install of requirements-bundle.txt failed" }
 
 $whisperDir = Join-Path $workDir "whisper_models"

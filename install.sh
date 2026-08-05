@@ -2,8 +2,8 @@
 # Bunny OS macOS bootstrap
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.sh | bash
-#   BUNNY_VERSION=v0.1.0 ./install.sh
-#   ./install.sh --local-dmg ./Bunny-OS_0.1.0_aarch64.dmg
+#   BUNNY_VERSION=v0.3.4 ./install.sh
+#   ./install.sh --local-dmg ./Bunny.OS_0.3.4_aarch64.dmg
 #   ./install.sh --what-if
 #
 # Downloads the matching GitHub Release .dmg, REQUIRES SHA256SUMS.txt verify,
@@ -67,7 +67,7 @@ fetch_release_json() {
     fi
     body="$(curl -fsSL "${api_headers[@]}" "https://api.github.com/repos/$REPO/releases?per_page=10")" \
       || fail "Could not list releases for $REPO"
-    printf '%s' "$body" | python3 -c 'import json,sys; rs=json.load(sys.stdin); rs=[r for r in rs if not r.get("draft")];
+    printf '%s' "$body" | python3 -c 'import json,sys; rs=json.load(sys.stdin); rs=[r for r in rs if not r.get("draft") and not r.get("prerelease")];
 import sys as s; s.exit(1) if not rs else print(json.dumps(rs[0]))'
     return 0
   fi
@@ -86,7 +86,10 @@ dmgs = [a for a in assets if (a.get("name") or "").lower().endswith(".dmg")]
 if not dmgs:
     sys.exit(1)
 preferred = [a for a in dmgs if hints.search(a.get("name") or "")]
-choice = preferred[0] if preferred else dmgs[0]
+universal = [a for a in dmgs if re.search(r"universal", a.get("name") or "", re.I)]
+choice = preferred[0] if preferred else (universal[0] if universal else None)
+if choice is None:
+    sys.exit(1)
 print(f"{choice['browser_download_url']}\t{choice['name']}")
 PY
 }
@@ -96,8 +99,7 @@ pick_checksum() {
 import json, sys
 rel = json.load(sys.stdin)
 for a in rel.get("assets") or []:
-    name = (a.get("name") or "").lower()
-    if name == "sha256sums.txt" or "sha256" in name or "checksum" in name:
+    if (a.get("name") or "") == "SHA256SUMS.txt":
         print(f"{a['browser_download_url']}\t{a['name']}")
         sys.exit(0)
 sys.exit(1)
@@ -132,13 +134,21 @@ verify_sha256() {
 
 install_from_dmg() {
   local dmg="$1"
-  local mount
+  local mount_dir
   step "Mounting DMG"
-  mount="$(hdiutil attach -nobrowse -readonly "$dmg" | awk '/\/Volumes\//{print $3; exit}')"
-  [[ -n "$mount" && -d "$mount" ]] || fail "Could not mount DMG"
+  mount_dir="$(mktemp -d "${TMPDIR:-/tmp}/bunny-dmg.XXXXXX")"
+  if ! hdiutil attach -nobrowse -readonly -mountpoint "$mount_dir" "$dmg" >/dev/null; then
+    rm -rf "$mount_dir"
+    fail "Could not mount DMG"
+  fi
+  [[ -d "$mount_dir" ]] || { rm -rf "$mount_dir"; fail "Could not mount DMG"; }
   local app
-  app="$(find "$mount" -maxdepth 2 -name '*.app' -type d | head -n1 || true)"
-  [[ -n "$app" ]] || { hdiutil detach "$mount" -quiet || true; fail "No .app found inside DMG"; }
+  app="$(find "$mount_dir" -maxdepth 2 -name '*.app' -type d | head -n1 || true)"
+  if [[ -z "$app" ]]; then
+    hdiutil detach "$mount_dir" -quiet || true
+    rm -rf "$mount_dir"
+    fail "No .app found inside DMG"
+  fi
 
   step "Installing $(basename "$app") → /Applications"
   if (( WHAT_IF )); then
@@ -149,7 +159,8 @@ install_from_dmg() {
     # Unsigned / un-notarized builds need quarantine cleared for Gatekeeper.
     xattr -dr com.apple.quarantine "/Applications/$(basename "$app")" 2>/dev/null || true
   fi
-  hdiutil detach "$mount" -quiet || true
+  hdiutil detach "$mount_dir" -quiet || true
+  rm -rf "$mount_dir"
 }
 
 ollama_ok() {
@@ -168,7 +179,7 @@ if [[ -n "$LOCAL_DMG" ]]; then
   step "Using local installer $INSTALLER_PATH"
 else
   step "Fetching release metadata"
-  RELEASE_JSON="$(fetch_release_json)" || fail "Could not fetch release. Publish tag v0.1.0 after CI, or pass --local-dmg."
+  RELEASE_JSON="$(fetch_release_json)" || fail "Could not fetch a published release. Pass --version TAG or --local-dmg PATH."
   TAG="$(printf '%s' "$RELEASE_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("tag_name") or "")')"
   [[ -n "$TAG" ]] || fail "No published release found on $REPO"
   echo "Release: $TAG"

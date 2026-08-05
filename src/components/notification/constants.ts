@@ -19,16 +19,16 @@ export const NOTIFICATION_SPACING = {
 } as const;
 
 export const NOTIFICATION_SHADOW = {
-  rest: "0 6px 20px rgba(0, 0, 0, 0.32), 0 2px 4px rgba(0, 0, 0, 0.18)",
-  hover: "0 10px 28px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.22)",
-  bar: "0 1px 6px rgba(0, 0, 0, 0.4)",
+  rest: "none",
+  hover: "none",
+  bar: "none",
 } as const;
 
 export const NOTIFICATION_COLOR = {
-  bg: "var(--color-island)",
-  bgHover: "var(--color-island-hover)",
-  border: "var(--color-island-rim)",
-  borderHover: "var(--color-island-rim-hover)",
+  bg: "transparent",
+  bgHover: "transparent",
+  border: "transparent",
+  borderHover: "transparent",
   title: "var(--color-island-text)",
   subtitle: "var(--color-island-text-muted)",
   accent: "var(--color-brand-soft)",

@@ -17,6 +17,7 @@ import {
   islandBarWindow,
 } from "./lib/islandGeometry";
 import { cursorInHitRect, hitRectInWindow } from "./lib/islandHitTest";
+import { createIslandCursorController, HIT_POLL_MS } from "./lib/islandCursorController";
 import { ensureIslandTransparency } from "./lib/islandTransparency";
 import { useVoiceStatus } from "./lib/useVoiceStatus";
 import type { ShellMotion } from "./lib/shellMotion";
@@ -25,8 +26,6 @@ import { ACTIVE_VOICE_STATES } from "./lib/voiceStatus";
 const DASHBOARD = { width: 980, height: 640 } as const;
 /** Idle pill lingers this long before tucking itself away. */
 const AUTO_HIDE_MS = 6_000;
-/** Poll while click-through so hover can re-arm the pill. */
-const HIT_POLL_MS = 80;
 const ONBOARDING_KEY = "bunnyos.onboarding.v1";
 const ONBOARDING_LEGACY = "bunnyos.firstRunAck.v1";
 /** Keep in sync with ExpandedDashboard.module.css shell-exit duration. */
@@ -36,6 +35,15 @@ const SHELL_EXIT_MS = 280;
 function forceDashboardPreview(): boolean {
   try {
     return new URLSearchParams(window.location.search).get("ui") === "dashboard";
+  } catch {
+    return false;
+  }
+}
+
+/** Browser/Vite preview: `?ui=island` shows idle island only (e2e). */
+function forceIslandPreview(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).get("ui") === "island";
   } catch {
     return false;
   }
@@ -53,12 +61,12 @@ function localOnboardingDone(): boolean {
 }
 
 function needsOnboarding(): boolean {
-  if (forceDashboardPreview()) return false;
+  if (forceDashboardPreview() || forceIslandPreview()) return false;
   return !localOnboardingDone();
 }
 
 async function resolveOnboardingPending(): Promise<boolean> {
-  if (forceDashboardPreview()) return false;
+  if (forceDashboardPreview() || forceIslandPreview()) return false;
   try {
     const complete = await invoke<boolean>("get_onboarding_complete");
     return !complete;
@@ -134,9 +142,7 @@ function App() {
         if (monitor) {
           await window.setPosition(new LogicalPosition(endX, endY));
         }
-        if (!nextExpanded) {
-          await ensureIslandTransparency();
-        }
+        await ensureIslandTransparency();
         return;
       }
 
@@ -169,7 +175,7 @@ function App() {
             if (t < 1) {
               requestAnimationFrame(frame);
             } else {
-              resolve();
+              void ensureIslandTransparency().finally(() => resolve());
             }
           });
         };
@@ -182,9 +188,7 @@ function App() {
       if (monitor) {
         await window.setPosition(new LogicalPosition(endX, endY));
       }
-      if (!nextExpanded) {
-        await ensureIslandTransparency();
-      }
+      await ensureIslandTransparency();
     } catch {
       applyIslandCssVars();
     }
@@ -283,6 +287,18 @@ function App() {
         setShellMotion(prefersReducedMotion() ? "idle" : "enter");
         void invoke("show_window").catch(() => {});
         void placeWindow(true, true);
+      } else if (forceDashboardPreview()) {
+        setOnboardingPending(false);
+        setExpanded(true);
+        setShellMotion(prefersReducedMotion() ? "idle" : "enter");
+        void placeWindow(true, !prefersReducedMotion());
+      } else if (forceIslandPreview()) {
+        setOnboardingPending(false);
+        setExpanded(false);
+        setIslandShown(true);
+        setIslandOpen(true);
+        setShellMotion("idle");
+        void placeWindow(false, false);
       } else if (!forceDashboardPreview()) {
         setExpanded(false);
         setShellMotion("idle");
@@ -342,30 +358,13 @@ function App() {
     if (voiceBusy && islandShown) setIslandOpen(true);
   }, [voiceBusy, islandShown]);
 
-  // Idle island: click-through everywhere except the visible notch/bar hit target.
+  // Idle island: click-through except notch/bar hit target (generation-guarded).
   useEffect(() => {
-    const apply = (ignore: boolean) => {
-      try {
-        getCurrentWindow()
-          .setIgnoreCursorEvents(ignore)
-          .catch(() => {});
-      } catch {
-        /* web / missing Tauri window metadata */
-      }
-    };
-
-    if (!islandShown || expanded) {
-      apply(false);
-      return;
-    }
-
-    // Default pass-through until cursor is over the island.
-    apply(true);
-
-    let cancelled = false;
-    const tick = async () => {
-      if (cancelled) return;
-      try {
+    const windowApi = getCurrentWindow();
+    const controller = createIslandCursorController({
+      pollMs: HIT_POLL_MS,
+      setIgnoreCursorEvents: (ignore) => windowApi.setIgnoreCursorEvents(ignore),
+      sampleHit: async () => {
         const window = getCurrentWindow();
         const [pos, outer, scale] = await Promise.all([
           window.outerPosition(),
@@ -373,32 +372,28 @@ function App() {
           window.scaleFactor(),
         ]);
         const cursor = await cursorPosition();
-        const barOpen = islandBarOpenRef.current;
         const rect = hitRectInWindow({
           windowX: pos.x,
           windowY: pos.y,
           windowW: outer.width,
           scale,
-          barOpen,
+          barOpen: islandBarOpenRef.current,
         });
         const overIsland = cursorInHitRect(cursor.x, cursor.y, rect);
-        setPillHovered(overIsland);
-        if (overIsland) setIslandOpen(true);
-        await window.setIgnoreCursorEvents(!overIsland);
-      } catch {
-        /* web / missing API */
-      }
-    };
-    void tick();
-    const id = window.setInterval(() => {
-      void tick();
-    }, HIT_POLL_MS);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-      apply(true);
-    };
-  }, [expanded, voiceBusy, islandShown]);
+        return { overIsland };
+      },
+      onOverIsland: setPillHovered,
+      onOpenIsland: () => setIslandOpen(true),
+    });
+
+    if (!islandShown || expanded) {
+      controller.setInteractive();
+      return () => controller.dispose();
+    }
+
+    controller.startIdlePoll();
+    return () => controller.dispose();
+  }, [expanded, islandShown]);
 
   useEffect(() => {
     invoke<boolean>("get_mic_muted")

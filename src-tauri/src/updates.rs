@@ -92,6 +92,44 @@ pub fn is_allowed_download_url(url: &str) -> bool {
     file.ends_with(".msi") || file.ends_with(".dmg")
 }
 
+fn pick_win_msi_url(assets: &[GhAsset]) -> Option<String> {
+    const SUFFIXES: &[&str] = ["_x64_en-US.msi", ".msi"];
+    for suffix in SUFFIXES {
+        if let Some(a) = assets
+            .iter()
+            .find(|a| a.name.ends_with(suffix) && is_allowed_download_url(&a.browser_download_url))
+        {
+            return Some(a.browser_download_url.clone());
+        }
+    }
+    None
+}
+
+fn pick_mac_dmg_url(assets: &[GhAsset]) -> Option<String> {
+    const SUFFIXES: &[&str] = ["_aarch64.dmg", ".dmg"];
+    for suffix in SUFFIXES {
+        if let Some(a) = assets
+            .iter()
+            .find(|a| a.name.ends_with(suffix) && is_allowed_download_url(&a.browser_download_url))
+        {
+            return Some(a.browser_download_url.clone());
+        }
+    }
+    None
+}
+
+fn update_check_message(latest_raw: &str, current: &str, newer: bool) -> String {
+    if newer {
+        format!("A newer release is available: {latest_raw}. Download the installer below.")
+    } else if is_newer(current, latest_raw) {
+        format!(
+            "You're running {current}, ahead of the latest published release ({latest_raw})."
+        )
+    } else {
+        format!("You're on the latest published release ({latest_raw}).")
+    }
+}
+
 /// Snapshot for the Updates status board (local probes only — no GitHub).
 pub fn dependency_board(bunny_version: &str) -> DependencyBoard {
     let installed = ollama::is_installed();
@@ -204,23 +242,9 @@ pub fn check_latest(current: &str) -> Result<UpdateCheck, String> {
     let html = parsed
         .html_url
         .filter(|u| u.starts_with("https://github.com/"));
-    let win_msi_url = parsed
-        .assets
-        .iter()
-        .find(|a| a.name.ends_with("_x64_en-US.msi") || a.name.ends_with(".msi"))
-        .map(|a| a.browser_download_url.clone())
-        .filter(|u| is_allowed_download_url(u));
-    let mac_dmg_url = parsed
-        .assets
-        .iter()
-        .find(|a| a.name.ends_with("_aarch64.dmg") || a.name.ends_with(".dmg"))
-        .map(|a| a.browser_download_url.clone())
-        .filter(|u| is_allowed_download_url(u));
-    let message = if newer {
-        format!("A newer release is available: {latest_raw}. Download the installer below.")
-    } else {
-        format!("You're on the latest published release ({latest_raw}).")
-    };
+    let win_msi_url = pick_win_msi_url(&parsed.assets);
+    let mac_dmg_url = pick_mac_dmg_url(&parsed.assets);
+    let message = update_check_message(&latest_raw, current, newer);
     Ok(UpdateCheck {
         current: current.to_string(),
         latest: Some(latest_raw),
@@ -271,7 +295,7 @@ fn fetch_latest_json() -> Result<String, String> {
 pub fn is_newer(latest: &str, current: &str) -> bool {
     match (parse_semver(latest), parse_semver(current)) {
         (Some(l), Some(c)) => l > c,
-        _ => normalize_tag(latest) != normalize_tag(current),
+        _ => false,
     }
 }
 
@@ -282,19 +306,20 @@ fn normalize_tag(s: &str) -> String {
         .to_ascii_lowercase()
 }
 
-fn parse_semver(s: &str) -> Option<(u64, u64, u64)> {
+fn parse_semver(s: &str) -> Option<(u64, u64, u64, bool)> {
     let t = normalize_tag(s);
-    let mut parts = t.split('.');
+    let without_build = t.split_once('+').map_or(t.as_str(), |(core, _)| core);
+    let (core, stable) = without_build
+        .split_once('-')
+        .map_or((without_build, true), |(core, _)| (core, false));
+    let mut parts = core.split('.');
     let major = parts.next()?.parse().ok()?;
     let minor = parts.next().unwrap_or("0").parse().ok()?;
-    let patch = parts
-        .next()
-        .unwrap_or("0")
-        .split(|c: char| !c.is_ascii_digit())
-        .next()?
-        .parse()
-        .ok()?;
-    Some((major, minor, patch))
+    let patch = parts.next().unwrap_or("0").parse().ok()?;
+    if parts.next().is_some() {
+        return None;
+    }
+    Some((major, minor, patch, stable))
 }
 
 #[cfg(test)]
@@ -308,6 +333,9 @@ mod tests {
         assert!(!is_newer("0.1.0", "0.1.0"));
         assert!(!is_newer("v0.1.0", "0.1.0"));
         assert!(!is_newer("0.0.9", "0.1.0"));
+        assert!(!is_newer("0.3.3", "0.3.4"));
+        assert!(is_newer("0.3.4", "0.3.4-beta.1"));
+        assert!(!is_newer("not-a-version", "0.3.4"));
     }
 
     #[test]
@@ -334,5 +362,48 @@ mod tests {
         assert!(!is_allowed_download_url(
             "https://github.com/harsh4k/Bunny-OS/releases/download/v0.3.0/notes.txt"
         ));
+    }
+
+    #[test]
+    fn pick_preferred_release_assets() {
+        let prefix = super::RELEASE_DOWNLOAD_PREFIX;
+        let assets = vec![
+            GhAsset {
+                name: "other.msi".to_string(),
+                browser_download_url: format!("{prefix}v0.3.4/other.msi"),
+            },
+            GhAsset {
+                name: "Bunny.OS_0.3.4_x64_en-US.msi".to_string(),
+                browser_download_url: format!(
+                    "{prefix}v0.3.4/Bunny.OS_0.3.4_x64_en-US.msi"
+                ),
+            },
+            GhAsset {
+                name: "Bunny.OS_0.3.4_aarch64.dmg".to_string(),
+                browser_download_url: format!(
+                    "{prefix}v0.3.4/Bunny.OS_0.3.4_aarch64.dmg"
+                ),
+            },
+            GhAsset {
+                name: "Bunny.OS_0.3.4_universal.dmg".to_string(),
+                browser_download_url: format!(
+                    "{prefix}v0.3.4/Bunny.OS_0.3.4_universal.dmg"
+                ),
+            },
+        ];
+        let win = pick_win_msi_url(&assets).expect("msi");
+        assert!(win.ends_with("_x64_en-US.msi"));
+        let mac = pick_mac_dmg_url(&assets).expect("dmg");
+        assert!(mac.ends_with("_aarch64.dmg"));
+    }
+
+    #[test]
+    fn update_message_ahead_of_latest() {
+        let msg = update_check_message("v0.3.4", "0.3.5", false);
+        assert!(msg.contains("ahead of the latest published release"));
+        let latest = update_check_message("v0.3.4", "0.3.4", false);
+        assert!(latest.contains("latest published release"));
+        let newer = update_check_message("v0.3.5", "0.3.4", true);
+        assert!(newer.contains("newer release is available"));
     }
 }

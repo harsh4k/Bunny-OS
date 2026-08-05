@@ -4,10 +4,10 @@
 
 | Gate | What | This machine / CI |
 |---|---|---|
-| **P0.1** | MSVC `link.exe` + `npm run build` | Needs VS Build Tools **or** GitHub Actions `release-windows.yml` |
+| **P0.1** | MSVC `link.exe` + `npm run build` | Needs VS Build Tools **or** GitHub Actions `release.yml` |
 | **P0.2** | Frozen sidecar via PyInstaller | `pwsh -File scripts/package-sidecar.ps1` |
 | **P0.3** | Sidecar embedded (`bundle.externalBin`) | Wired in `src-tauri/tauri.conf.json` |
-| **P0.4** | Publish installer + checksums | Tag `v*` → draft GitHub Release (CI) |
+| **P0.4** | Publish installer + checksums | Matching `v*` tag → GitHub Release (CI) |
 
 ```powershell
 # Run whatever this machine can (sidecar always; full installer if MSVC present)
@@ -26,7 +26,7 @@ pwsh -File scripts/check-p0.ps1
 | Python 3.11+ | Sidecar freeze (`BUNNY_PYTHON` optional override) |
 | Ollama | External; `http://127.0.0.1:11434` |
 
-Local daily-drive on Windows may use MinGW by copying `src-tauri/.cargo/config.toml.windows` → `config.toml` (see that folder’s README). Repo `rust-toolchain.toml` pins `stable` so macOS CI/hosts work. **Release builds use the host’s default linker** (MSVC on `release-windows.yml`, Apple clang on `release-macos.yml`).
+Local daily-drive on Windows may use MinGW by copying `src-tauri/.cargo/config.toml.windows` → `config.toml` (see that folder’s README). Repo `rust-toolchain.toml` pins `stable` so macOS CI/hosts work. **Release builds use the host’s default linker** (MSVC / Apple clang in `release.yml`).
 
 ## Release build order (local, MSVC present)
 
@@ -48,12 +48,15 @@ Or one shot: `pwsh -File scripts/prepare-release.ps1`
 ## CI release
 
 ```text
-git tag v0.1.0
-git push origin v0.1.0
+npm run check:version
+git tag v0.3.4
+git push origin v0.3.4
 ```
 
-Workflows: `.github/workflows/release-windows.yml` and `release-macos.yml`  
-Produces **draft prereleases** with the Windows installer and macOS DMG. Signing remains a human step.
+Workflow: `.github/workflows/release.yml`  
+Produces a published release with the Windows MSI, arm64 macOS DMG, and
+`SHA256SUMS.txt`. The workflow rejects a tag that does not match the app
+version. Signing remains a human step.
 
 ## End-user install (P1)
 

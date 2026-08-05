@@ -10,4 +10,4 @@ Copy-Item .cargo\config.toml.windows .cargo\config.toml
 
 That file pins `x86_64-pc-windows-gnu`, a space-safe `target-dir`, and the `gcc` linker.
 
-Release CI (`.github/workflows/release-windows.yml`) uses the MSVC target and does not need this file.
+Release CI (`.github/workflows/release.yml`) uses the MSVC target and does not need this file.

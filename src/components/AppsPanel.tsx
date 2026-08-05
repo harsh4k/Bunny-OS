@@ -65,6 +65,7 @@ export function AppsPanel({ onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [iconMiss, setIconMiss] = useState(0);
   const [composer, setComposer] = useState<Composer>("none");
   const [aliasName, setAliasName] = useState("");
   const [aliasTarget, setAliasTarget] = useState("");
@@ -85,23 +86,37 @@ export function AppsPanel({ onClose }: Props) {
           `${rows.filter((r) => r.source !== "alias").length} apps saved locally`,
         );
       }
+      return rows;
     } catch (err) {
       setError(friendlyError(invokeErrorMessage(err)));
+      return [];
     } finally {
       setBusy(false);
     }
   }, []);
 
-  useEffect(() => {
-    void load(false);
+  const loadInitial = useCallback(async () => {
+    const rows = await load(false);
+    if (rows.length === 0) {
+      await load(true);
+    }
   }, [load]);
 
   useEffect(() => {
+    void loadInitial();
+  }, [loadInitial]);
+
+  useEffect(() => {
     let cancelled = false;
+    setIconMiss(0);
     for (const app of apps) {
       if (!app.path || app.source === "alias") continue;
       void invoke<string | null>("get_app_icon", { path: app.path }).then((filePath) => {
-        if (cancelled || !filePath) return;
+        if (cancelled) return;
+        if (!filePath) {
+          setIconMiss((n) => n + 1);
+          return;
+        }
         const url = convertFileSrc(filePath);
         setIconUrls((prev) =>
           prev[app.path] ? prev : { ...prev, [app.path]: url },
@@ -155,6 +170,7 @@ export function AppsPanel({ onClose }: Props) {
             <span
               className={styles.appGlyph}
               style={{ background: tint(app.name) }}
+              title="No icon — app still openable by voice"
               aria-hidden="true"
             >
               {initials(app.name)}
@@ -343,12 +359,14 @@ export function AppsPanel({ onClose }: Props) {
         </div>
       )}
 
-      {(error || note) && (
+      {(error || note || iconMiss > 0) && (
         <p
           className={error ? styles.bannerError : styles.banner}
           role={error ? "alert" : "status"}
         >
-          {error ?? note}
+          {error ??
+            note ??
+            `${iconMiss} app icon${iconMiss === 1 ? "" : "s"} could not load — apps are still openable by voice.`}
         </p>
       )}
 

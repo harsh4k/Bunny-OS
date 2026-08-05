@@ -13,6 +13,9 @@ if (-not (Get-Command link.exe -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host "==> package-sidecar"
+if (-not $env:BUNNY_PREFETCH_WHISPER) {
+  $env:BUNNY_PREFETCH_WHISPER = "1"
+}
 & "$PSScriptRoot\package-sidecar.ps1"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

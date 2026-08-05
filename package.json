@@ -12,6 +12,9 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "npm run build:e2e && playwright test",
+    "build:e2e": "cross-env E2E=1 npm run build:frontend",
+    "check:version": "node scripts/check-version.mjs",
     "verify:beta": "pwsh -File scripts/verify-beta.ps1",
     "package:sidecar": "pwsh -File scripts/package-sidecar.ps1",
     "diagnostics": "pwsh -File scripts/export-diagnostics.ps1"
@@ -24,6 +27,9 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "cross-env": "^7.0.3",
+    "playwright": "^1.49.0",
     "@tauri-apps/cli": "^2",
     "@testing-library/jest-dom": "^6",
     "@testing-library/react": "^16",
