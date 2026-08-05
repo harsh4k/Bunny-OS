@@ -26,6 +26,27 @@ export interface IslandCursorController {
   dispose: () => void;
 }
 
+export interface ShellSurfaceState {
+  onboardingReady: boolean;
+  onboardingPending: boolean;
+  islandShown: boolean;
+  expanded: boolean;
+}
+
+/**
+ * Click-through is only ever correct for the settled idle island. Any other
+ * surface — onboarding, an expanded dashboard, or the pre-resolve boot window —
+ * must keep the window clickable.
+ */
+export function isIdleIslandSurface(state: ShellSurfaceState): boolean {
+  return (
+    state.onboardingReady &&
+    !state.onboardingPending &&
+    state.islandShown &&
+    !state.expanded
+  );
+}
+
 export function createIslandCursorController(
   options: IslandCursorControllerOptions,
 ): IslandCursorController {

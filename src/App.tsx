@@ -17,7 +17,11 @@ import {
   islandBarWindow,
 } from "./lib/islandGeometry";
 import { cursorInHitRect, hitRectInWindow } from "./lib/islandHitTest";
-import { createIslandCursorController, HIT_POLL_MS } from "./lib/islandCursorController";
+import {
+  createIslandCursorController,
+  isIdleIslandSurface,
+  HIT_POLL_MS,
+} from "./lib/islandCursorController";
 import { ensureIslandTransparency } from "./lib/islandTransparency";
 import { useVoiceStatus } from "./lib/useVoiceStatus";
 import type { ShellMotion } from "./lib/shellMotion";
@@ -386,14 +390,20 @@ function App() {
       onOpenIsland: () => setIslandOpen(true),
     });
 
-    if (!islandShown || expanded) {
+    const idleIsland = isIdleIslandSurface({
+      onboardingReady,
+      onboardingPending,
+      islandShown,
+      expanded,
+    });
+    if (!idleIsland) {
       controller.setInteractive();
       return () => controller.dispose();
     }
 
     controller.startIdlePoll();
     return () => controller.dispose();
-  }, [expanded, islandShown]);
+  }, [expanded, islandShown, onboardingReady, onboardingPending]);
 
   useEffect(() => {
     invoke<boolean>("get_mic_muted")

@@ -93,7 +93,7 @@ pub fn is_allowed_download_url(url: &str) -> bool {
 }
 
 fn pick_win_msi_url(assets: &[GhAsset]) -> Option<String> {
-    const SUFFIXES: &[&str] = ["_x64_en-US.msi", ".msi"];
+    const SUFFIXES: &[&str] = &["_x64_en-US.msi", ".msi"];
     for suffix in SUFFIXES {
         if let Some(a) = assets
             .iter()
@@ -106,7 +106,7 @@ fn pick_win_msi_url(assets: &[GhAsset]) -> Option<String> {
 }
 
 fn pick_mac_dmg_url(assets: &[GhAsset]) -> Option<String> {
-    const SUFFIXES: &[&str] = ["_aarch64.dmg", ".dmg"];
+    const SUFFIXES: &[&str] = &["_aarch64.dmg", ".dmg"];
     for suffix in SUFFIXES {
         if let Some(a) = assets
             .iter()
@@ -122,9 +122,7 @@ fn update_check_message(latest_raw: &str, current: &str, newer: bool) -> String 
     if newer {
         format!("A newer release is available: {latest_raw}. Download the installer below.")
     } else if is_newer(current, latest_raw) {
-        format!(
-            "You're running {current}, ahead of the latest published release ({latest_raw})."
-        )
+        format!("You're running {current}, ahead of the latest published release ({latest_raw}).")
     } else {
         format!("You're on the latest published release ({latest_raw}).")
     }
@@ -374,21 +372,15 @@ mod tests {
             },
             GhAsset {
                 name: "Bunny.OS_0.3.4_x64_en-US.msi".to_string(),
-                browser_download_url: format!(
-                    "{prefix}v0.3.4/Bunny.OS_0.3.4_x64_en-US.msi"
-                ),
+                browser_download_url: format!("{prefix}v0.3.4/Bunny.OS_0.3.4_x64_en-US.msi"),
             },
             GhAsset {
                 name: "Bunny.OS_0.3.4_aarch64.dmg".to_string(),
-                browser_download_url: format!(
-                    "{prefix}v0.3.4/Bunny.OS_0.3.4_aarch64.dmg"
-                ),
+                browser_download_url: format!("{prefix}v0.3.4/Bunny.OS_0.3.4_aarch64.dmg"),
             },
             GhAsset {
                 name: "Bunny.OS_0.3.4_universal.dmg".to_string(),
-                browser_download_url: format!(
-                    "{prefix}v0.3.4/Bunny.OS_0.3.4_universal.dmg"
-                ),
+                browser_download_url: format!("{prefix}v0.3.4/Bunny.OS_0.3.4_universal.dmg"),
             },
         ];
         let win = pick_win_msi_url(&assets).expect("msi");

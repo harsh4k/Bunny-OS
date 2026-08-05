@@ -1,5 +1,8 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { createIslandCursorController } from "../lib/islandCursorController";
+import {
+  createIslandCursorController,
+  isIdleIslandSurface,
+} from "../lib/islandCursorController";
 
 describe("islandCursorController", () => {
   beforeEach(() => {
@@ -61,6 +64,22 @@ describe("islandCursorController", () => {
       const last = setIgnore.mock.calls.at(-1);
       expect(last).toEqual([false]);
     });
+  });
+
+  it("only treats the settled idle island as click-through", () => {
+    const idle = {
+      onboardingReady: true,
+      onboardingPending: false,
+      islandShown: true,
+      expanded: false,
+    };
+    expect(isIdleIslandSurface(idle)).toBe(true);
+    // Boot: onboarding has not resolved yet, so the shell may be about to open.
+    expect(isIdleIslandSurface({ ...idle, onboardingReady: false })).toBe(false);
+    // Onboarding wizard must stay clickable (legal checkbox / Continue).
+    expect(isIdleIslandSurface({ ...idle, onboardingPending: true })).toBe(false);
+    expect(isIdleIslandSurface({ ...idle, expanded: true })).toBe(false);
+    expect(isIdleIslandSurface({ ...idle, islandShown: false })).toBe(false);
   });
 
   it("sets ignore false when interactive mode", async () => {

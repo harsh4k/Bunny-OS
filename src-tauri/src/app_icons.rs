@@ -15,10 +15,9 @@ fn icons_dir() -> PathBuf {
 }
 
 fn cache_path_for(app_path: &Path) -> PathBuf {
-    let key = app_path
-        .to_string_lossy()
-        .bytes()
-        .fold(0u64, |acc, b| acc.wrapping_mul(131).wrapping_add(u64::from(b)));
+    let key = app_path.to_string_lossy().bytes().fold(0u64, |acc, b| {
+        acc.wrapping_mul(131).wrapping_add(u64::from(b))
+    });
     icons_dir().join(format!("{key:016x}.png"))
 }
 
@@ -275,8 +274,8 @@ mod macos {
     pub fn extract_png(path: &Path) -> Result<Vec<u8>, String> {
         let icns_path = find_icns(path).ok_or("no icns in app bundle")?;
         let file = fs::File::open(&icns_path).map_err(|e| format!("open icns: {e}"))?;
-        let icon_family = icns::IconFamily::read(BufReader::new(file))
-            .map_err(|e| format!("read icns: {e}"))?;
+        let icon_family =
+            icns::IconFamily::read(BufReader::new(file)).map_err(|e| format!("read icns: {e}"))?;
         let kind = icon_family
             .available_icons()
             .into_iter()

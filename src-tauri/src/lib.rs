@@ -3,8 +3,8 @@
 //! Wires together: tray setup, sidecar lifecycle, Tauri commands, single-instance guard.
 #![deny(unsafe_code)]
 
-pub mod applog;
 pub mod app_icons;
+pub mod applog;
 pub mod audit;
 mod brand_icon;
 pub mod broker;

@@ -41,6 +41,9 @@ pub(crate) fn show_main(app: &AppHandle) {
 /// Reveal the main window; `focus` false keeps the previous foreground app (browser confirm).
 pub(crate) fn show_main_with_focus(app: &AppHandle, focus: bool) {
     if let Some(win) = app.get_webview_window("main") {
+        // Backstop for the idle-island click-through: a window we are showing on
+        // purpose must accept clicks even if a stale poll left it transparent.
+        let _ = win.set_ignore_cursor_events(false);
         let _ = win.show();
         if focus {
             let _ = win.set_focus();
