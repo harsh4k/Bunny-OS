@@ -1,4 +1,4 @@
-export async function getCurrentWebviewWindow() {
+export function getCurrentWebviewWindow() {
   return {
     setBackgroundColor: async () => {},
   };
