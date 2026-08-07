@@ -1,7 +1,7 @@
 /**
  * Mock @tauri-apps/api/window for Playwright island preview.
  */
-export async function getCurrentWindow() {
+export function getCurrentWindow() {
   return {
     setIgnoreCursorEvents: async () => {},
     outerPosition: async () => ({ x: 0, y: 0 }),
