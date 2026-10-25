@@ -67,6 +67,28 @@ pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSV
 # pwsh -File scripts/export-diagnostics.ps1
 ```
 
+## Verify (run before every PR)
+```bash
+npm ci                                   # needs committed package-lock.json (see Current status, item 4)
+npm run lint                             # tsc --noEmit
+npm test                                 # vitest, 144+ tests
+npm run test:e2e                         # Playwright against vite preview with mocked Tauri (E2E=1)
+python -m unittest discover -s sidecar/tests
+cd src-tauri && cargo test               # needs binaries/bunny-sidecar-<target-triple> to exist
+```
+- `cargo` needs the sidecar binary present: build it with `package-sidecar`, or for tests only create an empty
+  executable placeholder at `src-tauri/binaries/bunny-sidecar-<triple>` (never commit it).
+- On Linux sandboxes `cargo` also needs `libgtk-3-dev libwebkit2gtk-4.1-dev`. Linux is not a shipped target;
+  Windows-only tests may fail there until they are mocked (Current status, item 3).
+- UI changes: render `/?ui=dashboard`, `/?ui=island`, `/?e2e=onboarding`, `/?e2e=apps` from an `E2E=1` build and
+  screenshot them before claiming done.
+- Never report success you did not observe; say "unverified" for anything not run.
+
+## Workflow
+- One focused PR per change, on a feature branch. Never push to `main`.
+- Do not add dependencies without asking. Report unrelated issues instead of fixing them silently.
+- Rust strings: never slice `&s[..n]` on user or log text; truncate by chars (`chars().take(n)`).
+
 ## Toolchain notes
 - `rust-toolchain.toml` pins `stable` (works on Windows + macOS CI/hosts).
 - Local Windows MinGW: copy `src-tauri/.cargo/config.toml.windows` → `config.toml` (see `.cargo/README.md`).
@@ -87,7 +109,16 @@ pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSV
 - Done: Next-update W4 — allowlisted browser tools + confirm UX
 - Done: Updates panel — version + Open Releases + optional GitHub compare (manual install)
 - In progress: P0 stability — click-through, clear island pill, app scan/icons, PRD + tests (`docs/PRD.md`)
-- Next: soak / tag as needed (`docs/beta-checklist.md`)
+- Next: completion plan from the 2026-10-25 audit, in order:
+  1. Done: fix UTF-8 truncation panics in Rust (applog, broker) — PR #3
+  2. Done: refresh this file
+  3. Make sidecar + Rust tests pass on every OS (mock Windows scanners)
+  4. PR CI (lint, vitest, e2e, sidecar, cargo test on Win + Mac) + commit lockfiles
+  5. Confirm `open_url` when the turn used screen context (prompt-injection guard)
+  6. React error boundary + complete e2e Tauri mock (`get_lifecycle`)
+  7. Compress the six ~1.8 MB atmosphere PNGs
+  8. Design + accessibility polish per panel (contrast, focus-visible, Apps dock)
+  9. Bump vitest, clear Rust warnings, cut v0.3.5 after soak
 - Human gates: soak on Win + Mac after CI artifacts (`docs/beta-checklist.md`); unsigned beta OK (no paid certs)
 - Tag release: `git tag v0.3.4 && git push origin v0.3.4` → MSI + Mac DMGs + `SHA256SUMS.txt`
 - Legal: Privacy + Terms (India / DPDP-oriented) in `docs/` + GitHub Pages (`docs/PAGES.md`)
