@@ -239,11 +239,13 @@ fn system_summary() -> String {
     format!("OS: {os_name} ({arch}) | Computer: {computer} | User: {username}")
 }
 
+/// Truncate to at most `max` chars (not bytes), ending in `…` when cut.
 fn truncate_label(s: &str, max: usize) -> String {
-    if s.len() <= max {
+    if s.chars().count() <= max {
         s.to_string()
     } else {
-        format!("{}…", &s[..max.saturating_sub(1)])
+        let keep: String = s.chars().take(max.saturating_sub(1)).collect();
+        format!("{keep}…")
     }
 }
 
@@ -287,6 +289,16 @@ mod tests {
     #[test]
     fn long_label_truncated() {
         let result = truncate_label("hello world", 5);
+        assert_eq!(result, "hell…");
+    }
+
+    #[test]
+    fn multibyte_label_truncated_without_panicking() {
+        // A spoken Hindi search query; a byte-index cut lands mid-character.
+        let query = "अरिजीत सिंह के सबसे अच्छे गाने चलाओ";
+        let result = truncate_label(query, 10);
+        assert_eq!(result.chars().count(), 10);
         assert!(result.ends_with('…'));
+        assert_eq!(truncate_label("🎵🎵🎵", 3), "🎵🎵🎵");
     }
 }

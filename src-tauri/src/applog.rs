@@ -107,10 +107,10 @@ fn sanitize(message: &str) -> String {
         .map(|c| if c.is_control() { ' ' } else { c })
         .collect();
     let flat = flat.trim();
-    if flat.len() > 400 {
-        format!("{}…", &flat[..400])
-    } else {
-        flat.to_string()
+    // Cut on a char boundary: byte slicing panics on multi-byte text.
+    match flat.char_indices().nth(400) {
+        Some((cut, _)) => format!("{}…", &flat[..cut]),
+        None => flat.to_string(),
     }
 }
 
@@ -150,7 +150,18 @@ mod tests {
         let s = sanitize("hello\nworld");
         assert!(!s.contains('\n'));
         let long = "a".repeat(500);
-        assert!(sanitize(&long).len() <= 401);
+        assert_eq!(sanitize(&long).chars().count(), 401);
+    }
+
+    #[test]
+    fn sanitize_truncates_multibyte_without_panicking() {
+        // 3-byte chars put byte 400 mid-character.
+        let long = "€".repeat(500);
+        let out = sanitize(&long);
+        assert_eq!(out.chars().count(), 401);
+        assert!(out.ends_with('…'));
+        let hindi = "नमस्ते ".repeat(100);
+        assert!(sanitize(&hindi).chars().count() <= 401);
     }
 
     #[test]
