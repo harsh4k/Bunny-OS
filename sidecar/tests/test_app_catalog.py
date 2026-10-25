@@ -10,22 +10,18 @@ Covers:
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import app_catalog
 from app_catalog import get_app_catalog
+from fakes import windows_app_catalog
 
 
 class TestAppCatalog(unittest.TestCase):
 
     def test_start_menu_apps_included(self):
-        with (
-            patch("app_catalog._scan_start_menu",
-                  return_value=["Notepad", "Microsoft Edge"]),
-            patch("app_catalog._scan_registry_uninstall", return_value=[]),
-        ):
+        with windows_app_catalog(start_menu=["Notepad", "Microsoft Edge"]):
             apps = get_app_catalog()
         names = [a.name for a in apps]
         self.assertIn("Notepad", names)
@@ -34,11 +30,7 @@ class TestAppCatalog(unittest.TestCase):
             self.assertEqual(a.source, "start_menu")
 
     def test_registry_apps_included(self):
-        with (
-            patch("app_catalog._scan_start_menu", return_value=[]),
-            patch("app_catalog._scan_registry_uninstall",
-                  return_value=["Python 3.11", "Git"]),
-        ):
+        with windows_app_catalog(registry=["Python 3.11", "Git"]):
             apps = get_app_catalog()
         names = [a.name for a in apps]
         self.assertIn("Python 3.11", names)
@@ -46,11 +38,7 @@ class TestAppCatalog(unittest.TestCase):
             self.assertEqual(a.source, "registry")
 
     def test_deduplication_between_sources(self):
-        with (
-            patch("app_catalog._scan_start_menu", return_value=["Git"]),
-            patch("app_catalog._scan_registry_uninstall",
-                  return_value=["Git", "Python"]),
-        ):
+        with windows_app_catalog(start_menu=["Git"], registry=["Git", "Python"]):
             apps = get_app_catalog()
         names = [a.name for a in apps]
         self.assertEqual(names.count("Git"), 1)
@@ -58,12 +46,20 @@ class TestAppCatalog(unittest.TestCase):
 
     def test_max_app_entries_respected(self):
         many = [f"App{i}" for i in range(600)]
-        with (
-            patch("app_catalog._scan_start_menu", return_value=many),
-            patch("app_catalog._scan_registry_uninstall", return_value=many),
-        ):
+        with windows_app_catalog(start_menu=many, registry=many):
             apps = get_app_catalog()
         self.assertLessEqual(len(apps), app_catalog.MAX_APP_ENTRIES)
+
+    def test_user_entries_first_and_deduplicated(self):
+        user = [("My Tool", "user", r"C:\Tools\tool.exe"), ("notepad", "user", "")]
+        with windows_app_catalog(start_menu=["Notepad"], user_entries=user):
+            apps = get_app_catalog()
+        self.assertEqual(apps[0].name, "My Tool")
+        self.assertEqual(apps[0].source, "user")
+        self.assertEqual(apps[0].path, r"C:\Tools\tool.exe")
+        # Case-insensitive clash with a scanned app keeps the scanned entry.
+        self.assertEqual([a.name.lower() for a in apps].count("notepad"), 1)
+        self.assertEqual(next(a for a in apps if a.name.lower() == "notepad").source, "start_menu")
 
 
 if __name__ == "__main__":
