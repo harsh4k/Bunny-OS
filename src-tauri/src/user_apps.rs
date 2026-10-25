@@ -428,7 +428,8 @@ mod tests {
     static LOCK: Mutex<()> = Mutex::new(());
 
     fn with_temp_data<R>(f: impl FnOnce() -> R) -> R {
-        let _g = LOCK.lock().unwrap();
+        // One failed test must not poison the lock for the rest.
+        let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let dir = std::env::temp_dir().join(format!("bunny-user-apps-{}", new_id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
@@ -469,13 +470,14 @@ mod tests {
     fn custom_persists() {
         with_temp_data(|| {
             let dir = PathBuf::from(std::env::var("BUNNY_APP_DATA").unwrap());
-            let fake = if cfg!(windows) {
-                let p = dir.join("Demo.lnk");
-                fs::write(&p, b"").unwrap();
-                p
-            } else {
+            // validate_launch_path accepts .app on macOS and .lnk/.exe elsewhere.
+            let fake = if cfg!(target_os = "macos") {
                 let p = dir.join("Demo.app");
                 fs::create_dir_all(&p).unwrap();
+                p
+            } else {
+                let p = dir.join("Demo.lnk");
+                fs::write(&p, b"").unwrap();
                 p
             };
             let entry = add_custom("Demo App", &fake).unwrap();

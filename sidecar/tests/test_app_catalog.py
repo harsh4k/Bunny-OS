@@ -16,12 +16,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import app_catalog
 from app_catalog import get_app_catalog
+from fakes import windows_app_catalog
 
 
 class TestAppCatalog(unittest.TestCase):
 
     def test_start_menu_apps_included(self):
         with (
+            windows_app_catalog(),
             patch("app_catalog._scan_start_menu",
                   return_value=["Notepad", "Microsoft Edge"]),
             patch("app_catalog._scan_registry_uninstall", return_value=[]),
@@ -35,6 +37,7 @@ class TestAppCatalog(unittest.TestCase):
 
     def test_registry_apps_included(self):
         with (
+            windows_app_catalog(),
             patch("app_catalog._scan_start_menu", return_value=[]),
             patch("app_catalog._scan_registry_uninstall",
                   return_value=["Python 3.11", "Git"]),
@@ -47,6 +50,7 @@ class TestAppCatalog(unittest.TestCase):
 
     def test_deduplication_between_sources(self):
         with (
+            windows_app_catalog(),
             patch("app_catalog._scan_start_menu", return_value=["Git"]),
             patch("app_catalog._scan_registry_uninstall",
                   return_value=["Git", "Python"]),
@@ -59,6 +63,7 @@ class TestAppCatalog(unittest.TestCase):
     def test_max_app_entries_respected(self):
         many = [f"App{i}" for i in range(600)]
         with (
+            windows_app_catalog(),
             patch("app_catalog._scan_start_menu", return_value=many),
             patch("app_catalog._scan_registry_uninstall", return_value=many),
         ):

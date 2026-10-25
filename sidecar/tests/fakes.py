@@ -1,7 +1,12 @@
-"""Test doubles for STT / TTS — kept out of production modules."""
+"""Test doubles for STT / TTS and the app catalog — kept out of production modules."""
 from __future__ import annotations
 
+import contextlib
+import sys
 import threading
+import types
+from collections.abc import Iterator
+from unittest.mock import patch
 
 
 class FakeStt:
@@ -30,3 +35,18 @@ class FakeTts:
 
     def stop(self) -> None:
         self.stopped += 1
+
+
+@contextlib.contextmanager
+def windows_app_catalog() -> Iterator[None]:
+    """Run app_catalog's Windows path on any OS with no real user data.
+
+    Callers still patch `_scan_start_menu` / `_scan_registry_uninstall`.
+    """
+    fake_sys = types.SimpleNamespace(platform="win32")
+    with (
+        patch("app_catalog.sys", fake_sys),
+        patch.dict(sys.modules, {"winreg": types.ModuleType("winreg")}),
+        patch("user_apps.user_catalog_entries", return_value=[]),
+    ):
+        yield
