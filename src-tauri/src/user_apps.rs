@@ -434,10 +434,16 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         std::env::set_var("BUNNY_APP_DATA", &dir);
-        let out = f();
-        std::env::remove_var("BUNNY_APP_DATA");
-        let _ = fs::remove_dir_all(&dir);
-        out
+        // Cleanup runs on drop, so a panicking test still resets the env and temp dir.
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                std::env::remove_var("BUNNY_APP_DATA");
+                let _ = fs::remove_dir_all(&self.0);
+            }
+        }
+        let _cleanup = Cleanup(dir);
+        f()
     }
 
     #[test]

@@ -38,15 +38,23 @@ class FakeTts:
 
 
 @contextlib.contextmanager
-def windows_app_catalog() -> Iterator[None]:
-    """Run app_catalog's Windows path on any OS with no real user data.
+def windows_app_catalog(
+    start_menu: list[str] | None = None,
+    registry: list[str] | None = None,
+    user_entries: list[tuple[str, str, str]] | None = None,
+) -> Iterator[None]:
+    """Run app_catalog's Windows path on any OS with fixed scanner results.
 
-    Callers still patch `_scan_start_menu` / `_scan_registry_uninstall`.
+    Stubs both scanners, winreg, and the user's custom-app file, so tests
+    never read the real machine.
     """
-    fake_sys = types.SimpleNamespace(platform="win32")
+    fake_sys = types.SimpleNamespace(**vars(sys))
+    fake_sys.platform = "win32"
     with (
         patch("app_catalog.sys", fake_sys),
         patch.dict(sys.modules, {"winreg": types.ModuleType("winreg")}),
-        patch("user_apps.user_catalog_entries", return_value=[]),
+        patch("app_catalog._scan_start_menu", return_value=list(start_menu or [])),
+        patch("app_catalog._scan_registry_uninstall", return_value=list(registry or [])),
+        patch("user_apps.user_catalog_entries", return_value=list(user_entries or [])),
     ):
         yield

@@ -35,9 +35,7 @@ def _patch_all(*, gpu_tuple=(None, hw_probe._SMI_DISCLOSURE), ram_gb=8.0):
         patch("hw_probe._has_audio_input", return_value=False),
         patch("ollama_client._fetch_ollama_models", return_value=None),
         patch("ollama_client._fetch_ollama_running", return_value=[]),
-        patch("app_catalog._scan_start_menu", return_value=["Notepad"]),
-        patch("app_catalog._scan_registry_uninstall", return_value=[]),
-        windows_app_catalog(),
+        windows_app_catalog(start_menu=["Notepad"]),
     ]
 
     @contextlib.contextmanager
