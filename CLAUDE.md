@@ -69,7 +69,7 @@ pwsh -File scripts/check-p0.ps1          # frozen sidecar; full installer if MSV
 
 ## Verify (run before every PR)
 ```bash
-npm ci                                   # needs committed package-lock.json (see Current status, item 4)
+npm ci                                   # lockfiles are committed; CI runs all of these on every PR
 npm run lint                             # tsc --noEmit
 npm test                                 # vitest, 144+ tests
 npm run test:e2e                         # Playwright against vite preview with mocked Tauri (E2E=1)
@@ -78,8 +78,8 @@ cd src-tauri && cargo test               # needs binaries/bunny-sidecar-<target-
 ```
 - `cargo` needs the sidecar binary present: build it with `package-sidecar`, or for tests only create an empty
   executable placeholder at `src-tauri/binaries/bunny-sidecar-<triple>` (never commit it).
-- On Linux sandboxes `cargo` also needs `libgtk-3-dev libwebkit2gtk-4.1-dev`. Linux is not a shipped target;
-  Windows-only tests may fail there until they are mocked (Current status, item 3).
+- On Linux sandboxes `cargo` also needs `libgtk-3-dev libwebkit2gtk-4.1-dev`. Linux is not a shipped target.
+- CI: `.github/workflows/ci.yml` (frontend on Ubuntu; sidecar on Win/Mac/Linux; `cargo test` on Win/Mac).
 - UI changes: render `/?ui=dashboard`, `/?ui=island`, `/?e2e=onboarding`, `/?e2e=apps` from an `E2E=1` build and
   screenshot them before claiming done.
 - Never report success you did not observe; say "unverified" for anything not run.
@@ -111,9 +111,9 @@ cd src-tauri && cargo test               # needs binaries/bunny-sidecar-<target-
 - In progress: P0 stability — click-through, clear island pill, app scan/icons, PRD + tests (`docs/PRD.md`)
 - Next: completion plan from the 2026-10-25 audit, in order:
   1. Done: fix UTF-8 truncation panics in Rust (applog, broker) — PR #3
-  2. Done: refresh this file
-  3. Make sidecar + Rust tests pass on every OS (mock Windows scanners)
-  4. PR CI (lint, vitest, e2e, sidecar, cargo test on Win + Mac) + commit lockfiles
+  2. Done: refresh this file — PR #4
+  3. Done: make sidecar + Rust tests pass on every OS — PR #5
+  4. Done: PR CI (lint, vitest, e2e, sidecar, cargo test on Win + Mac) + commit lockfiles
   5. Confirm `open_url` when the turn used screen context (prompt-injection guard)
   6. React error boundary + complete e2e Tauri mock (`get_lifecycle`)
   7. Compress the six ~1.8 MB atmosphere PNGs
