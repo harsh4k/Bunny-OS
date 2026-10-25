@@ -11,7 +11,6 @@ Setup/
 
 # Node/npm
 node_modules/
-package-lock.json
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
@@ -20,7 +19,6 @@ yarn-error.log*
 
 # Rust/Cargo
 target/
-Cargo.lock
 **/*.rs.bk
 *.rlib
 *.pdb
@@ -54,7 +52,7 @@ Thumbs.db
 # Tauri
 src-tauri/target/
 # Bundled sidecar binaries (built by scripts/package-sidecar.ps1)
-src-tauri/binaries/*.exe
+src-tauri/binaries/bunny-sidecar-*
 !src-tauri/binaries/.gitkeep
 
 # PyInstaller workdirs

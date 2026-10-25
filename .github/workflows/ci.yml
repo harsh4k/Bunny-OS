@@ -1,0 +1,100 @@
+name: ci
+
+# Fast checks on every PR and on main. Releases stay in release.yml (tags only).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Only supersede PR runs; every commit on main keeps its own result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+      - name: Typecheck
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: E2E tests (mocked Tauri)
+        run: npm run test:e2e
+        env:
+          CI: "1"
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+  sidecar:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-14, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Core sidecar is stdlib-only; optional voice deps skip their tests.
+      - name: Sidecar tests
+        run: python -m unittest discover -s sidecar/tests
+
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-14]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Keys on rustc version + Cargo.lock and caches dependencies only.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # tauri-build requires the externalBin to exist; tests never run it.
+      - name: Placeholder sidecar binary
+        run: |
+          triple="$(rustc -vV | sed -n 's/^host: //p')"
+          ext=""
+          if [[ "$RUNNER_OS" == "Windows" ]]; then ext=".exe"; fi
+          printf '' > "src-tauri/binaries/bunny-sidecar-${triple}${ext}"
+          chmod +x "src-tauri/binaries/bunny-sidecar-${triple}${ext}"
+
+      - name: Rust tests
+        working-directory: src-tauri
+        run: cargo test --locked
