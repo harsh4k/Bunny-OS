@@ -113,7 +113,7 @@ cd src-tauri && cargo test               # needs binaries/bunny-sidecar-<target-
   1. Done: fix UTF-8 truncation panics in Rust (applog, broker) — PR #3
   2. Done: refresh this file — PR #4
   3. Done: make sidecar + Rust tests pass on every OS — PR #5
-  4. Done: PR CI (lint, vitest, e2e, sidecar, cargo test on Win + Mac) + commit lockfiles
+  4. In review: PR CI (lint, vitest, e2e, sidecar, cargo test on Win + Mac) + commit lockfiles; done after first green run
   5. Confirm `open_url` when the turn used screen context (prompt-injection guard)
   6. React error boundary + complete e2e Tauri mock (`get_lifecycle`)
   7. Compress the six ~1.8 MB atmosphere PNGs

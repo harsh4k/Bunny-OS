@@ -52,7 +52,7 @@ Thumbs.db
 # Tauri
 src-tauri/target/
 # Bundled sidecar binaries (built by scripts/package-sidecar.ps1)
-src-tauri/binaries/*.exe
+src-tauri/binaries/bunny-sidecar-*
 !src-tauri/binaries/.gitkeep
 
 # PyInstaller workdirs
