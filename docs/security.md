@@ -132,12 +132,16 @@ Only these actions can be invoked:
 | Action | Args | Notes |
 |---|---|---|
 | `open_app` | `app_name: string` | Whitelist enforced in Rust |
-| `open_url` | `url: string` | Scheme validated (http/https only) |
+| `open_url` | `url: string` | HTTPS only, no credentials or control chars. Needs an on-screen confirm when the turn used Screen context |
 | `youtube_search` | `query: string` | Constructs and opens HTTPS YouTube results URL |
 | `show_system_summary` | None | Queries Win32 API; returns CPU, RAM, disk, uptime |
 | `respond` | `input: string` | Streams text from Ollama |
 
 No other actions execute. Any attempt to invoke unknown actions returns an error.
+
+**Screen context and links.** Text read from the focused window is untrusted (a web page or email can contain
+instructions aimed at the model). When a chat or voice turn included screen text, any `open_url` the model picks is
+held in the same confirm queue as `browser_type`, and the banner shows the link's site before anything opens.
 
 ## Building with security
 

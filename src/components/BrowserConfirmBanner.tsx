@@ -1,5 +1,6 @@
 /**
- * Confirm banner for risky browser actions (type / click-by-role).
+ * Confirm banner for risky browser actions (type / click-by-role), and for links
+ * the model chose after reading the screen (screen text is untrusted).
  * Must stay mounted at App root so island/collapsed voice turns still receive pending streams.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -130,11 +131,19 @@ export function BrowserConfirmBanner({
     );
   }
 
+  const isLink = pending.actionKind === "open_url";
+  const title = isLink ? "Open this link?" : "Confirm browser action";
+
   return (
     <div className={styles.browserConfirmHost} data-testid="browser-confirm-host">
-      <div className={styles.actionCard} role="alertdialog" aria-label="Confirm browser action">
-        <p className={styles.fieldLabel}>Confirm browser action</p>
+      <div className={styles.actionCard} role="alertdialog" aria-label={title}>
+        <p className={styles.fieldLabel}>{title}</p>
         <p className={styles.idleHint}>{pending.summary}</p>
+        {isLink && (
+          <p className={styles.idleHint}>
+            Bunny picked this link after reading your screen. Check the site name first.
+          </p>
+        )}
         {note && (
           <div className={styles.errorState} role="alert">
             {note}

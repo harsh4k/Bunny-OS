@@ -52,6 +52,7 @@ def handle_chat_streaming(
     system_prompt: str | None = None,
     *,
     think: bool | None = None,
+    confirm_links: bool = False,
 ) -> None:
     """
     Always sends exactly one terminal message (response_msg or error_msg).
@@ -63,6 +64,9 @@ def handle_chat_streaming(
 
     `think=False` disables reasoning tokens (faster voice replies on models that
     support it). `None` leaves Ollama's default alone.
+
+    `confirm_links=True` (the prompt included screen text) holds any `open_url`
+    for a user confirm instead of handing it to the host.
     """
     if cancel_event.is_set():
         write_fn(error_msg(msg_id, "cancelled"))
@@ -102,6 +106,7 @@ def handle_chat_streaming(
             cancel_event=cancel_event,
             set_active_conn=set_active_conn,
             think=think,
+            confirm_links=confirm_links,
         )
     except (OSError, http.client.HTTPException):
         if cancel_event.is_set():
@@ -131,6 +136,7 @@ def _stream_chat(
     cancel_event: threading.Event,
     set_active_conn: _SetConnFn,
     think: bool | None = None,
+    confirm_links: bool = False,
 ) -> dict | None:
     """
     POST /api/chat, stream NDJSON. Returns AssistantResult dict or None if cancelled.
@@ -225,7 +231,7 @@ def _stream_chat(
         write_fn(stream_msg(msg_id, "", True))
 
         if tool_call is not None:
-            return _resolve_tool_result(tool_call, write_fn, msg_id)
+            return _resolve_tool_result(tool_call, write_fn, msg_id, confirm_links)
         return {"kind": "respond", "text": accumulated_text}
 
     finally:
@@ -255,8 +261,16 @@ def _resolve_tool_result(
     tool_call: dict,
     write_fn: _WriteFn | None = None,
     msg_id: str = "",
+    confirm_links: bool = False,
 ) -> dict:
     name = tool_call.get("action")
+    if confirm_links and name == "open_url":
+        from browser_actions import handle_browser_action
+
+        return {
+            "kind": "respond",
+            "text": handle_browser_action(tool_call, write_fn, msg_id or "browser"),
+        }
     if name in _LOCAL_RESOLVE:
         if isinstance(name, str) and name.startswith("browser_"):
             from browser_actions import handle_browser_action
@@ -330,6 +344,7 @@ class ChatWorker:
     def _run(self, msg_id: str, model: str, message: str) -> None:
         try:
             prompt = SYSTEM_PROMPT
+            screen_used = False
             if self._memory is not None:
                 try:
                     from screen_context import enrich_prompt_with_screen
@@ -338,6 +353,7 @@ class ChatWorker:
                     prompt, screen_err = enrich_prompt_with_screen(
                         self._memory, base, message
                     )
+                    screen_used = prompt != base
                     self._memory.append_session_turn("user", "chat", message[:200])
                     if screen_err:
                         self._write(
@@ -349,6 +365,7 @@ class ChatWorker:
                         return
                 except Exception:  # noqa: BLE001
                     prompt = SYSTEM_PROMPT
+                    screen_used = False
             handle_chat_streaming(
                 msg_id,
                 model,
@@ -357,6 +374,7 @@ class ChatWorker:
                 self._cancel,
                 self._set_conn,
                 system_prompt=prompt,
+                confirm_links=screen_used,
             )
         except Exception as exc:  # noqa: BLE001 — safety net; handler should catch all
             try:

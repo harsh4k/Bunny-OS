@@ -93,6 +93,35 @@ class TestBrowserActions(unittest.TestCase):
             self.assertTrue(result["ok"])
             click.assert_called_once_with("button", "Submit")
 
+    def test_open_url_queues_and_opens_only_after_confirm(self) -> None:
+        events: list[dict] = []
+        with patch("platform_open.open_url_or_file") as open_fn, patch(
+            "local_actions.open_url_or_file", open_fn
+        ):
+            out = browser_actions.handle_browser_action(
+                {"action": "open_url", "url": "https://evil.example/login"},
+                write_fn=events.append,
+                msg_id="m2",
+            )
+            open_fn.assert_not_called()
+            self.assertIn("evil.example", out)
+            payload = __import__("json").loads(events[0]["chunk"])
+            self.assertEqual(payload["action_kind"], "open_url")
+            self.assertEqual(payload["summary"], "Open a link to evil.example")
+            result = browser_actions.confirm(payload["pending_id"])
+            self.assertTrue(result["ok"], result)
+            open_fn.assert_called_once_with("https://evil.example/login")
+
+    def test_open_url_confirm_still_validates(self) -> None:
+        with patch("local_actions.open_url_or_file") as open_fn:
+            browser_actions.handle_browser_action(
+                {"action": "open_url", "url": "http://plain.example"}
+            )
+            pending_id = browser_actions.pending_snapshot()[0]["pending_id"]
+            result = browser_actions.confirm(pending_id)
+            self.assertFalse(result["ok"])
+            open_fn.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

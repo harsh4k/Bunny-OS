@@ -297,5 +297,31 @@ class TestVoiceWorker(unittest.TestCase):
         self.assertFalse(w.start_wake_session())
 
 
+
+class TestVoiceScreenLinkConfirm(unittest.TestCase):
+    """Voice turns that read the screen must ask before opening links."""
+
+    def _build(self, enriched: str):
+        memory = mock.Mock()
+        memory.build_prompt_prefix.return_value = "BASE"
+        w = VoiceWorker(
+            write_fn=lambda _m: None, stt=FakeStt(), tts=FakeTts(),
+            audio=SilentAudio(), memory=memory,
+        )
+        with mock.patch(
+            "screen_context.enrich_prompt_with_screen", return_value=(enriched, None)
+        ):
+            return w._build_prompt("what's on my screen")
+
+    def test_screen_used_when_block_added(self):
+        _prompt, err, screen_used = self._build("BASE\n\n[screen] text")
+        self.assertIsNone(err)
+        self.assertTrue(screen_used)
+
+    def test_screen_not_used_otherwise(self):
+        _prompt, _err, screen_used = self._build("BASE")
+        self.assertFalse(screen_used)
+
+
 if __name__ == "__main__":
     unittest.main()

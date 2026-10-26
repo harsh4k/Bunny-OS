@@ -21,7 +21,7 @@ Bunny OS: local-only privacy-first desktop automation suite for Windows 10/11 an
 - Chat: Ollama (auto-installed on first run from official ollama.com build if missing; default model `llama3.2:1b`)
 - Local DB: SQLite under `%LOCALAPPDATA%\BunnyOS\` (Windows) or `~/Library/Application Support/BunnyOS/` (macOS)
 - No shell execution (cmd.exe/powershell/osascript forbidden); Win32 / LaunchServices / Tauri APIs allowed
-- Allowlisted MVP actions only: `open_app`, `open_url`, `youtube_search`, `youtube_play`, `spotify_open`, `spotify_search`, `spotify_play`, `media_play`, `media_next`, `media_prev`, `show_system_summary`, `respond`, `browser_scroll`, `browser_type`, `browser_click_role`, `browser_focus_search` (type/click need confirm). Time/date answered in-process by the sidecar (not host-brokered IPC actions).
+- Allowlisted MVP actions only: `open_app`, `open_url` (needs confirm after Screen context), `youtube_search`, `youtube_play`, `spotify_open`, `spotify_search`, `spotify_play`, `media_play`, `media_next`, `media_prev`, `show_system_summary`, `respond`, `browser_scroll`, `browser_type`, `browser_click_role`, `browser_focus_search` (type/click need confirm). Time/date answered in-process by the sidecar (not host-brokered IPC actions).
 - Voice fast-path: time/date/open/youtube/spotify/media matched locally before Ollama; errors are spoken aloud
 - Wake word: custom text phrase (default **hey bunny**), persisted under app-data `wake/`; optional openWakeWord models; never authorizes actions
 - No LLM-invented tools — new capabilities must be added to the typed allowlist
@@ -113,8 +113,8 @@ cd src-tauri && cargo test               # needs binaries/bunny-sidecar-<target-
   1. Done: fix UTF-8 truncation panics in Rust (applog, broker) — PR #3
   2. Done: refresh this file — PR #4
   3. Done: make sidecar + Rust tests pass on every OS — PR #5
-  4. In review: PR CI (lint, vitest, e2e, sidecar, cargo test on Win + Mac) + commit lockfiles; done after first green run
-  5. Confirm `open_url` when the turn used screen context (prompt-injection guard)
+  4. Done: PR CI (lint, vitest, e2e, sidecar, cargo test on Win + Mac) + commit lockfiles — PR #6
+  5. Done: confirm `open_url` when the turn used screen context (prompt-injection guard)
   6. React error boundary + complete e2e Tauri mock (`get_lifecycle`)
   7. Compress the six ~1.8 MB atmosphere PNGs
   8. Design + accessibility polish per panel (contrast, focus-visible, Apps dock)

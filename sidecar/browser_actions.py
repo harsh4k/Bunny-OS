@@ -3,6 +3,9 @@ Allowlisted browser tools with confirm for risky steps.
 
 Low-risk (scroll, focus search): run immediately.
 Risky (type, click-by-role): queue pending → UI confirm → execute or cancel.
+
+open_url also goes through this queue when the chat turn read the screen:
+screen text is untrusted, so a link the model picked from it needs a confirm.
 """
 from __future__ import annotations
 
@@ -24,12 +27,13 @@ from platform_browser import (
 
 _WriteFn = Callable[[dict], None]
 
-_RISKY = frozenset({"browser_type", "browser_click_role"})
+_RISKY = frozenset({"browser_type", "browser_click_role", "open_url"})
 _ALLOWED = frozenset({
     "browser_scroll",
     "browser_type",
     "browser_click_role",
     "browser_focus_search",
+    "open_url",
 })
 
 _lock = threading.Lock()
@@ -49,6 +53,10 @@ def summarize(action: dict[str, Any]) -> str:
         return f"Click window matching “{action.get('name') or ''}”"
     if kind == "browser_focus_search":
         return "Focus the browser address bar"
+    if kind == "open_url":
+        url = str(action.get("url") or "")
+        domain = url.removeprefix("https://").split("/", 1)[0]
+        return f"Open a link to {domain}"
     return "Browser action"
 
 
@@ -170,4 +178,8 @@ def _execute(action: dict[str, Any]) -> str:
     if kind == "browser_click_role":
         browser_click_role(str(action.get("role") or ""), str(action.get("name") or ""))
         return f"Clicked “{action.get('name')}”."
+    if kind == "open_url":
+        from local_actions import execute as execute_local
+
+        return execute_local({"action": "open_url", "url": str(action.get("url") or "")})
     raise ValueError(f"Unhandled browser action: {kind!r}")

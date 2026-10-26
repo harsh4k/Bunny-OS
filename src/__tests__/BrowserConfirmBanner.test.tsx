@@ -27,7 +27,11 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { invoke } from "@tauri-apps/api/core";
 
-function emitPending(pendingId = "p-1") {
+function emitPending(
+  pendingId = "p-1",
+  summary = 'Type "hello" into the focused window',
+  actionKind = "browser_type",
+) {
   const payload = {
     event: "sidecar-message",
     message: {
@@ -36,8 +40,8 @@ function emitPending(pendingId = "p-1") {
       chunk: JSON.stringify({
         browser_confirm_pending: true,
         pending_id: pendingId,
-        summary: 'Type "hello" into the focused window',
-        action_kind: "browser_type",
+        summary,
+        action_kind: actionKind,
       }),
       finished: false,
     },
@@ -100,6 +104,19 @@ describe("BrowserConfirmBanner", () => {
     });
     expect(onPendingChange).toHaveBeenCalled();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("labels screen-context links and explains why", async () => {
+    render(<BrowserConfirmBanner visible />);
+    await waitFor(() => expect(handlers.has("app-event")).toBe(true));
+    await act(async () => {
+      emitPending("p-2", "Open a link to evil.example", "open_url");
+    });
+    expect(
+      await screen.findByRole("alertdialog", { name: "Open this link?" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Open a link to evil.example")).toBeInTheDocument();
+    expect(screen.getByText(/after reading your screen/i)).toBeInTheDocument();
   });
 
   it("keeps pending visible when confirm IPC fails", async () => {
