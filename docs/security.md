@@ -132,16 +132,19 @@ Only these actions can be invoked:
 | Action | Args | Notes |
 |---|---|---|
 | `open_app` | `app_name: string` | Whitelist enforced in Rust |
-| `open_url` | `url: string` | HTTPS only, no credentials or control chars. Needs an on-screen confirm when the turn used Screen context |
-| `youtube_search` | `query: string` | Constructs and opens HTTPS YouTube results URL |
+| `open_url` | `url: string` | HTTPS only, no credentials, control or invisible format chars. Needs an on-screen confirm after Screen context |
+| `youtube_search` | `query: string` | Constructs and opens HTTPS YouTube results URL. Needs a confirm after Screen context |
 | `show_system_summary` | None | Queries Win32 API; returns CPU, RAM, disk, uptime |
 | `respond` | `input: string` | Streams text from Ollama |
 
 No other actions execute. Any attempt to invoke unknown actions returns an error.
 
 **Screen context and links.** Text read from the focused window is untrusted (a web page or email can contain
-instructions aimed at the model). When a chat or voice turn included screen text, any `open_url` the model picks is
-held in the same confirm queue as `browser_type`, and the banner shows the link's site before anything opens.
+instructions aimed at the model). For the 5 chat or voice turns after screen text was read (screen text
+can come back through recent session notes), any `open_url`, `youtube_search`, `youtube_play`, `spotify_search` or
+`spotify_play` the model picks is held in the same confirm queue as `browser_type`. The banner shows the site name
+(punycode for look-alike domains) plus the full link or search text before anything opens, so data copied off the
+screen into a URL or query is visible. `open_app` is not gated: it takes no free-form data and is allowlisted in Rust.
 
 ## Building with security
 

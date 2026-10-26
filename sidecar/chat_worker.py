@@ -65,8 +65,8 @@ def handle_chat_streaming(
     `think=False` disables reasoning tokens (faster voice replies on models that
     support it). `None` leaves Ollama's default alone.
 
-    `confirm_links=True` (the prompt included screen text) holds any `open_url`
-    for a user confirm instead of handing it to the host.
+    `confirm_links=True` (screen text is or was recently in the prompt) holds
+    links and searches for a user confirm instead of running them.
     """
     if cancel_event.is_set():
         write_fn(error_msg(msg_id, "cancelled"))
@@ -263,22 +263,16 @@ def _resolve_tool_result(
     msg_id: str = "",
     confirm_links: bool = False,
 ) -> dict:
-    name = tool_call.get("action")
-    if confirm_links and name == "open_url":
-        from browser_actions import handle_browser_action
+    from browser_actions import SCREEN_GATED, handle_browser_action
 
+    name = tool_call.get("action")
+    is_browser_tool = name in _LOCAL_RESOLVE and str(name).startswith("browser_")
+    if is_browser_tool or (confirm_links and name in SCREEN_GATED):
         return {
             "kind": "respond",
             "text": handle_browser_action(tool_call, write_fn, msg_id or "browser"),
         }
     if name in _LOCAL_RESOLVE:
-        if isinstance(name, str) and name.startswith("browser_"):
-            from browser_actions import handle_browser_action
-
-            return {
-                "kind": "respond",
-                "text": handle_browser_action(tool_call, write_fn, msg_id or "browser"),
-            }
         from local_actions import execute
 
         return {"kind": "respond", "text": execute(tool_call)}
@@ -344,16 +338,19 @@ class ChatWorker:
     def _run(self, msg_id: str, model: str, message: str) -> None:
         try:
             prompt = SYSTEM_PROMPT
-            screen_used = False
+            confirm_links = False
             if self._memory is not None:
                 try:
-                    from screen_context import enrich_prompt_with_screen
+                    from screen_context import (
+                        enrich_prompt_with_screen,
+                        take_links_need_confirm,
+                    )
 
                     base = self._memory.build_prompt_prefix()
                     prompt, screen_err = enrich_prompt_with_screen(
                         self._memory, base, message
                     )
-                    screen_used = prompt != base
+                    confirm_links = take_links_need_confirm()
                     self._memory.append_session_turn("user", "chat", message[:200])
                     if screen_err:
                         self._write(
@@ -365,7 +362,7 @@ class ChatWorker:
                         return
                 except Exception:  # noqa: BLE001
                     prompt = SYSTEM_PROMPT
-                    screen_used = False
+                    confirm_links = False
             handle_chat_streaming(
                 msg_id,
                 model,
@@ -374,7 +371,7 @@ class ChatWorker:
                 self._cancel,
                 self._set_conn,
                 system_prompt=prompt,
-                confirm_links=screen_used,
+                confirm_links=confirm_links,
             )
         except Exception as exc:  # noqa: BLE001 — safety net; handler should catch all
             try:

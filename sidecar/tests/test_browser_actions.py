@@ -112,6 +112,36 @@ class TestBrowserActions(unittest.TestCase):
             self.assertTrue(result["ok"], result)
             open_fn.assert_called_once_with("https://evil.example/login")
 
+    def test_link_detail_shows_full_url(self) -> None:
+        events: list[dict] = []
+        url = "https://docs.google.com/forms/d/e/x/formResponse?entry.1=123456"
+        browser_actions.handle_browser_action(
+            {"action": "open_url", "url": url}, write_fn=events.append
+        )
+        payload = __import__("json").loads(events[0]["chunk"])
+        self.assertEqual(payload["detail"], url)
+
+    def test_search_detail_shows_full_query(self) -> None:
+        events: list[dict] = []
+        query = "q" * 120
+        browser_actions.handle_browser_action(
+            {"action": "spotify_search", "query": query}, write_fn=events.append
+        )
+        payload = __import__("json").loads(events[0]["chunk"])
+        self.assertEqual(payload["detail"], query)
+        self.assertLess(len(payload["summary"]), len(query))
+
+    def test_youtube_queued_and_runs_after_confirm(self) -> None:
+        with patch("local_actions._youtube_search", return_value="ok") as yt:
+            out = browser_actions.handle_browser_action(
+                {"action": "youtube_search", "query": "lofi"}
+            )
+            yt.assert_not_called()
+            self.assertIn("lofi", out)
+            pending_id = browser_actions.pending_snapshot()[0]["pending_id"]
+            self.assertTrue(browser_actions.confirm(pending_id)["ok"])
+            yt.assert_called_once_with("lofi")
+
     def test_open_url_confirm_still_validates(self) -> None:
         with patch("local_actions.open_url_or_file") as open_fn:
             browser_actions.handle_browser_action(

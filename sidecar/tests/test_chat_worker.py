@@ -222,7 +222,16 @@ class TestScreenContextLinkConfirm(unittest.TestCase):
             {"kind": "action", "action": call},
         )
 
-    def _run_worker(self, enriched_prompt: str) -> dict:
+    def test_youtube_held_for_confirm_with_screen(self):
+        events: list[dict] = []
+        call = {"action": "youtube_play", "query": "secret from screen"}
+        with mock.patch("local_actions.open_url_or_file") as open_fn:
+            result = _resolve_tool_result(dict(call), events.append, "m1", confirm_links=True)
+            open_fn.assert_not_called()
+        self.assertEqual(result["kind"], "respond")
+        self.assertIn("youtube_play", events[0]["chunk"])
+
+    def _run_worker(self, needs_confirm: bool) -> dict:
         memory = mock.Mock()
         memory.build_prompt_prefix.return_value = "BASE"
         seen: dict = {}
@@ -232,18 +241,17 @@ class TestScreenContextLinkConfirm(unittest.TestCase):
 
         worker = ChatWorker(write_fn=lambda _m: None, memory=memory)
         with mock.patch(
-            "screen_context.enrich_prompt_with_screen",
-            return_value=(enriched_prompt, None),
+            "screen_context.enrich_prompt_with_screen", return_value=("BASE", None)
+        ), mock.patch(
+            "screen_context.take_links_need_confirm", return_value=needs_confirm
         ), mock.patch("chat_worker.handle_chat_streaming", side_effect=fake_handler):
             worker._lock.acquire()  # start() holds it before _run
-            worker._run("m1", "model", "what is on my screen")
+            worker._run("m1", "model", "open that link")
         return seen
 
-    def test_worker_requests_confirm_when_screen_added(self):
-        self.assertTrue(self._run_worker("BASE\n\n[screen] text")["confirm_links"])
-
-    def test_worker_no_confirm_without_screen(self):
-        self.assertFalse(self._run_worker("BASE")["confirm_links"])
+    def test_worker_passes_confirm_flag(self):
+        self.assertTrue(self._run_worker(True)["confirm_links"])
+        self.assertFalse(self._run_worker(False)["confirm_links"])
 
 
 if __name__ == "__main__":

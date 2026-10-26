@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import re
 import sys
+import unicodedata
 from datetime import datetime
-from urllib.parse import quote, quote_plus
+from urllib.parse import quote, quote_plus, urlsplit
 
 from chat_handler import (
     MAX_APP_NAME_LEN,
@@ -103,11 +104,22 @@ def _open_app(app_name: str) -> str:
     return f"Opening {name}."
 
 
+def display_host(url: str) -> str:
+    """The host a browser would open, in ASCII (punycode) so look-alikes show.
+
+    Browsers treat a backslash like a slash and stop the host at ? # or :port.
+    """
+    host = urlsplit(url.replace("\\", "/")).hostname or ""
+    try:
+        return host.encode("idna").decode("ascii")
+    except UnicodeError:
+        return host.encode("ascii", "backslashreplace").decode("ascii")
+
+
 def _open_url(url: str) -> str:
     _validate_https(url)
     open_url_or_file(url)
-    domain = url.removeprefix("https://").split("/", 1)[0]
-    return f"Opening {domain}."
+    return f"Opening {display_host(url)}."
 
 
 def _youtube_search(query: str) -> str:
@@ -264,6 +276,9 @@ def _validate_https(url: str) -> None:
         raise ValueError("URL credentials are not allowed")
     if any(ord(c) < 0x20 or ord(c) == 0x7F for c in url):
         raise ValueError("URL contains control characters")
+    # Bidi overrides and zero-width chars can make a URL read as another site.
+    if any(unicodedata.category(c) == "Cf" for c in url):
+        raise ValueError("URL contains invisible formatting characters")
 
 
 def _resolve_app(app_name: str) -> str | None:

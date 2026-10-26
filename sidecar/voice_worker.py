@@ -378,7 +378,7 @@ class VoiceWorker:
         if intent is not None:
             return self._fulfill(msg_id, intent)
 
-        prompt, screen_err, screen_used = self._build_prompt(text)
+        prompt, screen_err, confirm_links = self._build_prompt(text)
         if screen_err:
             self._fail_spoken(msg_id, screen_err, screen_err)
             return None
@@ -400,7 +400,7 @@ class VoiceWorker:
             lambda _conn: None,
             system_prompt=prompt,
             think=False,
-            confirm_links=screen_used,
+            confirm_links=confirm_links,
         )
 
         if self._cancel.is_set():
@@ -485,19 +485,19 @@ class VoiceWorker:
     def _build_prompt(self, spoken: str) -> tuple[str, str | None, bool]:
         """Memory + optional screen block.
 
-        Returns (prompt, spoken_error, screen_used). screen_used means the prompt
-        carries untrusted screen text, so links need a user confirm.
+        Returns (prompt, spoken_error, confirm_links). confirm_links means screen
+        text is or was recently in the prompt, so links and searches need a confirm.
         """
         if self._memory is None:
             return f"{SYSTEM_PROMPT}\n\n{VOICE_STYLE}", None, False
         try:
-            from screen_context import enrich_prompt_with_screen
+            from screen_context import enrich_prompt_with_screen, take_links_need_confirm
 
             base = self._memory.build_prompt_prefix()
             prompt, err = enrich_prompt_with_screen(self._memory, base, spoken)
             if err:
                 return prompt, err, False
-            return f"{prompt}\n\n{VOICE_STYLE}", None, prompt != base
+            return f"{prompt}\n\n{VOICE_STYLE}", None, take_links_need_confirm()
         except Exception:  # noqa: BLE001
             return f"{SYSTEM_PROMPT}\n\n{VOICE_STYLE}", None, False
 

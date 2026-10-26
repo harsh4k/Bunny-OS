@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from memory import MemoryStore
+import screen_context
 from screen_context import enrich_prompt_with_screen, looks_like_screen_query
 
 
@@ -14,8 +15,10 @@ class TestScreenContext(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.store = MemoryStore(Path(self.tmp.name) / "m.db")
+        screen_context.reset_screen_taint()
 
     def tearDown(self) -> None:
+        screen_context.reset_screen_taint()
         self.tmp.cleanup()
 
     def test_default_screen_off(self) -> None:
@@ -98,6 +101,37 @@ class TestScreenContext(unittest.TestCase):
         self.assertIn("Chrome", block)
         self.assertIn("Visible line one", block)
         self.assertIn("visible text", block.lower())
+
+    def _read_screen(self) -> None:
+        self.store.set_screen_context_enabled(True)
+        with patch(
+            "screen_context.get_focused_window_text",
+            return_value={"ok": True, "title": "Mail", "app": "mail", "text": "x"},
+        ):
+            enrich_prompt_with_screen(self.store, "You are Bunny.", "read this")
+
+    def test_no_confirm_without_screen_read(self) -> None:
+        enrich_prompt_with_screen(self.store, "You are Bunny.", "tell me a joke")
+        self.assertFalse(screen_context.take_links_need_confirm())
+
+    def test_confirm_lasts_while_screen_text_can_echo(self) -> None:
+        # Screen text reaches later prompts through recent session notes.
+        self._read_screen()
+        turns = [
+            screen_context.take_links_need_confirm()
+            for _ in range(screen_context.SCREEN_TAINT_TURNS + 1)
+        ]
+        self.assertEqual(turns, [True] * screen_context.SCREEN_TAINT_TURNS + [False])
+
+    def test_new_screen_read_restarts_window(self) -> None:
+        self._read_screen()
+        for _ in range(screen_context.SCREEN_TAINT_TURNS - 1):
+            screen_context.take_links_need_confirm()
+        self._read_screen()
+        self.assertTrue(all(
+            screen_context.take_links_need_confirm()
+            for _ in range(screen_context.SCREEN_TAINT_TURNS)
+        ))
 
 
 if __name__ == "__main__":
