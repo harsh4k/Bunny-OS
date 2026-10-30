@@ -16,6 +16,7 @@ import {
 import { AdvisorPanel } from "./AdvisorPanel";
 import { AppsPanel } from "./AppsPanel";
 import { ChatPanel } from "./ChatPanel";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { IconClose } from "./icons";
 import { LearningPanel } from "./LearningPanel";
 import { OverviewPane } from "./OverviewPane";
@@ -90,9 +91,8 @@ export function CompactPanel({
 
   const handleAppEvent = useCallback((ev: AppEvent) => {
     if (ev.event === "lifecycle-changed") {
-      setLifecycle((prev) =>
-        lifecycleReducer(prev, lifecycleEventFromPayload(ev.lifecycle, ev.reason))
-      );
+      const next = lifecycleEventFromPayload(ev.lifecycle, ev.reason);
+      if (next) setLifecycle((prev) => lifecycleReducer(prev, next));
     } else if (ev.event === "crash-report") {
       setLifecycle((prev) => ({
         ...prev,
@@ -122,9 +122,8 @@ export function CompactPanel({
     );
     invoke<AppLifecycle>("get_lifecycle")
       .then((status) => {
-        setLifecycle((prev) =>
-          lifecycleReducer(prev, lifecycleEventFromPayload(status, null))
-        );
+        const next = lifecycleEventFromPayload(status, null);
+        if (next) setLifecycle((prev) => lifecycleReducer(prev, next));
       })
       .catch(console.error);
 
@@ -249,6 +248,8 @@ export function CompactPanel({
 
   return (
     <div className={styles.panel} data-embedded={embedded}>
+      {/* Inside CompactPanel so a broken view never unmounts lifecycle, mic or PTT state. */}
+      <ErrorBoundary scope="panel" resetKey={view}>
       {view === "chat" && (
         <ChatPanel onClose={() => setView("learning")} sidecarReady={ready} />
       )}
@@ -315,6 +316,7 @@ export function CompactPanel({
           />
         </>
       )}
+      </ErrorBoundary>
     </div>
   );
 }
@@ -322,7 +324,7 @@ export function CompactPanel({
 function lifecycleEventFromPayload(
   lifecycle: AppLifecycle,
   reason: string | null
-): LifecycleEvent {
+): LifecycleEvent | null {
   switch (lifecycle) {
     case "starting": return { type: "SIDECAR_STARTING" };
     case "ready":    return { type: "SIDECAR_READY" };
@@ -330,8 +332,10 @@ function lifecycleEventFromPayload(
     case "error":    return { type: "SIDECAR_ERROR",    reason: reason ?? "unknown error" };
     case "stopped":  return { type: "APP_QUIT" };
     default:
-      // get_lifecycle crosses the IPC boundary as a plain string; never crash on drift.
+      // Crosses IPC as a plain string. Ignore drift rather than crash the window
+      // or mark a healthy sidecar as broken (which would offer a restart).
       void (lifecycle satisfies never);
-      return { type: "SIDECAR_ERROR", reason: `unknown lifecycle: ${String(lifecycle)}` };
+      console.warn("[bunny] ignoring unknown lifecycle", lifecycle);
+      return null;
   }
 }

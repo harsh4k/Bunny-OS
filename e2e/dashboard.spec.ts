@@ -45,5 +45,5 @@ test("screen-context link confirm shows the full link", async ({ page }) => {
   const dialog = page.getByRole("alertdialog", { name: "Open this link?" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("https://evil.example/collect?d=secret")).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Confirm" })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "Cancel" })).toBeVisible();
 });

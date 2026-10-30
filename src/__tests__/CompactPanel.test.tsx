@@ -41,7 +41,9 @@ describe("CompactPanel", () => {
       render(<CompactPanel />);
     });
     expect(screen.getAllByText("Bunny OS").length).toBeGreaterThan(0);
-    expect((await screen.findAllByText("Needs attention")).length).toBeGreaterThan(0);
+    // Unknown values are ignored, never shown as a broken sidecar with a restart offer.
+    expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /recover/i })).not.toBeInTheDocument();
   });
 
   it("shows Quit button", async () => {

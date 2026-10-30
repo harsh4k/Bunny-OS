@@ -1,6 +1,5 @@
 import type { PanelView } from "./CompactPanel";
 import { CompactPanel } from "./CompactPanel";
-import { ErrorBoundary } from "./ErrorBoundary";
 import { FirstRunNotice } from "./FirstRunNotice";
 import {
   IconApps,
@@ -175,16 +174,14 @@ export function ExpandedDashboard({
         </header>
 
         <div className={styles.content}>
-          <ErrorBoundary scope="panel" resetKey={activeView}>
-            <CompactPanel
-              embedded
-              activeView={activeView}
-              onViewChange={onViewChange}
-              onClose={onClose}
-              micMuted={micMuted}
-              onMicMutedChange={onMicMutedChange}
-            />
-          </ErrorBoundary>
+          <CompactPanel
+            embedded
+            activeView={activeView}
+            onViewChange={onViewChange}
+            onClose={onClose}
+            micMuted={micMuted}
+            onMicMutedChange={onMicMutedChange}
+          />
         </div>
       </section>
     </main>

@@ -13,10 +13,13 @@ export function listen<T>(
   handler: (event: { payload: T }) => void,
 ): Promise<() => void> {
   const set = handlers.get(event) ?? new Set<Handler>();
-  set.add(handler as Handler);
+  // Wrap per call: real Tauri registers every listen() separately, even for
+  // the same function, and each unlisten removes only its own registration.
+  const entry: Handler = (e) => (handler as Handler)(e);
+  set.add(entry);
   handlers.set(event, set);
   return Promise.resolve(() => {
-    set.delete(handler as Handler);
+    set.delete(entry);
   });
 }
 

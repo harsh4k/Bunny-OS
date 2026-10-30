@@ -31,8 +31,10 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error(`[bunny] ${this.props.scope} crashed`, error, info.componentStack);
   }
 
-  componentDidUpdate(prev: Props): void {
-    if (this.state.error && prev.resetKey !== this.props.resetKey) {
+  componentDidUpdate(prevProps: Props, prevState: State): void {
+    // Only clear an error that was already on screen; an error caught in the
+    // same update that changed resetKey belongs to the new view.
+    if (prevState.error && prevProps.resetKey !== this.props.resetKey) {
       this.setState({ error: null });
     }
   }
@@ -61,7 +63,7 @@ export class ErrorBoundary extends Component<Props, State> {
               ? "The rest of Bunny still works. Try again, or pick another panel."
               : "Reload to start the window again. Your settings and memory are safe."}
           </p>
-          <p className={styles.errorMsg}>{error.message || "Unknown error"}</p>
+          <p className={`${styles.errorMsg} ${own.detail}`}>{error.message || "Unknown error"}</p>
           <div className={styles.btnRow}>
             <button
               type="button"

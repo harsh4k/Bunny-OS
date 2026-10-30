@@ -61,6 +61,28 @@ describe("ErrorBoundary", () => {
     expect(screen.getByText("panel ok")).toBeInTheDocument();
   });
 
+  it("keeps the fallback when the newly selected view is the one that throws", () => {
+    shouldThrow = false;
+    const { rerender } = render(
+      <ErrorBoundary scope="panel" resetKey="home">
+        <Flaky />
+      </ErrorBoundary>,
+    );
+    shouldThrow = true;
+    const logged = vi.mocked(console.error);
+    logged.mockClear();
+    rerender(
+      <ErrorBoundary scope="panel" resetKey="apps">
+        <Flaky />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.getByText("panel exploded")).toBeInTheDocument();
+    // Caught once: the boundary must not reset and re-render the broken view.
+    const crashes = logged.mock.calls.filter((c) => String(c[0]).includes("panel crashed"));
+    expect(crashes).toHaveLength(1);
+  });
+
   it("app scope offers Reload", () => {
     render(
       <ErrorBoundary scope="app">
