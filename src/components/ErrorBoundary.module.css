@@ -1,0 +1,58 @@
+/* Fallback shown when a panel or the whole window fails to render. */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  max-width: 440px;
+  margin: var(--sp-6) auto 0;
+  width: 100%;
+}
+
+.app {
+  min-height: 100%;
+  padding: var(--sp-4);
+  background: var(--color-surface-solid);
+  box-sizing: border-box;
+}
+
+.hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Collapsed island window is pill-sized (244 × 54): keep only the title and Reload. */
+@media (max-height: 120px) {
+  .app {
+    min-height: 0;
+    margin: 0;
+    padding: var(--sp-1) var(--sp-2);
+    background: transparent;
+  }
+  /* `> div` outranks the shared .actionCard rule regardless of stylesheet order. */
+  .app > div {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-2);
+    padding: var(--sp-1) var(--sp-2);
+    border-radius: var(--radius-md);
+  }
+  .app .hint,
+  .app .detail {
+    display: none;
+  }
+  /* Title gives way (ellipsis) so Reload always stays inside the window. */
+  .app > div > p:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .app > div > div {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+  }
+}
