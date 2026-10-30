@@ -1,0 +1,22 @@
+/* Fallback shown when a panel or the whole window fails to render. */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  max-width: 440px;
+  margin: var(--sp-6) auto 0;
+  width: 100%;
+}
+
+.app {
+  min-height: 100%;
+  padding: var(--sp-4);
+  background: var(--color-surface-solid);
+  box-sizing: border-box;
+}
+
+.hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.45;
+}

@@ -114,8 +114,8 @@ cd src-tauri && cargo test               # needs binaries/bunny-sidecar-<target-
   2. Done: refresh this file — PR #4
   3. Done: make sidecar + Rust tests pass on every OS — PR #5
   4. Done: PR CI (lint, vitest, e2e, sidecar, cargo test on Win + Mac) + commit lockfiles — PR #6
-  5. Done: confirm `open_url` when the turn used screen context (prompt-injection guard)
-  6. React error boundary + complete e2e Tauri mock (`get_lifecycle`)
+  5. Done: confirm `open_url` and searches when the turn used screen context (prompt-injection guard) — PR #7
+  6. Done: React error boundary + complete e2e Tauri mock (`get_lifecycle`; `window.__bunnyE2E.emit` pushes events in E2E builds)
   7. Compress the six ~1.8 MB atmosphere PNGs
   8. Design + accessibility polish per panel (contrast, focus-visible, Apps dock)
   9. Bump vitest, clear Rust warnings, cut v0.3.5 after soak

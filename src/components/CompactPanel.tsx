@@ -329,5 +329,9 @@ function lifecycleEventFromPayload(
     case "degraded": return { type: "SIDECAR_DEGRADED", reason: reason ?? "sidecar degraded" };
     case "error":    return { type: "SIDECAR_ERROR",    reason: reason ?? "unknown error" };
     case "stopped":  return { type: "APP_QUIT" };
+    default:
+      // get_lifecycle crosses the IPC boundary as a plain string; never crash on drift.
+      void (lifecycle satisfies never);
+      return { type: "SIDECAR_ERROR", reason: `unknown lifecycle: ${String(lifecycle)}` };
   }
 }

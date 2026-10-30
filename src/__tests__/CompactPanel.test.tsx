@@ -34,6 +34,16 @@ describe("CompactPanel", () => {
     expect(screen.getAllByText("Bunny OS").length).toBeGreaterThan(0);
   });
 
+  it("survives an unexpected lifecycle value instead of blanking the window", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockImplementationOnce(async () => undefined);
+    await act(async () => {
+      render(<CompactPanel />);
+    });
+    expect(screen.getAllByText("Bunny OS").length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Needs attention")).length).toBeGreaterThan(0);
+  });
+
   it("shows Quit button", async () => {
     await act(async () => {
       render(<CompactPanel />);
