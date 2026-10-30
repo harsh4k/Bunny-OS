@@ -1,5 +1,6 @@
 /**
- * Confirm banner for risky browser actions (type / click-by-role).
+ * Confirm banner for risky browser actions (type / click-by-role), and for links
+ * the model chose after reading the screen (screen text is untrusted).
  * Must stay mounted at App root so island/collapsed voice turns still receive pending streams.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -12,7 +13,18 @@ export interface BrowserPending {
   pendingId: string;
   summary: string;
   actionKind: string;
+  /** Full link or search text; the summary may be shortened. */
+  detail?: string;
 }
+
+/** Actions held for a confirm only because the turn read the screen. */
+const SCREEN_TITLES: Record<string, string> = {
+  open_url: "Open this link?",
+  youtube_search: "Search YouTube?",
+  youtube_play: "Play on YouTube?",
+  spotify_search: "Search Spotify?",
+  spotify_play: "Search Spotify?",
+};
 
 interface Props {
   /** When false, Confirm is disabled (sidecar not ready). */
@@ -31,12 +43,14 @@ function parsePendingChunk(chunk: string): BrowserPending | null {
       pending_id?: string;
       summary?: string;
       action_kind?: string;
+      detail?: string;
     };
     if (!parsed.browser_confirm_pending || !parsed.pending_id) return null;
     return {
       pendingId: parsed.pending_id,
       summary: parsed.summary || "Confirm browser action",
       actionKind: parsed.action_kind || "browser",
+      detail: typeof parsed.detail === "string" && parsed.detail ? parsed.detail : undefined,
     };
   } catch {
     return null;
@@ -130,11 +144,23 @@ export function BrowserConfirmBanner({
     );
   }
 
+  const screenTitle = SCREEN_TITLES[pending.actionKind];
+  const isLink = pending.actionKind === "open_url";
+  const title = screenTitle ?? "Confirm browser action";
+
   return (
     <div className={styles.browserConfirmHost} data-testid="browser-confirm-host">
-      <div className={styles.actionCard} role="alertdialog" aria-label="Confirm browser action">
-        <p className={styles.fieldLabel}>Confirm browser action</p>
+      <div className={styles.actionCard} role="alertdialog" aria-label={title}>
+        <p className={styles.fieldLabel}>{title}</p>
         <p className={styles.idleHint}>{pending.summary}</p>
+        {pending.detail && <p className={styles.actionDesc}>{pending.detail}</p>}
+        {screenTitle && (
+          <p className={styles.idleHint}>
+            {isLink
+              ? "Bunny picked this link after reading your screen. Check the site name first."
+              : "Bunny picked this search after reading your screen. Check it doesn't contain anything private."}
+          </p>
+        )}
         {note && (
           <div className={styles.errorState} role="alert">
             {note}

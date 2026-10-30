@@ -7,6 +7,7 @@ screen-related. Never silently captures.
 from __future__ import annotations
 
 import re
+import threading
 from typing import Any
 
 from platform_screen import get_focused_window_text
@@ -35,6 +36,40 @@ _SCREEN_QUERY = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+
+
+# Screen text is untrusted and can echo into later prompts through the recent
+# session notes (memory.build_prompt_prefix includes the last 5), so actions that
+# open links or send text off the machine stay confirm-gated for this many turns.
+SCREEN_TAINT_TURNS = 5
+_taint_lock = threading.Lock()
+_taint_turns_left = 0
+
+
+def _mark_screen_read() -> None:
+    global _taint_turns_left
+    with _taint_lock:
+        _taint_turns_left = SCREEN_TAINT_TURNS
+
+
+def take_links_need_confirm() -> bool:
+    """Call once per model turn, after building its prompt.
+
+    True while screen text may be in the prompt (this turn or a recent one).
+    """
+    global _taint_turns_left
+    with _taint_lock:
+        if _taint_turns_left <= 0:
+            return False
+        _taint_turns_left -= 1
+        return True
+
+
+def reset_screen_taint() -> None:
+    """For tests: forget any recent screen read."""
+    global _taint_turns_left
+    with _taint_lock:
+        _taint_turns_left = 0
 
 
 def looks_like_screen_query(text: str) -> bool:
@@ -76,6 +111,7 @@ def enrich_prompt_with_screen(
         )
     except Exception:  # noqa: BLE001
         return base_prompt, "I couldn't prepare screen context."
+    _mark_screen_read()
     return f"{base_prompt}\n\n{block}", None
 
 

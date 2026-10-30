@@ -3,6 +3,10 @@ Allowlisted browser tools with confirm for risky steps.
 
 Low-risk (scroll, focus search): run immediately.
 Risky (type, click-by-role): queue pending → UI confirm → execute or cancel.
+
+Links and searches (open_url, youtube_*, spotify_search/play) also go through
+this queue when screen text is in the prompt: that text is untrusted, so what the
+model picks from it needs a confirm before it leaves the machine.
 """
 from __future__ import annotations
 
@@ -24,21 +28,34 @@ from platform_browser import (
 
 _WriteFn = Callable[[dict], None]
 
-_RISKY = frozenset({"browser_type", "browser_click_role"})
+# Run through local_actions after confirm; queued only after screen context.
+SCREEN_GATED = frozenset({
+    "open_url",
+    "youtube_search",
+    "youtube_play",
+    "spotify_search",
+    "spotify_play",
+})
+_RISKY = frozenset({"browser_type", "browser_click_role"}) | SCREEN_GATED
 _ALLOWED = frozenset({
     "browser_scroll",
     "browser_type",
     "browser_click_role",
     "browser_focus_search",
-})
+}) | SCREEN_GATED
 
 _lock = threading.Lock()
 _pending: dict[str, dict[str, Any]] = {}
 _PENDING_TTL_SECS = 120.0
 
 
+def _preview(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
 def summarize(action: dict[str, Any]) -> str:
     kind = action.get("action")
+    query = _preview(str(action.get("query") or ""), 60)
     if kind == "browser_scroll":
         return f"Scroll {action.get('direction', 'down')} in the focused window"
     if kind == "browser_type":
@@ -49,7 +66,29 @@ def summarize(action: dict[str, Any]) -> str:
         return f"Click window matching “{action.get('name') or ''}”"
     if kind == "browser_focus_search":
         return "Focus the browser address bar"
+    if kind == "open_url":
+        from local_actions import display_host
+
+        return f"Open a link to {display_host(str(action.get('url') or ''))}"
+    if kind == "youtube_search":
+        return f"Search YouTube for “{query}”"
+    if kind == "youtube_play":
+        return f"Play “{query}” on YouTube"
+    if kind == "spotify_search":
+        return f"Search Spotify for “{query}”"
+    if kind == "spotify_play":
+        return f"Open “{query}” in Spotify"
     return "Browser action"
+
+
+def detail(action: dict[str, Any]) -> str:
+    """Full link or search text for the confirm banner (the summary is shortened)."""
+    kind = action.get("action")
+    if kind == "open_url":
+        return _preview(str(action.get("url") or ""), 300)
+    if kind in SCREEN_GATED:
+        return _preview(str(action.get("query") or ""), 300)
+    return ""
 
 
 def handle_browser_action(
@@ -75,6 +114,7 @@ def handle_browser_action(
                             "browser_confirm_pending": True,
                             "pending_id": pending_id,
                             "summary": summarize(action),
+                            "detail": detail(action),
                             "action_kind": kind,
                         },
                         separators=(",", ":"),
@@ -170,4 +210,8 @@ def _execute(action: dict[str, Any]) -> str:
     if kind == "browser_click_role":
         browser_click_role(str(action.get("role") or ""), str(action.get("name") or ""))
         return f"Clicked “{action.get('name')}”."
+    if kind in SCREEN_GATED:
+        from local_actions import execute as execute_local
+
+        return execute_local(dict(action))
     raise ValueError(f"Unhandled browser action: {kind!r}")

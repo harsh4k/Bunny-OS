@@ -27,7 +27,12 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { invoke } from "@tauri-apps/api/core";
 
-function emitPending(pendingId = "p-1") {
+function emitPending(
+  pendingId = "p-1",
+  summary = 'Type "hello" into the focused window',
+  actionKind = "browser_type",
+  detail?: string,
+) {
   const payload = {
     event: "sidecar-message",
     message: {
@@ -36,8 +41,9 @@ function emitPending(pendingId = "p-1") {
       chunk: JSON.stringify({
         browser_confirm_pending: true,
         pending_id: pendingId,
-        summary: 'Type "hello" into the focused window',
-        action_kind: "browser_type",
+        summary,
+        action_kind: actionKind,
+        detail,
       }),
       finished: false,
     },
@@ -100,6 +106,52 @@ describe("BrowserConfirmBanner", () => {
     });
     expect(onPendingChange).toHaveBeenCalled();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("labels screen-context links and explains why", async () => {
+    render(<BrowserConfirmBanner visible />);
+    await waitFor(() => expect(handlers.has("app-event")).toBe(true));
+    await act(async () => {
+      emitPending(
+        "p-2",
+        "Open a link to evil.example",
+        "open_url",
+        "https://evil.example/collect?data=secret",
+      );
+    });
+    expect(
+      await screen.findByRole("alertdialog", { name: "Open this link?" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Open a link to evil.example")).toBeInTheDocument();
+    expect(screen.getByText(/after reading your screen/i)).toBeInTheDocument();
+    expect(
+      screen.getByText("https://evil.example/collect?data=secret")
+    ).toBeInTheDocument();
+  });
+
+  it("labels screen-context searches", async () => {
+    render(<BrowserConfirmBanner visible />);
+    await waitFor(() => expect(handlers.has("app-event")).toBe(true));
+    await act(async () => {
+      emitPending("p-3", "Search YouTube for “x”", "youtube_search", "x full");
+    });
+    expect(
+      await screen.findByRole("alertdialog", { name: "Search YouTube?" })
+    ).toBeInTheDocument();
+    expect(screen.getByText(/anything private/i)).toBeInTheDocument();
+    expect(screen.getByText("x full")).toBeInTheDocument();
+  });
+
+  it("keeps the generic title and no screen hint for browser actions", async () => {
+    render(<BrowserConfirmBanner visible />);
+    await waitFor(() => expect(handlers.has("app-event")).toBe(true));
+    await act(async () => {
+      emitPending();
+    });
+    expect(
+      await screen.findByRole("alertdialog", { name: "Confirm browser action" })
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/after reading your screen/i)).not.toBeInTheDocument();
   });
 
   it("keeps pending visible when confirm IPC fails", async () => {

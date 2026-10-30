@@ -297,5 +297,43 @@ class TestVoiceWorker(unittest.TestCase):
         self.assertFalse(w.start_wake_session())
 
 
+
+class TestVoiceScreenLinkConfirm(unittest.TestCase):
+    """Voice turns that read the screen must ask before opening links."""
+
+    def setUp(self):
+        from voice_intents import reset_dialog_domain
+
+        # Earlier tests can leave a follow-up topic (e.g. YouTube) active.
+        reset_dialog_domain()
+
+    def _ask_kwargs(self, needs_confirm: bool) -> dict:
+        """Run one voice turn and capture what reaches handle_chat_streaming."""
+        memory = mock.Mock()
+        memory.build_prompt_prefix.return_value = "BASE"
+        w = VoiceWorker(
+            write_fn=lambda _m: None, stt=FakeStt("summarize what it says"), tts=FakeTts(),
+            audio=SilentAudio(), memory=memory,
+        )
+        seen: dict = {}
+
+        def fake_handler(*args, **kwargs):
+            seen.update(kwargs)
+
+        with mock.patch(
+            "screen_context.enrich_prompt_with_screen", return_value=("BASE", None)
+        ), mock.patch(
+            "screen_context.take_links_need_confirm", return_value=needs_confirm
+        ), mock.patch.object(
+            voice_worker_module, "handle_chat_streaming", side_effect=fake_handler
+        ):
+            w._ask("v1", "summarize what it says")
+        return seen
+
+    def test_voice_turn_passes_confirm_flag(self):
+        self.assertTrue(self._ask_kwargs(True)["confirm_links"])
+        self.assertFalse(self._ask_kwargs(False)["confirm_links"])
+
+
 if __name__ == "__main__":
     unittest.main()

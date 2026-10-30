@@ -9,7 +9,7 @@ import time
 import unittest
 from unittest import mock
 
-from chat_worker import ChatWorker, handle_chat_streaming
+from chat_worker import ChatWorker, _resolve_tool_result, handle_chat_streaming
 from ipc_types import error_msg
 
 
@@ -67,6 +67,7 @@ class TestChatWorker(unittest.TestCase):
             cancel_event,
             set_active_conn,
             system_prompt=None,
+            confirm_links=False,
         ):
             barrier.wait(timeout=2)
             write_fn({"type": "response", "id": msg_id, "result": '{"kind":"respond","text":"ok"}'})
@@ -190,6 +191,67 @@ class TestChatWorker(unittest.TestCase):
         errors = [m for m in messages if m.get("type") == "error"]
         self.assertTrue(errors, messages)
         self.assertIn("Reply too long", errors[0]["error"])
+
+
+class TestScreenContextLinkConfirm(unittest.TestCase):
+    """Links the model picks after reading the screen need a user confirm."""
+
+    URL_CALL = {"action": "open_url", "url": "https://example.com/x"}
+
+    def test_open_url_goes_to_host_without_screen(self):
+        self.assertEqual(
+            _resolve_tool_result(dict(self.URL_CALL)),
+            {"kind": "action", "action": self.URL_CALL},
+        )
+
+    def test_open_url_held_for_confirm_with_screen(self):
+        events: list[dict] = []
+        with mock.patch("local_actions.open_url_or_file") as open_fn:
+            result = _resolve_tool_result(
+                dict(self.URL_CALL), events.append, "m1", confirm_links=True
+            )
+            open_fn.assert_not_called()
+        self.assertEqual(result["kind"], "respond")
+        self.assertIn("example.com", result["text"])
+        self.assertIn("browser_confirm_pending", events[0]["chunk"])
+
+    def test_other_actions_unchanged_with_screen(self):
+        call = {"action": "open_app", "app_name": "Notepad"}
+        self.assertEqual(
+            _resolve_tool_result(dict(call), confirm_links=True),
+            {"kind": "action", "action": call},
+        )
+
+    def test_youtube_held_for_confirm_with_screen(self):
+        events: list[dict] = []
+        call = {"action": "youtube_play", "query": "secret from screen"}
+        with mock.patch("local_actions.open_url_or_file") as open_fn:
+            result = _resolve_tool_result(dict(call), events.append, "m1", confirm_links=True)
+            open_fn.assert_not_called()
+        self.assertEqual(result["kind"], "respond")
+        self.assertIn("youtube_play", events[0]["chunk"])
+
+    def _run_worker(self, needs_confirm: bool) -> dict:
+        memory = mock.Mock()
+        memory.build_prompt_prefix.return_value = "BASE"
+        seen: dict = {}
+
+        def fake_handler(*args, **kwargs):
+            seen.update(kwargs)
+
+        worker = ChatWorker(write_fn=lambda _m: None, memory=memory)
+        with mock.patch(
+            "screen_context.enrich_prompt_with_screen", return_value=("BASE", None)
+        ), mock.patch(
+            "screen_context.take_links_need_confirm", return_value=needs_confirm
+        ), mock.patch("chat_worker.handle_chat_streaming", side_effect=fake_handler):
+            worker._lock.acquire()  # start() holds it before _run
+            worker._run("m1", "model", "open that link")
+        return seen
+
+    def test_worker_passes_confirm_flag(self):
+        self.assertTrue(self._run_worker(True)["confirm_links"])
+        self.assertFalse(self._run_worker(False)["confirm_links"])
 
 
 if __name__ == "__main__":
