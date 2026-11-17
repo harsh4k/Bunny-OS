@@ -34,6 +34,18 @@ describe("CompactPanel", () => {
     expect(screen.getAllByText("Bunny OS").length).toBeGreaterThan(0);
   });
 
+  it("survives an unexpected lifecycle value instead of blanking the window", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockImplementationOnce(async () => undefined);
+    await act(async () => {
+      render(<CompactPanel />);
+    });
+    expect(screen.getAllByText("Bunny OS").length).toBeGreaterThan(0);
+    // Unknown values are ignored, never shown as a broken sidecar with a restart offer.
+    expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /recover/i })).not.toBeInTheDocument();
+  });
+
   it("shows Quit button", async () => {
     await act(async () => {
       render(<CompactPanel />);

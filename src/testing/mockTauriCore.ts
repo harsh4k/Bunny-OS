@@ -54,8 +54,33 @@ export async function invoke<T>(cmd: string, args?: Record<string, unknown>): Pr
       const path = args?.path as string | undefined;
       if (!path) return null as T;
       return `C:\\BunnyOS\\icons\\${path.replace(/[^a-z0-9]/gi, "")}.png` as T;
+    case "get_lifecycle":
+      return "ready" as T;
+    case "get_ptt_label":
+      return "F9" as T;
     case "ollama_running":
       return false as T;
+    case "ollama_installed":
+      return true as T;
+    case "get_dependency_board":
+      return {
+        bunny_version: "0.0.0-e2e",
+        ollama: {
+          title: "Ollama",
+          state: "Not running",
+          detail: "Mocked for e2e",
+          needs_attention: true,
+        },
+        models: {
+          title: "Models",
+          state: "None installed",
+          detail: "Mocked for e2e",
+          needs_attention: true,
+          recommended: "llama3.2:1b",
+          recommended_present: false,
+          installed: [],
+        },
+      } as T;
     case "ensure_ollama":
       return "Ollama ready" as T;
     case "get_mic_muted":

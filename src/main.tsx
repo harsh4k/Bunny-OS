@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { AppsPanel } from "./components/AppsPanel";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { FirstRunNotice } from "./components/FirstRunNotice";
 import "./index.css";
 import { applyIslandCssVars } from "./lib/islandGeometry";
@@ -27,7 +28,9 @@ if (e2e === "onboarding") {
 } else {
   root.render(
     <React.StrictMode>
-      <App />
+      <ErrorBoundary scope="app">
+        <App />
+      </ErrorBoundary>
     </React.StrictMode>,
   );
 }
