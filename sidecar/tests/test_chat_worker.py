@@ -14,15 +14,12 @@ from ipc_types import error_msg
 
 
 class _FakeResp:
-    def __init__(self, lines: list[bytes], status: int = 200, delay: float = 0.0):
+    def __init__(self, lines: list[bytes], status: int = 200):
         self.status = status
         self._lines = list(lines)
-        self._delay = delay
         self._idx = 0
 
     def readline(self, _limit: int = -1) -> bytes:
-        if self._delay:
-            time.sleep(self._delay)
         if self._idx >= len(self._lines):
             return b""
         line = self._lines[self._idx]
@@ -84,35 +81,37 @@ class TestChatWorker(unittest.TestCase):
 
     def test_cancel_closes_connection_and_sends_error(self):
         messages: list[dict] = []
-        conn_holder: dict[str, _FakeConn] = {}
+        reading = threading.Event()
+        closed = threading.Event()
 
-        def write_fn(msg: dict) -> None:
-            messages.append(msg)
+        class BlockingResponse(_FakeResp):
+            def readline(self, limit: int = -1) -> bytes:
+                reading.set()
+                if not closed.wait(timeout=2):
+                    raise TimeoutError("test connection was not closed")
+                return super().readline(limit)
 
-        lines = [
-            b'{"message":{"content":"hi"},"done":false}\n',
-            b'{"message":{"content":"!","tool_calls":null},"done":true}\n',
-        ]
-        # Slow enough that cancel can interrupt between reads
-        fake = _FakeConn(_FakeResp(lines, delay=0.05))
+        class BlockingConnection(_FakeConn):
+            def close(self):
+                super().close()
+                closed.set()
 
-        def set_conn(conn):
-            if conn is not None:
-                conn_holder["c"] = fake
+        fake = BlockingConnection(BlockingResponse([
+            b'{"message":{"content":"late reply","tool_calls":null},"done":true}\n',
+        ]))
 
         with mock.patch("chat_worker.fetch_tags", return_value={"models": [{"name": "m"}]}), \
              mock.patch("chat_worker.http.client.HTTPConnection", return_value=fake):
-            worker = ChatWorker(write_fn=write_fn)
+            worker = ChatWorker(write_fn=messages.append)
             self.assertTrue(worker.start("req-1", "m", "hello"))
-            # Give the thread a moment to register
-            time.sleep(0.02)
+            self.assertTrue(reading.wait(timeout=2))
             worker.cancel("req-1")
             deadline = time.time() + 2
             while worker.is_busy() and time.time() < deadline:
                 time.sleep(0.01)
 
-        self.assertTrue(any(m.get("type") == "error" for m in messages))
-        self.assertTrue(any("cancel" in str(m.get("error", "")).lower() for m in messages))
+        self.assertTrue(fake.closed)
+        self.assertEqual(messages, [error_msg("req-1", "cancelled")])
         self.assertFalse(worker.is_busy())
 
     def test_cancel_wrong_id_is_noop(self):
