@@ -1,0 +1,8 @@
+{
+  "checks": [
+    { "name": "frontend types", "run": ["npm", "run", "lint"] },
+    { "name": "frontend build", "run": ["npm", "run", "build:frontend"] },
+    { "name": "frontend unit tests", "run": ["npm", "test", "--", "--maxWorkers=2", "--minWorkers=1"] },
+    { "name": "sidecar unit tests", "run": ["python", "-m", "unittest", "discover", "-s", "sidecar/tests"] }
+  ]
+}

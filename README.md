@@ -78,7 +78,7 @@ curl -fsSL https://raw.githubusercontent.com/harsh4k/Bunny-OS/main/install.sh | 
 ## Develop (contributors)
 
 ```powershell
-npm install
+npm ci
 python scripts/gen-icons.py
 npm run dev
 ```

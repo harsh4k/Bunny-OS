@@ -184,6 +184,8 @@ def _stream_chat(
 
             # Bounded read: at most MAX_LINE_BYTES+1 bytes allocated per iteration
             line_bytes = resp.readline(MAX_LINE_BYTES + 1)
+            if cancel_event.is_set():
+                return None
             if not line_bytes:
                 break
             if len(line_bytes) > MAX_LINE_BYTES:
@@ -307,10 +309,10 @@ class ChatWorker:
         target_id: only cancel if this matches the active request (None = unconditional).
         Best-effort closes the HTTP socket so readline() unblocks immediately.
         """
-        if target_id is not None and self._active_id != target_id:
-            return
-        self._cancel.set()
         with self._conn_lock:
+            if target_id is not None and self._active_id != target_id:
+                return
+            self._cancel.set()
             if self._active_conn is not None:
                 try:
                     self._active_conn.close()
@@ -324,8 +326,9 @@ class ChatWorker:
         """
         if not self._lock.acquire(blocking=False):
             return False
-        self._cancel.clear()
-        self._active_id = msg_id
+        with self._conn_lock:
+            self._cancel.clear()
+            self._active_id = msg_id
         t = threading.Thread(
             target=self._run,
             args=(msg_id, model, message),
@@ -379,8 +382,8 @@ class ChatWorker:
             except Exception:  # noqa: BLE001
                 pass
         finally:
-            self._active_id = None
             with self._conn_lock:
+                self._active_id = None
                 self._active_conn = None
             self._lock.release()
 
