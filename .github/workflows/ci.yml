@@ -52,7 +52,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-14, ubuntu-latest]
+        os: [windows-latest, macos-15, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
@@ -70,7 +70,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-14]
+        os: [windows-latest, macos-15]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     defaults:
